@@ -1,53 +1,85 @@
-# AI PDF Summarizer (Local RAG)
+# RAG_PM — Hệ thống AI tóm tắt văn bản hành chính
 
-Ứng dụng tóm tắt file PDF sử dụng công nghệ RAG (Retrieval-Augmented Generation) chạy hoàn toàn offline với mô hình Llama 3.2 thông qua Ollama.
+## Cài đặt
 
-## 🌟 Tính năng
-- **Tóm tắt PDF thông minh**: Trích xuất và tóm tắt 5 ý chính quan trọng nhất.
-- **Chạy Offline**: Bảo mật dữ liệu, không tốn phí bản quyền OpenAI.
-- **Giao diện Web hiện đại**: Hỗ trợ kéo thả file, hiệu ứng loading mượt mà.
-- **Lưu lịch sử**: Tự động lưu lại các bản tóm tắt cũ để xem lại nhanh chóng.
+### 1. Clone và cài thư viện
+```bash
+pip install -r requirements.txt
+```
 
-## 🛠 Công nghệ sử dụng
-- **Backend**: FastAPI (Python)
-- **AI Orchestration**: LangChain
-- **Vector Database**: FAISS
-- **Local LLM**: Ollama (Model: `llama3.2`)
-- **Frontend**: HTML5, Tailwind CSS
+### 2. Cấu hình môi trường
+```bash
+cp .env.example .env
+# Sửa .env với thông tin MySQL và model path của bạn
+```
 
-## 📋 Yêu cầu hệ thống
-1. Đã cài đặt [Python 3.9+](https://www.python.org/).
-2. Đã cài đặt [Ollama](https://ollama.com/) và tải model llama3.2:
-   ```bash
-   ollama pull llama3.2
-   ```
+### 3. Tạo database MySQL
+```bash
+mysql -u root -p -e "CREATE DATABASE ragpm CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
 
-## 🚀 Hướng dẫn cài đặt
+### 4. Chạy migration
+```bash
+alembic upgrade head
+```
 
-1. **Clone repository:**
-   ```bash
-   git clone https://github.com/phannhungoc120905/RAG_PM.git
-   cd RAG_PM
-   ```
+### 5. Khởi động server
+```bash
+python main.py
+```
 
-2. **Cài đặt thư viện:**
-   ```bash
-   pip install fastapi uvicorn pypdf langchain-ollama langchain-community faiss-cpu python-multipart python-dotenv
-   ```
+## Cấu trúc thư mục
+```text
+RAG_PM/
+├── .env.example
+├── .gitignore
+├── AI_STORAGE_CONTRACT.md
+├── alembic.ini
+├── config.py
+├── history.json
+├── index.html
+├── logger.py
+├── main.py
+├── README.md
+├── requirements.txt
+├── admin/
+│   ├── __init__.py
+│   ├── router.py
+│   └── service.py
+├── api/
+│   ├── __init__.py
+│   └── router.py
+├── auth/
+│   ├── __init__.py
+│   ├── dependencies.py
+│   ├── middleware.py
+│   ├── router.py
+│   └── service.py
+├── backups/
+├── db/
+│   ├── __init__.py
+│   ├── database.py
+│   ├── models.py
+│   └── migrations/
+│       ├── env.py
+│       ├── script.py.mako
+│       └── versions/
+│           └── 0001_initial_schema.py
+└── uploads/
+    ├── done/
+    ├── failed/
+    └── processing/
+```
 
-3. **Chạy ứng dụng:**
-   ```bash
-   python main.py --port 8002
-   ```
+## API docs
+`http://localhost:8000/docs`
 
-4. **Truy cập:**
-   Mở trình duyệt và vào địa chỉ [http://localhost:8002](http://localhost:8002)
+## Dev A
+Đọc `AI_STORAGE_CONTRACT.md` trước khi bắt đầu. Không tự gọi `os.getenv()`; dùng `from config import settings`.
 
-## 📁 Cấu trúc thư mục
-- `main.py`: Mã nguồn Backend xử lý RAG và API.
-- `index.html`: Giao diện người dùng.
-- `history.json`: Lưu trữ lịch sử tóm tắt (tự sinh).
-- `.gitignore`: Cấu hình bỏ qua các file không cần thiết khi đẩy lên Git.
+## Dev B
+Các endpoint nghiệp vụ sẽ nằm dưới `/api/...`. JWT bearer token lấy từ `/auth/login`, gửi qua header:
 
----
-Phát triển bởi [phannhungoc120905](https://github.com/phannhungoc120905)
+```text
+Authorization: Bearer <access_token>
+```
