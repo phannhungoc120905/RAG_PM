@@ -2,11 +2,7 @@ import hashlib
 import json
 import secrets
 import shutil
-<<<<<<< HEAD
-from datetime import datetime
-=======
 from datetime import date, datetime
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 from pathlib import Path
 from typing import Any
 
@@ -19,11 +15,9 @@ from config import settings
 from db.models import (
     APIKey,
     ChunkMetadata,
-<<<<<<< HEAD
     Document,
     PermissionGroup,
     PermissionGroupFunction,
-=======
     Department,
     Document,
     IssuingUnit,
@@ -32,17 +26,13 @@ from db.models import (
     PermissionGroup,
     PermissionGroupFunction,
     Position,
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     SummaryHistory,
     SystemConfig,
     SystemFunction,
     SystemLog,
     User,
-<<<<<<< HEAD
-=======
     WorkAssignmentDocument,
     WorkItem,
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 )
 
 
@@ -50,25 +40,19 @@ SNAPSHOT_MODELS = [
     PermissionGroup,
     SystemFunction,
     PermissionGroupFunction,
-<<<<<<< HEAD
     User,
-=======
     IssuingUnit,
     Department,
     Position,
     User,
     LoginHistory,
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     SystemConfig,
     Document,
     ChunkMetadata,
     SummaryHistory,
-<<<<<<< HEAD
-=======
     WorkAssignmentDocument,
     WorkItem,
     NoticeDocument,
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     SystemLog,
     APIKey,
 ]
@@ -77,13 +61,11 @@ SNAPSHOT_DELETE_ORDER = [
     PermissionGroupFunction,
     APIKey,
     SystemLog,
-<<<<<<< HEAD
     SummaryHistory,
     ChunkMetadata,
     Document,
     SystemConfig,
     User,
-=======
     WorkItem,
     NoticeDocument,
     WorkAssignmentDocument,
@@ -96,7 +78,6 @@ SNAPSHOT_DELETE_ORDER = [
     Position,
     Department,
     IssuingUnit,
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     SystemFunction,
     PermissionGroup,
 ]
@@ -109,13 +90,9 @@ def list_users(
     search: str | None,
 ) -> tuple[list[User], int]:
     statement: Select[tuple[User]] = select(User).options(
-<<<<<<< HEAD
-        selectinload(User.permission_group)
-=======
         selectinload(User.permission_group),
         selectinload(User.department),
         selectinload(User.position),
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     )
     count_statement = select(func.count()).select_from(User)
 
@@ -128,41 +105,33 @@ def list_users(
         count_statement = count_statement.where(criteria)
 
     total = db.scalar(count_statement) or 0
-    items = db.scalars(
+    items = list(db.scalars(
         statement.order_by(User.id.desc()).offset((page - 1) * page_size).limit(page_size)
-    ).all()
+    ).all())
     return items, total
 
 
 def create_user(db: Session, payload: dict[str, Any]) -> User:
     _assert_unique_user(db, payload["username"], payload.get("email"))
-<<<<<<< HEAD
     permission_group_id = payload.get("permission_group_id")
     if permission_group_id is not None:
         _get_group_or_404(db, permission_group_id)
-=======
     _validate_user_relations(
         db,
         payload.get("permission_group_id"),
         payload.get("department_id"),
         payload.get("position_id"),
     )
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     user = User(
         username=payload["username"],
         email=payload.get("email"),
         hashed_password=hash_password(payload["password"]),
         role=payload.get("role", "user"),
-<<<<<<< HEAD
-        permission_group_id=permission_group_id,
-        is_active=payload.get("is_active", True),
-=======
         permission_group_id=payload.get("permission_group_id"),
         department_id=payload.get("department_id"),
         position_id=payload.get("position_id"),
         is_active=payload.get("is_active", True),
         auth_source=payload.get("auth_source", "local"),
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     )
     db.add(user)
     db.commit()
@@ -185,12 +154,10 @@ def update_user(db: Session, user_id: int, payload: dict[str, Any]) -> User:
             raise HTTPException(status_code=409, detail="Email already exists")
         user.email = email
 
-<<<<<<< HEAD
     for field in ("role", "is_active", "permission_group_id"):
         if field in payload:
             if field == "permission_group_id" and payload[field] is not None:
                 _get_group_or_404(db, payload[field])
-=======
     _validate_user_relations(
         db,
         payload.get("permission_group_id", user.permission_group_id) if "permission_group_id" in payload else user.permission_group_id,
@@ -200,7 +167,6 @@ def update_user(db: Session, user_id: int, payload: dict[str, Any]) -> User:
 
     for field in ("role", "is_active", "permission_group_id", "department_id", "position_id"):
         if field in payload:
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
             setattr(user, field, payload[field])
 
     db.add(user)
@@ -261,16 +227,14 @@ def list_logs(
         count_statement = count_statement.where(SystemLog.created_at <= date_to)
 
     total = db.scalar(count_statement) or 0
-    items = db.scalars(
+    items = list(db.scalars(
         statement.order_by(SystemLog.id.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
-    ).all()
+    ).all())
     return items, total
 
 
-<<<<<<< HEAD
-=======
 def list_login_history(
     db: Session,
     page: int,
@@ -306,15 +270,14 @@ def list_login_history(
         count_statement = count_statement.where(LoginHistory.login_at <= date_to)
 
     total = db.scalar(count_statement) or 0
-    items = db.scalars(
+    items = list(db.scalars(
         statement.order_by(LoginHistory.id.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
-    ).all()
+    ).all())
     return items, total
 
 
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 def export_logs_to_excel(
     db: Session,
     user_id: int | None,
@@ -330,7 +293,7 @@ def export_logs_to_excel(
     export_path = export_dir / f"system_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
 
     workbook = workbook_cls()
-    sheet = workbook.active
+    sheet = workbook.active or workbook.create_sheet("system_logs", 0)
     sheet.title = "system_logs"
     sheet.append(["id", "user_id", "action", "detail", "ip_address", "status_code", "created_at"])
     for item in logs:
@@ -399,11 +362,11 @@ def list_system_configs(
         count_statement = count_statement.where(SystemConfig.category == category)
 
     total = db.scalar(count_statement) or 0
-    items = db.scalars(
+    items = list(db.scalars(
         statement.order_by(SystemConfig.id.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
-    ).all()
+    ).all())
     return items, total
 
 
@@ -439,13 +402,7 @@ def update_system_config(
 ) -> SystemConfig:
     config = _get_config_or_404(db, config_id)
     if "config_key" in payload and payload["config_key"] != config.config_key:
-<<<<<<< HEAD
-        if db.scalar(
-            select(SystemConfig).where(SystemConfig.config_key == payload["config_key"])
-        ):
-=======
         if db.scalar(select(SystemConfig).where(SystemConfig.config_key == payload["config_key"])):
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
             raise HTTPException(status_code=409, detail="Config key already exists")
     for field in ("config_key", "config_value", "category", "data_type", "description", "is_active"):
         if field in payload:
@@ -502,9 +459,9 @@ def list_api_keys(
         count_statement = count_statement.where(criteria)
 
     total = db.scalar(count_statement) or 0
-    items = db.scalars(
+    items = list(db.scalars(
         statement.order_by(APIKey.id.desc()).offset((page - 1) * page_size).limit(page_size)
-    ).all()
+    ).all())
     return items, total
 
 
@@ -568,11 +525,11 @@ def list_permission_groups(
         count_statement = count_statement.where(criteria)
 
     total = db.scalar(count_statement) or 0
-    items = db.scalars(
+    items = list(db.scalars(
         statement.order_by(PermissionGroup.id.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
-    ).all()
+    ).all())
     return items, total
 
 
@@ -642,11 +599,11 @@ def list_system_functions(
         count_statement = count_statement.where(criteria)
 
     total = db.scalar(count_statement) or 0
-    items = db.scalars(
+    items = list(db.scalars(
         statement.order_by(SystemFunction.id.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
-    ).all()
+    ).all())
     return items, total
 
 
@@ -692,8 +649,6 @@ def delete_system_function(db: Session, function_id: int) -> None:
     db.commit()
 
 
-<<<<<<< HEAD
-=======
 def list_issuing_units(
     db: Session,
     page: int,
@@ -715,9 +670,9 @@ def list_issuing_units(
         statement = statement.where(IssuingUnit.is_active == is_active)
         count_statement = count_statement.where(IssuingUnit.is_active == is_active)
     total = db.scalar(count_statement) or 0
-    items = db.scalars(
+    items = list(db.scalars(
         statement.order_by(IssuingUnit.id.desc()).offset((page - 1) * page_size).limit(page_size)
-    ).all()
+    ).all())
     return items, total
 
 
@@ -787,9 +742,9 @@ def list_departments(
         statement = statement.where(Department.is_active == is_active)
         count_statement = count_statement.where(Department.is_active == is_active)
     total = db.scalar(count_statement) or 0
-    items = db.scalars(
+    items = list(db.scalars(
         statement.order_by(Department.id.desc()).offset((page - 1) * page_size).limit(page_size)
-    ).all()
+    ).all())
     return items, total
 
 
@@ -860,9 +815,9 @@ def list_positions(
         statement = statement.where(Position.is_active == is_active)
         count_statement = count_statement.where(Position.is_active == is_active)
     total = db.scalar(count_statement) or 0
-    items = db.scalars(
+    items = list(db.scalars(
         statement.order_by(Position.id.desc()).offset((page - 1) * page_size).limit(page_size)
-    ).all()
+    ).all())
     return items, total
 
 
@@ -940,9 +895,9 @@ def list_work_documents(
         statement = statement.where(WorkAssignmentDocument.assigned_department_id == assigned_department_id)
         count_statement = count_statement.where(WorkAssignmentDocument.assigned_department_id == assigned_department_id)
     total = db.scalar(count_statement) or 0
-    items = db.scalars(
+    items = list(db.scalars(
         statement.order_by(WorkAssignmentDocument.id.desc()).offset((page - 1) * page_size).limit(page_size)
-    ).all()
+    ).all())
     return items, total
 
 
@@ -1015,9 +970,9 @@ def list_work_items(
         statement = statement.where(WorkItem.department_id == department_id)
         count_statement = count_statement.where(WorkItem.department_id == department_id)
     total = db.scalar(count_statement) or 0
-    items = db.scalars(
+    items = list(db.scalars(
         statement.order_by(WorkItem.id.desc()).offset((page - 1) * page_size).limit(page_size)
-    ).all()
+    ).all())
     return items, total
 
 
@@ -1080,9 +1035,9 @@ def list_notice_documents(
         statement = statement.where(NoticeDocument.department_id == department_id)
         count_statement = count_statement.where(NoticeDocument.department_id == department_id)
     total = db.scalar(count_statement) or 0
-    items = db.scalars(
+    items = list(db.scalars(
         statement.order_by(NoticeDocument.id.desc()).offset((page - 1) * page_size).limit(page_size)
-    ).all()
+    ).all())
     return items, total
 
 
@@ -1118,7 +1073,6 @@ def delete_notice_document(db: Session, notice_id: int) -> None:
     db.commit()
 
 
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 def create_backup(db: Session, actor_user_id: int) -> dict[str, Any]:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_root = Path(settings.BACKUP_DIR) / timestamp
@@ -1268,8 +1222,6 @@ def _assert_unique_user(db: Session, username: str, email: str | None) -> None:
         raise HTTPException(status_code=409, detail="Email already exists")
 
 
-<<<<<<< HEAD
-=======
 def _validate_user_relations(
     db: Session,
     permission_group_id: int | None,
@@ -1286,7 +1238,6 @@ def _validate_user_relations(
             raise HTTPException(status_code=400, detail="Position does not belong to selected department")
 
 
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 def _get_user_or_404(db: Session, user_id: int) -> User:
     user = db.get(User, user_id)
     if not user:
@@ -1322,8 +1273,6 @@ def _get_function_or_404(db: Session, function_id: int) -> SystemFunction:
     return function
 
 
-<<<<<<< HEAD
-=======
 def _get_issuing_unit_or_404(db: Session, unit_id: int) -> IssuingUnit:
     item = db.get(IssuingUnit, unit_id)
     if not item:
@@ -1366,7 +1315,6 @@ def _get_notice_document_or_404(db: Session, notice_id: int) -> NoticeDocument:
     return item
 
 
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 def _replace_group_permissions(
     db: Session,
     group: PermissionGroup,
@@ -1395,8 +1343,6 @@ def _replace_group_permissions(
         )
 
 
-<<<<<<< HEAD
-=======
 def _validate_work_document_relations(db: Session, payload: dict[str, Any]) -> None:
     if payload.get("issuing_unit_id") is not None:
         _get_issuing_unit_or_404(db, payload["issuing_unit_id"])
@@ -1428,7 +1374,6 @@ def _validate_notice_relations(db: Session, payload: dict[str, Any]) -> None:
         _get_user_or_404(db, payload["posted_by_user_id"])
 
 
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 def _sync_config_to_settings(config_key: str, config_value: str, data_type: str) -> None:
     mapping = {
         "MODEL_NAME": "MODEL_NAME",
@@ -1441,13 +1386,10 @@ def _sync_config_to_settings(config_key: str, config_value: str, data_type: str)
         "UPLOAD_DIR": "UPLOAD_DIR",
         "MAX_FILE_SIZE_MB": "MAX_FILE_SIZE_MB",
         "BACKUP_DIR": "BACKUP_DIR",
-<<<<<<< HEAD
-=======
         "SSO_ENABLED": "SSO_ENABLED",
         "SSO_PROVIDER_NAME": "SSO_PROVIDER_NAME",
         "SSO_SHARED_SECRET": "SSO_SHARED_SECRET",
         "SSO_AUTO_CREATE_USERS": "SSO_AUTO_CREATE_USERS",
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     }
     setting_name = mapping.get(config_key.upper())
     if not setting_name:
@@ -1475,12 +1417,8 @@ def _restore_db_snapshot(db: Session, snapshot: dict[str, list[dict[str, Any]]])
         db.execute(delete(model))
     db.commit()
 
-<<<<<<< HEAD
     insert_order = SNAPSHOT_MODELS
     for model in insert_order:
-=======
-    for model in SNAPSHOT_MODELS:
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
         rows = snapshot.get(model.__tablename__, [])
         if not rows:
             continue
@@ -1493,11 +1431,7 @@ def _serialize_model_row(model: type, row: Any) -> dict[str, Any]:
     data: dict[str, Any] = {}
     for column in model.__table__.columns:
         value = getattr(row, column.name)
-<<<<<<< HEAD
-        if isinstance(value, datetime):
-=======
         if isinstance(value, (datetime, date)):
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
             data[column.name] = value.isoformat()
         else:
             data[column.name] = value
@@ -1517,11 +1451,8 @@ def _deserialize_model_row(model: type, row: dict[str, Any]) -> dict[str, Any]:
             python_type = None
         if python_type is datetime and isinstance(value, str):
             restored[column.name] = datetime.fromisoformat(value)
-<<<<<<< HEAD
-=======
         elif python_type is date and isinstance(value, str):
             restored[column.name] = date.fromisoformat(value)
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
         else:
             restored[column.name] = value
     return restored
