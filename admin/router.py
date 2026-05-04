@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+from datetime import datetime
+=======
 from datetime import date, datetime
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import FileResponse
@@ -8,6 +12,16 @@ from sqlalchemy.orm import Session
 from admin.service import (
     create_api_key,
     create_backup,
+<<<<<<< HEAD
+    create_permission_group,
+    create_system_config,
+    create_system_function,
+    create_user,
+    delete_api_key,
+    delete_permission_group,
+    delete_system_config,
+    delete_system_function,
+=======
     create_department,
     create_issuing_unit,
     create_notice_document,
@@ -28,11 +42,19 @@ from admin.service import (
     delete_system_function,
     delete_work_document,
     delete_work_item,
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     export_logs_to_excel,
     get_safe_config,
     get_system_status,
     list_api_keys,
     list_backups,
+<<<<<<< HEAD
+    list_logs,
+    list_permission_groups,
+    list_system_configs,
+    list_system_functions,
+    list_users,
+=======
     list_departments,
     list_issuing_units,
     list_login_history,
@@ -45,21 +67,29 @@ from admin.service import (
     list_users,
     list_work_documents,
     list_work_items,
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     reset_user_password,
     restore_backup,
     toggle_user_active,
     update_api_key,
+<<<<<<< HEAD
+    update_permission_group,
+=======
     update_department,
     update_issuing_unit,
     update_notice_document,
     update_permission_group,
     update_position,
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     update_runtime_config,
     update_system_config,
     update_system_function,
     update_user,
+<<<<<<< HEAD
+=======
     update_work_document,
     update_work_item,
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 )
 from auth.dependencies import require_admin
 from db.database import get_db
@@ -230,8 +260,11 @@ class UserCreateRequest(BaseModel):
     password: str = Field(min_length=6)
     role: str = "user"
     permission_group_id: int | None = None
+<<<<<<< HEAD
+=======
     department_id: int | None = None
     position_id: int | None = None
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     is_active: bool = True
 
 
@@ -240,8 +273,11 @@ class UserUpdateRequest(BaseModel):
     email: str | None = None
     role: str | None = None
     permission_group_id: int | None = None
+<<<<<<< HEAD
+=======
     department_id: int | None = None
     position_id: int | None = None
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     is_active: bool | None = None
 
 
@@ -256,11 +292,14 @@ class UserItem(BaseModel):
     role: str
     permission_group_id: int | None
     permission_group_name: str | None
+<<<<<<< HEAD
+=======
     department_id: int | None
     department_name: str | None
     position_id: int | None
     position_name: str | None
     auth_source: str
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     is_active: bool
     created_at: datetime
     last_login: datetime | None
@@ -300,6 +339,8 @@ class LogsResponse(BaseModel):
     page_size: int
 
 
+<<<<<<< HEAD
+=======
 class LoginHistoryItem(BaseModel):
     id: int
     user_id: int | None
@@ -326,6 +367,7 @@ class NamedListResponse(BaseModel):
     page_size: int
 
 
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 class DiskInfo(BaseModel):
     total_gb: float
     used_gb: float
@@ -395,6 +437,8 @@ class RestoreBackupResponse(BaseModel):
     restored_at: str
 
 
+<<<<<<< HEAD
+=======
 class IssuingUnitCreateRequest(BaseModel):
     code: str
     name: str
@@ -654,6 +698,7 @@ class NoticeDocumentsResponse(BaseModel):
     page_size: int
 
 
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 def _serialize_user(item) -> UserItem:
     return UserItem(
         id=item.id,
@@ -662,11 +707,14 @@ def _serialize_user(item) -> UserItem:
         role=item.role,
         permission_group_id=item.permission_group_id,
         permission_group_name=item.permission_group.name if item.permission_group else None,
+<<<<<<< HEAD
+=======
         department_id=item.department_id,
         department_name=item.department.name if item.department else None,
         position_id=item.position_id,
         position_name=item.position.name if item.position else None,
         auth_source=item.auth_source,
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
         is_active=item.is_active,
         created_at=item.created_at,
         last_login=item.last_login,
@@ -697,6 +745,8 @@ def _serialize_permission_group(item) -> PermissionGroupItem:
     )
 
 
+<<<<<<< HEAD
+=======
 def _serialize_issuing_unit(item) -> IssuingUnitItem:
     return IssuingUnitItem(
         id=item.id,
@@ -804,6 +854,7 @@ def _serialize_notice_document(item) -> NoticeDocumentItem:
     )
 
 
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 @router.get("/configs", response_model=SystemConfigsResponse)
 async def get_system_configs(
     page: int = Query(default=1, ge=1),
@@ -813,7 +864,10 @@ async def get_system_configs(
     admin_user: dict = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> SystemConfigsResponse:
+<<<<<<< HEAD
+=======
     del admin_user
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     items, total = list_system_configs(db, page, page_size, search, category)
     return SystemConfigsResponse(
         items=[
@@ -865,7 +919,16 @@ async def edit_config(
     admin_user: dict = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> SystemConfigItem:
+<<<<<<< HEAD
+    item = update_system_config(
+        db,
+        config_id,
+        int(admin_user["sub"]),
+        payload.model_dump(exclude_none=True),
+    )
+=======
     item = update_system_config(db, config_id, int(admin_user["sub"]), payload.model_dump(exclude_none=True))
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     return SystemConfigItem(
         id=item.id,
         config_key=item.config_key,
@@ -928,7 +991,16 @@ async def add_api_key(
     db: Session = Depends(get_db),
 ) -> APIKeyCreateResponse:
     item, plain_key = create_api_key(db, int(admin_user["sub"]), payload.model_dump())
+<<<<<<< HEAD
+    return APIKeyCreateResponse(
+        id=item.id,
+        name=item.name,
+        plain_key=plain_key,
+        created_at=item.created_at,
+    )
+=======
     return APIKeyCreateResponse(id=item.id, name=item.name, plain_key=plain_key, created_at=item.created_at)
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
 
 @router.put("/api-keys/{api_key_id}", response_model=APIKeyItem)
@@ -973,7 +1045,16 @@ async def get_permission_groups(
 ) -> PermissionGroupsResponse:
     del admin_user
     items, total = list_permission_groups(db, page, page_size, search)
+<<<<<<< HEAD
+    return PermissionGroupsResponse(
+        items=[_serialize_permission_group(item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+=======
     return PermissionGroupsResponse(items=[_serialize_permission_group(item) for item in items], total=total, page=page, page_size=page_size)
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
 
 @router.post("/permission-groups", response_model=PermissionGroupItem)
@@ -1104,7 +1185,16 @@ async def get_users(
 ) -> UsersResponse:
     del admin_user
     items, total = list_users(db, page, page_size, search)
+<<<<<<< HEAD
+    return UsersResponse(
+        items=[_serialize_user(item) for item in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+=======
     return UsersResponse(items=[_serialize_user(item) for item in items], total=total, page=page, page_size=page_size)
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
 
 @router.post("/users", response_model=UserItem)
@@ -1151,7 +1241,15 @@ async def toggle_active(
     db: Session = Depends(get_db),
 ) -> ToggleActiveResponse:
     item = toggle_user_active(db, user_id, int(admin_user["sub"]))
+<<<<<<< HEAD
+    return ToggleActiveResponse(
+        id=item.id,
+        is_active=item.is_active,
+        message="User status updated",
+    )
+=======
     return ToggleActiveResponse(id=item.id, is_active=item.is_active, message="User status updated")
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
 
 @router.get("/logs", response_model=LogsResponse)
@@ -1211,6 +1309,12 @@ async def export_usage_logs(
 ) -> FileResponse:
     del admin_user
     path = export_logs_to_excel(db, user_id, action, date_from, date_to)
+<<<<<<< HEAD
+    return FileResponse(
+        path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename=path.name,
+=======
     return FileResponse(path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename=path.name)
 
 
@@ -1248,6 +1352,7 @@ async def get_login_history(
         total=total,
         page=page,
         page_size=page_size,
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     )
 
 
@@ -1267,7 +1372,13 @@ async def system_status(
 
 
 @router.get("/config", response_model=AdminConfigResponse)
+<<<<<<< HEAD
+async def get_config(
+    admin_user: dict = Depends(require_admin),
+) -> AdminConfigResponse:
+=======
 async def get_config(admin_user: dict = Depends(require_admin)) -> AdminConfigResponse:
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     del admin_user
     return AdminConfigResponse(**get_safe_config())
 
@@ -1290,7 +1401,13 @@ async def backup_now(
 
 
 @router.get("/backup", response_model=list[BackupItem])
+<<<<<<< HEAD
+async def get_backups(
+    admin_user: dict = Depends(require_admin),
+) -> list[BackupItem]:
+=======
 async def get_backups(admin_user: dict = Depends(require_admin)) -> list[BackupItem]:
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     del admin_user
     return [BackupItem(**item) for item in list_backups()]
 
@@ -1302,6 +1419,12 @@ async def restore_backup_data(
     db: Session = Depends(get_db),
 ) -> RestoreBackupResponse:
     result = restore_backup(db, backup_name, int(admin_user["sub"]))
+<<<<<<< HEAD
+    return RestoreBackupResponse(
+        backup_name=result["backup_name"],
+        restored_at=result["restored_at"],
+    )
+=======
     return RestoreBackupResponse(backup_name=result["backup_name"], restored_at=result["restored_at"])
 
 
@@ -1589,3 +1712,4 @@ async def remove_notice_document(
     del admin_user
     delete_notice_document(db, notice_id)
     return MessageResponse(message="Notice document deleted")
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec

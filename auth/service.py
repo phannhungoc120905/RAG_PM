@@ -48,8 +48,11 @@ def create_access_token(data: dict[str, Any]) -> str:
         "role": data["role"],
         "exp": expire,
     }
+<<<<<<< HEAD
+=======
     if data.get("session_id"):
         payload["session_id"] = data["session_id"]
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     return _get_jwt_module().encode(payload, settings.SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -81,11 +84,14 @@ async def get_user_by_username(username: str, db: Session) -> User | None:
     return db.scalar(statement)
 
 
+<<<<<<< HEAD
+=======
 async def get_user_by_sso_subject(sso_subject: str, db: Session) -> User | None:
     statement = select(User).where(User.sso_subject == sso_subject)
     return db.scalar(statement)
 
 
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 async def authenticate_user(username: str, password: str, db: Session) -> User | None:
     user = await get_user_by_username(username, db)
     if not user or not verify_password(password, user.hashed_password):

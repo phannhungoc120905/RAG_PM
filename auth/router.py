@@ -1,9 +1,20 @@
+<<<<<<< HEAD
+=======
 import json
 import secrets
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
+<<<<<<< HEAD
+from sqlalchemy.orm import Session
+
+from auth.dependencies import get_current_user, require_active_user
+from auth.service import authenticate_user, create_access_token
+from db.database import get_db
+from db.models import SystemLog, User
+=======
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -17,6 +28,7 @@ from auth.service import (
 from config import settings
 from db.database import get_db
 from db.models import LoginHistory, SystemLog, User
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
 
 router = APIRouter()
@@ -27,6 +39,8 @@ class LoginRequest(BaseModel):
     password: str
 
 
+<<<<<<< HEAD
+=======
 class SSOLoginRequest(BaseModel):
     username: str
     email: str | None = None
@@ -35,6 +49,7 @@ class SSOLoginRequest(BaseModel):
     shared_secret: str
 
 
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 class UserInfo(BaseModel):
     id: int
     username: str
@@ -59,9 +74,12 @@ class MeResponse(BaseModel):
     is_active: bool
     created_at: datetime
     last_login: datetime | None
+<<<<<<< HEAD
+=======
     auth_source: str
     department_id: int | None
     position_id: int | None
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
 
 def _write_system_log(
@@ -84,6 +102,8 @@ def _write_system_log(
     db.commit()
 
 
+<<<<<<< HEAD
+=======
 def _create_login_history(
     db: Session,
     user: User | None,
@@ -136,6 +156,7 @@ def _build_login_response(user: User, session_id: str) -> LoginResponse:
     )
 
 
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 @router.post("/login", response_model=LoginResponse)
 async def login(
     payload: LoginRequest,
@@ -144,6 +165,8 @@ async def login(
 ) -> LoginResponse:
     user = await authenticate_user(payload.username, payload.password, db)
     if not user or not user.is_active:
+<<<<<<< HEAD
+=======
         _create_login_history(
             db,
             user=None,
@@ -153,6 +176,7 @@ async def login(
             status_value="failed",
             detail="invalid_credentials",
         )
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
         _write_system_log(
             db,
             action="login",
@@ -165,6 +189,10 @@ async def login(
             detail="Invalid username or password",
         )
 
+<<<<<<< HEAD
+    token = create_access_token(
+        {"sub": user.id, "username": user.username, "role": user.role}
+=======
     session_id = _create_login_history(
         db,
         user=user,
@@ -172,6 +200,7 @@ async def login(
         request=request,
         login_type="local",
         status_value="success",
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     )
     user.last_login = datetime.utcnow()
     db.add(user)
@@ -186,6 +215,13 @@ async def login(
         user_id=user.id,
     )
 
+<<<<<<< HEAD
+    return LoginResponse(
+        access_token=token,
+        token_type="bearer",
+        user=UserInfo(id=user.id, username=user.username, role=user.role),
+    )
+=======
     return _build_login_response(user, session_id)
 
 
@@ -279,6 +315,7 @@ async def sso_login(
         detail=json.dumps({"provider": settings.SSO_PROVIDER_NAME}, ensure_ascii=False),
     )
     return _build_login_response(user, session_id)
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
 
 @router.post("/logout", response_model=LogoutResponse)
@@ -287,7 +324,10 @@ async def logout(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> LogoutResponse:
+<<<<<<< HEAD
+=======
     _mark_logout(db, current_user.get("session_id"))
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     _write_system_log(
         db,
         action="logout",
@@ -308,7 +348,10 @@ async def me(current_user: User = Depends(require_active_user)) -> MeResponse:
         is_active=current_user.is_active,
         created_at=current_user.created_at,
         last_login=current_user.last_login,
+<<<<<<< HEAD
+=======
         auth_source=current_user.auth_source,
         department_id=current_user.department_id,
         position_id=current_user.position_id,
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     )

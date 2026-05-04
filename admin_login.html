@@ -241,6 +241,8 @@
                 <div><strong>Current token state</strong></div>
                 <div class="mini-copy" id="tokenState">No admin session stored.</div>
             </div>
+<<<<<<< HEAD
+=======
             <div class="status-box">
                 <div><strong>Mock Internal SSO</strong></div>
                 <p class="mini-copy">Use this only to test KT-01 before connecting to the real internal SSO gateway.</p>
@@ -264,6 +266,7 @@
                     <button class="btn-ghost" id="ssoLoginBtn" type="button">Login with Mock SSO</button>
                 </div>
             </div>
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
             <div class="toast" id="message">Ready.</div>
         </section>
     </div>
@@ -316,6 +319,9 @@
             }
         }
 
+<<<<<<< HEAD
+        document.getElementById("loginBtn").addEventListener("click", login);
+=======
         async function loginWithSso() {
             const payload = {
                 username: document.getElementById("ssoUsername").value.trim(),
@@ -357,6 +363,7 @@
 
         document.getElementById("loginBtn").addEventListener("click", login);
         document.getElementById("ssoLoginBtn").addEventListener("click", loginWithSso);
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
         document.getElementById("password").addEventListener("keydown", event => {
             if (event.key === "Enter") {
                 login();
