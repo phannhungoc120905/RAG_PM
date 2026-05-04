@@ -1,88 +1,144 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Query
-from ocr.service import OCRService
-from pydantic import BaseModel
-from typing import List, Dict, Any
 import logging
+from typing import Any
+
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from pydantic import BaseModel, Field
+
+from ocr.service import OCRService
+
 
 router = APIRouter(prefix="/ocr", tags=["OCR"])
 ocr_service = OCRService()
 logger = logging.getLogger(__name__)
 
+
 class QueryRequest(BaseModel):
     query: str
-    top_k: int = 5
+    top_k: int = Field(default=5, ge=1, le=20)
+
+
+class TextAnalyzeRequest(BaseModel):
+    text: str
+
+
+@router.get("/supported-formats")
+async def supported_formats() -> dict[str, list[str]]:
+    return {
+        "formats": ["pdf", "docx", "txt", "jpg", "jpeg", "png", "bmp", "tif", "tiff"],
+    }
+
 
 @router.post("/extract-text")
-async def extract_text(file: UploadFile = File(...)):
-    """
-    Endpoint to extract text from images or PDFs.
-    Supports Vietnamese and English.
-    """
+async def extract_text(file: UploadFile = File(...)) -> dict[str, Any]:
     try:
         content = await file.read()
-        text = ocr_service.process_file(content, file.filename)
-        return {"filename": file.filename, "text": text}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error processing file {file.filename}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        result = ocr_service.process_document(content, file.filename)
+        return {
+            "filename": file.filename,
+            "text": result["clean_text"],
+            "page_count": result["page_count"],
+            "page_index": result["page_index"],
+            "classification": result["classification"],
+            "structure": result["structure"],
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.exception("Error extracting text from %s", file.filename)
+        raise HTTPException(status_code=500, detail=f"Internal server error: {exc}")
+
+
+@router.post("/analyze")
+async def analyze_document(file: UploadFile = File(...)) -> dict[str, Any]:
+    try:
+        content = await file.read()
+        result = ocr_service.process_document(content, file.filename)
+        return {
+            "status": "success",
+            "filename": result["filename"],
+            "extension": result["extension"],
+            "page_count": result["page_count"],
+            "page_index": result["page_index"],
+            "classification": result["classification"],
+            "structure": result["structure"],
+            "chunks_count": len(result["chunks"]),
+            "chunks": result["chunks"],
+            "text": result["clean_text"],
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.exception("Analyze error for %s", file.filename)
+        raise HTTPException(status_code=500, detail=f"Analyze failed: {exc}")
+
+
+@router.post("/analyze-text")
+async def analyze_text(payload: TextAnalyzeRequest) -> dict[str, Any]:
+    normalized = ocr_service.normalize_text(payload.text)
+    chunks = ocr_service.chunk_text(normalized)
+    return {
+        "text": normalized,
+        "classification": ocr_service.classify_document(normalized),
+        "structure": ocr_service.detect_document_structure(normalized),
+        "chunks_count": len(chunks),
+        "chunks": chunks,
+    }
+
 
 @router.post("/upload-process")
-async def upload_and_process(file: UploadFile = File(...)):
-    """
-    Flow: OCR -> Normalize -> Chunk -> Embedding -> Store
-    """
+async def upload_and_process(file: UploadFile = File(...)) -> dict[str, Any]:
     try:
-        # 1. OCR
         content = await file.read()
-        raw_text = ocr_service.process_file(content, file.filename)
-        
-        # 2. Normalize
-        clean_text = ocr_service.normalize_text(raw_text)
-        
-        # 3. Chunk
-        chunks = ocr_service.chunk_text(clean_text)
+        result = ocr_service.process_document(content, file.filename)
+        chunks = result["chunks"]
         if not chunks:
-            return {"status": "success", "message": "No text detected to process", "chunks_count": 0}
-            
-        # 4. Embedding
+            return {
+                "status": "success",
+                "message": "No text detected to process",
+                "filename": file.filename,
+                "page_count": result["page_count"],
+                "classification": result["classification"],
+                "structure": result["structure"],
+                "chunks_count": 0,
+            }
+
         embedded_chunks = ocr_service.embed_chunks(chunks)
-        
-        # 5. Store
         ocr_service.store_embeddings(embedded_chunks)
-        
+
         return {
-            "status": "success", 
-            "filename": file.filename, 
-            "chunks_count": len(chunks)
+            "status": "success",
+            "filename": file.filename,
+            "page_count": result["page_count"],
+            "page_index": result["page_index"],
+            "classification": result["classification"],
+            "structure": result["structure"],
+            "chunks_count": len(chunks),
         }
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Processing error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal processing error")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.exception("Processing error for %s", file.filename)
+        raise HTTPException(status_code=500, detail=f"Internal processing error: {exc}")
+
 
 @router.post("/search")
-async def search_chunks(request: QueryRequest):
-    """
-    Perform hybrid search (BM25 + Vector)
-    """
+async def search_chunks(request: QueryRequest) -> dict[str, Any]:
     try:
         results = ocr_service.hybrid_search(request.query, top_k=request.top_k)
-        return {"query": request.query, "results": results}
-    except Exception as e:
-        logger.error(f"Search error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Search failed")
+        return {
+            "query": request.query,
+            "results": results,
+        }
+    except Exception as exc:
+        logger.exception("Search error for query=%s", request.query)
+        raise HTTPException(status_code=500, detail=f"Search failed: {exc}")
+
 
 @router.post("/summarize")
-async def summarize_ask(request: QueryRequest):
-    """
-    RAG Pipeline: Hybrid Search + LLM Answer
-    """
+async def summarize_ask(request: QueryRequest) -> dict[str, Any]:
     try:
         result = await ocr_service.get_rag_answer(request.query, top_k=request.top_k)
         return result
-    except Exception as e:
-        logger.error(f"RAG error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to generate answer")
+    except Exception as exc:
+        logger.exception("RAG error for query=%s", request.query)
+        raise HTTPException(status_code=500, detail=f"Failed to generate answer: {exc}")
