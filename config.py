@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    # Internal SSO
+    SSO_ENABLED: bool = True
+    SSO_PROVIDER_NAME: str = "internal_mock"
+    SSO_SHARED_SECRET: str = "change-me-sso"
+    SSO_AUTO_CREATE_USERS: bool = True
+
     # Database
     DB_HOST: str = "localhost"
     DB_PORT: int = 3306

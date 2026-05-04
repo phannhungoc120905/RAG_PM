@@ -692,6 +692,13 @@
                     <button class="nav-btn" data-view="users">Users <small>QT-05 admin and user accounts</small></button>
                     <button class="nav-btn" data-view="logs">API Logs <small>QT-06 access traces</small></button>
                     <button class="nav-btn" data-view="usage-logs">Usage Logs <small>QT-07 exportable activity history</small></button>
+                    <button class="nav-btn" data-view="login-history">Login History <small>KT-02 login and logout journal</small></button>
+                    <button class="nav-btn" data-view="issuing-units">Issuing Units <small>KT-03 document authority catalog</small></button>
+                    <button class="nav-btn" data-view="departments">Departments <small>KT-04 organization structure</small></button>
+                    <button class="nav-btn" data-view="positions">Positions <small>KT-04 titles and roles</small></button>
+                    <button class="nav-btn" data-view="work-documents">Work Documents <small>KT-05 assignment documents</small></button>
+                    <button class="nav-btn" data-view="work-items">Work Items <small>KT-06 task list registry</small></button>
+                    <button class="nav-btn" data-view="notice-documents">Notice Documents <small>KT-07 internal notices</small></button>
                     <button class="nav-btn" data-view="backups">Backups <small>QT-08 backup and restore</small></button>
                 </div>
                 <div class="sidebar-footer">
@@ -821,6 +828,75 @@
                     <div class="table-wrap"><table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Detail</th><th>Status</th></tr></thead><tbody id="usageLogsTable"></tbody></table></div>
                 </section>
 
+                <section id="view-login-history" class="view hidden">
+                    <div class="filter-row">
+                        <label>Search <input id="loginHistorySearch" placeholder="Username"></label>
+                        <label>User ID <input id="loginHistoryUserId" type="number" min="1" placeholder="Optional"></label>
+                        <label>Type <input id="loginHistoryType" placeholder="local / sso"></label>
+                        <label>Status <input id="loginHistoryStatus" placeholder="success / failed"></label>
+                        <label>Date from <input id="loginHistoryDateFrom" type="datetime-local"></label>
+                        <label>Date to <input id="loginHistoryDateTo" type="datetime-local"></label>
+                    </div>
+                    <div class="grid-buttons">
+                        <button class="btn-dark" type="button" id="loadLoginHistoryBtn">Load login history</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Login at</th><th>User</th><th>Type</th><th>Status</th><th>Logout</th><th>Detail</th></tr></thead><tbody id="loginHistoryTable"></tbody></table></div>
+                </section>
+
+                <section id="view-issuing-units" class="view hidden">
+                    <div class="actions-row">
+                        <label>Search <input id="issuingUnitSearch" placeholder="Search code or name"></label>
+                        <button class="btn-dark" type="button" id="loadIssuingUnitsBtn">Load units</button>
+                        <button class="btn-primary" type="button" id="newIssuingUnitBtn">Create unit</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Unit</th><th>Parent</th><th>Address</th><th>State</th><th>Actions</th></tr></thead><tbody id="issuingUnitsTable"></tbody></table></div>
+                </section>
+
+                <section id="view-departments" class="view hidden">
+                    <div class="actions-row">
+                        <label>Search <input id="departmentSearch" placeholder="Search code or name"></label>
+                        <button class="btn-dark" type="button" id="loadDepartmentsBtn">Load departments</button>
+                        <button class="btn-primary" type="button" id="newDepartmentBtn">Create department</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Department</th><th>Unit</th><th>Parent</th><th>State</th><th>Actions</th></tr></thead><tbody id="departmentsTable"></tbody></table></div>
+                </section>
+
+                <section id="view-positions" class="view hidden">
+                    <div class="actions-row">
+                        <label>Search <input id="positionSearch" placeholder="Search code or name"></label>
+                        <button class="btn-dark" type="button" id="loadPositionsBtn">Load positions</button>
+                        <button class="btn-primary" type="button" id="newPositionBtn">Create position</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Position</th><th>Department</th><th>Description</th><th>State</th><th>Actions</th></tr></thead><tbody id="positionsTable"></tbody></table></div>
+                </section>
+
+                <section id="view-work-documents" class="view hidden">
+                    <div class="actions-row">
+                        <label>Search <input id="workDocumentSearch" placeholder="Code or title"></label>
+                        <button class="btn-dark" type="button" id="loadWorkDocumentsBtn">Load work docs</button>
+                        <button class="btn-primary" type="button" id="newWorkDocumentBtn">Create work doc</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Document</th><th>Origin</th><th>Assigned to</th><th>Status</th><th>Actions</th></tr></thead><tbody id="workDocumentsTable"></tbody></table></div>
+                </section>
+
+                <section id="view-work-items" class="view hidden">
+                    <div class="actions-row">
+                        <label>Search <input id="workItemSearch" placeholder="Title or description"></label>
+                        <button class="btn-dark" type="button" id="loadWorkItemsBtn">Load work items</button>
+                        <button class="btn-primary" type="button" id="newWorkItemBtn">Create work item</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Task</th><th>Document</th><th>Assignee</th><th>Status</th><th>Actions</th></tr></thead><tbody id="workItemsTable"></tbody></table></div>
+                </section>
+
+                <section id="view-notice-documents" class="view hidden">
+                    <div class="actions-row">
+                        <label>Search <input id="noticeDocumentSearch" placeholder="Code or title"></label>
+                        <button class="btn-dark" type="button" id="loadNoticeDocumentsBtn">Load notices</button>
+                        <button class="btn-primary" type="button" id="newNoticeDocumentBtn">Create notice</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Notice</th><th>Origin</th><th>Effective</th><th>Status</th><th>Actions</th></tr></thead><tbody id="noticeDocumentsTable"></tbody></table></div>
+                </section>
+
                 <section id="view-backups" class="view hidden">
                     <div class="grid-buttons">
                         <button class="btn-primary" type="button" id="createBackupBtn">Create backup</button>
@@ -860,6 +936,13 @@
             configs: [],
             apiKeys: [],
             users: [],
+            loginHistory: [],
+            issuingUnits: [],
+            departments: [],
+            positions: [],
+            workDocuments: [],
+            workItems: [],
+            noticeDocuments: [],
             backups: [],
         };
 
@@ -888,6 +971,13 @@
             users: ["Users", "Create, edit, suspend, and reset passwords for accounts."],
             logs: ["API Logs", "Inspect raw access events and filter request-level traces."],
             "usage-logs": ["Usage Logs", "Review system activity and export the journal to Excel."],
+            "login-history": ["Login History", "Track local and SSO sign-in or sign-out activity."],
+            "issuing-units": ["Issuing Units", "Manage authorities that issue or publish administrative documents."],
+            departments: ["Departments", "Manage internal organization branches and reporting structure."],
+            positions: ["Positions", "Maintain department titles and staff positions."],
+            "work-documents": ["Work Documents", "Register assignment documents between units and departments."],
+            "work-items": ["Work Items", "Track actionable tasks extracted from work assignment documents."],
+            "notice-documents": ["Notice Documents", "Manage internal notice and announcement documents."],
             backups: ["Backups", "Create, inspect, and restore operational snapshots."],
         };
 
@@ -1012,6 +1102,43 @@
             return active
                 ? '<span class="chip ok">Active</span>'
                 : '<span class="chip danger">Inactive</span>';
+        }
+
+        function formatDateInput(value) {
+            if (!value) return "";
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return "";
+            return date.toISOString().slice(0, 10);
+        }
+
+        function buildOptions(items, selectedValue, placeholder, formatter) {
+            const base = [`<option value="">${escapeHtml(placeholder)}</option>`];
+            return base.concat(
+                items.map(item => {
+                    const label = formatter(item);
+                    return `<option value="${item.id}" ${selectedValue === item.id ? "selected" : ""}>${escapeHtml(label)}</option>`;
+                })
+            ).join("");
+        }
+
+        async function loadOrgLookups() {
+            const [units, departments, positions] = await Promise.all([
+                apiFetch("/admin/issuing-units?page=1&page_size=200"),
+                apiFetch("/admin/departments?page=1&page_size=200"),
+                apiFetch("/admin/positions?page=1&page_size=200"),
+            ]);
+            state.issuingUnits = units.items;
+            state.departments = departments.items;
+            state.positions = positions.items;
+        }
+
+        async function loadUserAndWorkLookups() {
+            const [users, docs] = await Promise.all([
+                apiFetch("/admin/users?page=1&page_size=200"),
+                apiFetch("/admin/work-documents?page=1&page_size=200"),
+            ]);
+            state.users = users.items;
+            state.workDocuments = docs.items;
         }
 
         async function loadOverviewData() {
@@ -1442,7 +1569,7 @@
             state.users = data.items;
             document.getElementById("usersTable").innerHTML = data.items.map(item => `
                 <tr>
-                    <td><strong>${escapeHtml(item.username)}</strong><div class="helper">${escapeHtml(item.email || "--")}</div></td>
+                    <td><strong>${escapeHtml(item.username)}</strong><div class="helper">${escapeHtml(item.email || "--")}</div><div class="helper">${escapeHtml(item.department_name || "--")} / ${escapeHtml(item.position_name || "--")}</div></td>
                     <td><span class="chip ${item.role === "admin" ? "warn" : ""}">${escapeHtml(item.role)}</span></td>
                     <td>${escapeHtml(item.permission_group_name || "--")}</td>
                     <td>${statusChip(item.is_active)}</td>
@@ -1461,6 +1588,8 @@
             const groupOptions = ['<option value="">No group</option>'].concat(
                 state.groups.map(group => `<option value="${group.id}" ${item?.permission_group_id === group.id ? "selected" : ""}>${escapeHtml(group.name)}</option>`)
             ).join("");
+            const departmentOptions = buildOptions(state.departments, item?.department_id, "No department", entry => `${entry.code} - ${entry.name}`);
+            const positionOptions = buildOptions(state.positions, item?.position_id, "No position", entry => `${entry.code} - ${entry.name}`);
             openDrawer(
                 item ? "Edit User" : "Create User",
                 "QT-05 Account Administration",
@@ -1478,6 +1607,12 @@
                     <label>Permission group
                         <select name="permission_group_id">${groupOptions}</select>
                     </label>
+                    <label>Department
+                        <select name="department_id">${departmentOptions}</select>
+                    </label>
+                    <label>Position
+                        <select name="position_id">${positionOptions}</select>
+                    </label>
                     <label><input type="checkbox" name="is_active" ${item?.is_active ?? true ? "checked" : ""}> Active</label>
                     <div class="grid-buttons">
                         <button class="btn-primary" type="submit">${item ? "Save changes" : "Create user"}</button>
@@ -1493,6 +1628,8 @@
                     email: form.get("email") || null,
                     role: form.get("role"),
                     permission_group_id: form.get("permission_group_id") ? Number(form.get("permission_group_id")) : null,
+                    department_id: form.get("department_id") ? Number(form.get("department_id")) : null,
+                    position_id: form.get("position_id") ? Number(form.get("position_id")) : null,
                     is_active: form.get("is_active") === "on",
                 };
                 if (!item) {
@@ -1567,6 +1704,491 @@
                     <td>${escapeHtml(item.status_code ?? "--")}</td>
                 </tr>
             `).join("") || `<tr><td colspan="5" class="helper">No log rows found.</td></tr>`;
+        }
+
+        async function loadLoginHistory() {
+            const params = new URLSearchParams({ page: 1, page_size: 100 });
+            const search = document.getElementById("loginHistorySearch").value.trim();
+            const userId = document.getElementById("loginHistoryUserId").value;
+            const loginType = document.getElementById("loginHistoryType").value.trim();
+            const statusValue = document.getElementById("loginHistoryStatus").value.trim();
+            const dateFrom = document.getElementById("loginHistoryDateFrom").value;
+            const dateTo = document.getElementById("loginHistoryDateTo").value;
+            if (search) params.set("search", search);
+            if (userId) params.set("user_id", userId);
+            if (loginType) params.set("login_type", loginType);
+            if (statusValue) params.set("status", statusValue);
+            if (dateFrom) params.set("date_from", new Date(dateFrom).toISOString());
+            if (dateTo) params.set("date_to", new Date(dateTo).toISOString());
+            const data = await apiFetch(`/admin/login-history?${params.toString()}`);
+            state.loginHistory = data.items;
+            document.getElementById("loginHistoryTable").innerHTML = data.items.map(item => `
+                <tr>
+                    <td>${formatDate(item.login_at)}</td>
+                    <td><strong>${escapeHtml(item.username_snapshot)}</strong><div class="helper">User ID: ${escapeHtml(item.user_id ?? "--")}</div></td>
+                    <td>${escapeHtml(item.login_type)}</td>
+                    <td><span class="chip ${item.status === "success" ? "ok" : "danger"}">${escapeHtml(item.status)}</span></td>
+                    <td>${formatDate(item.logout_at)}</td>
+                    <td class="mono">${escapeHtml(item.detail || "--")}</td>
+                </tr>
+            `).join("") || `<tr><td colspan="6" class="helper">No login history found.</td></tr>`;
+        }
+
+        async function loadIssuingUnits() {
+            const search = document.getElementById("issuingUnitSearch").value.trim();
+            const params = new URLSearchParams({ page: 1, page_size: 100 });
+            if (search) params.set("search", search);
+            const data = await apiFetch(`/admin/issuing-units?${params.toString()}`);
+            state.issuingUnits = data.items;
+            document.getElementById("issuingUnitsTable").innerHTML = data.items.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.name)}</strong><div class="mono">${escapeHtml(item.code)}</div><div class="helper">${escapeHtml(item.short_name || "--")}</div></td>
+                    <td>${escapeHtml(item.parent_name || "--")}</td>
+                    <td>${escapeHtml(item.address || "--")}</td>
+                    <td>${statusChip(item.is_active)}</td>
+                    <td><div class="row-actions"><button class="btn-ghost" type="button" onclick="window.adminApp.editIssuingUnit(${item.id})">Edit</button><button class="btn-danger" type="button" onclick="window.adminApp.deleteIssuingUnit(${item.id})">Delete</button></div></td>
+                </tr>
+            `).join("") || `<tr><td colspan="5" class="helper">No issuing units found.</td></tr>`;
+        }
+
+        function issuingUnitForm(item = null) {
+            const parentOptions = buildOptions(state.issuingUnits.filter(entry => entry.id !== item?.id), item?.parent_id, "No parent", entry => `${entry.code} - ${entry.name}`);
+            openDrawer(
+                item ? "Edit Issuing Unit" : "Create Issuing Unit",
+                "KT-03 Authority Catalog",
+                `
+                <form id="issuingUnitForm">
+                    <label>Code <input name="code" value="${escapeHtml(item?.code || "")}" required></label>
+                    <label>Name <input name="name" value="${escapeHtml(item?.name || "")}" required></label>
+                    <label>Short name <input name="short_name" value="${escapeHtml(item?.short_name || "")}"></label>
+                    <label>Parent
+                        <select name="parent_id">${parentOptions}</select>
+                    </label>
+                    <label>Address <textarea name="address">${escapeHtml(item?.address || "")}</textarea></label>
+                    <label><input type="checkbox" name="is_active" ${item?.is_active ?? true ? "checked" : ""}> Active</label>
+                    <div class="grid-buttons"><button class="btn-primary" type="submit">${item ? "Save changes" : "Create unit"}</button></div>
+                </form>
+                `
+            );
+            document.getElementById("issuingUnitForm").addEventListener("submit", async event => {
+                event.preventDefault();
+                const form = new FormData(event.target);
+                const payload = {
+                    code: form.get("code"),
+                    name: form.get("name"),
+                    short_name: form.get("short_name") || null,
+                    parent_id: form.get("parent_id") ? Number(form.get("parent_id")) : null,
+                    address: form.get("address") || null,
+                    is_active: form.get("is_active") === "on",
+                };
+                try {
+                    if (item) {
+                        await apiFetch(`/admin/issuing-units/${item.id}`, { method: "PUT", body: JSON.stringify(payload) });
+                    } else {
+                        await apiFetch("/admin/issuing-units", { method: "POST", body: JSON.stringify(payload) });
+                    }
+                    closeDrawer();
+                    await loadIssuingUnits();
+                    showToast("Issuing unit saved", payload.code, "success");
+                } catch (error) {
+                    showToast("Save failed", error.message, "error");
+                }
+            });
+        }
+
+        async function deleteIssuingUnit(id) {
+            if (!confirm("Delete this issuing unit?")) return;
+            try {
+                await apiFetch(`/admin/issuing-units/${id}`, { method: "DELETE" });
+                await loadIssuingUnits();
+                showToast("Issuing unit deleted", `Record ${id} removed.`, "success");
+            } catch (error) {
+                showToast("Delete failed", error.message, "error");
+            }
+        }
+
+        async function loadDepartments() {
+            const search = document.getElementById("departmentSearch").value.trim();
+            const params = new URLSearchParams({ page: 1, page_size: 100 });
+            if (search) params.set("search", search);
+            const data = await apiFetch(`/admin/departments?${params.toString()}`);
+            state.departments = data.items;
+            document.getElementById("departmentsTable").innerHTML = data.items.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.name)}</strong><div class="mono">${escapeHtml(item.code)}</div><div class="helper">${escapeHtml(item.description || "--")}</div></td>
+                    <td>${escapeHtml(item.issuing_unit_name || "--")}</td>
+                    <td>${escapeHtml(item.parent_name || "--")}</td>
+                    <td>${statusChip(item.is_active)}</td>
+                    <td><div class="row-actions"><button class="btn-ghost" type="button" onclick="window.adminApp.editDepartment(${item.id})">Edit</button><button class="btn-danger" type="button" onclick="window.adminApp.deleteDepartment(${item.id})">Delete</button></div></td>
+                </tr>
+            `).join("") || `<tr><td colspan="5" class="helper">No departments found.</td></tr>`;
+        }
+
+        function departmentForm(item = null) {
+            const unitOptions = buildOptions(state.issuingUnits, item?.issuing_unit_id, "No issuing unit", entry => `${entry.code} - ${entry.name}`);
+            const parentOptions = buildOptions(state.departments.filter(entry => entry.id !== item?.id), item?.parent_id, "No parent", entry => `${entry.code} - ${entry.name}`);
+            openDrawer(
+                item ? "Edit Department" : "Create Department",
+                "KT-04 Organization Structure",
+                `
+                <form id="departmentForm">
+                    <label>Code <input name="code" value="${escapeHtml(item?.code || "")}" required></label>
+                    <label>Name <input name="name" value="${escapeHtml(item?.name || "")}" required></label>
+                    <label>Issuing unit
+                        <select name="issuing_unit_id">${unitOptions}</select>
+                    </label>
+                    <label>Parent department
+                        <select name="parent_id">${parentOptions}</select>
+                    </label>
+                    <label>Description <textarea name="description">${escapeHtml(item?.description || "")}</textarea></label>
+                    <label><input type="checkbox" name="is_active" ${item?.is_active ?? true ? "checked" : ""}> Active</label>
+                    <div class="grid-buttons"><button class="btn-primary" type="submit">${item ? "Save changes" : "Create department"}</button></div>
+                </form>
+                `
+            );
+            document.getElementById("departmentForm").addEventListener("submit", async event => {
+                event.preventDefault();
+                const form = new FormData(event.target);
+                const payload = {
+                    code: form.get("code"),
+                    name: form.get("name"),
+                    issuing_unit_id: form.get("issuing_unit_id") ? Number(form.get("issuing_unit_id")) : null,
+                    parent_id: form.get("parent_id") ? Number(form.get("parent_id")) : null,
+                    description: form.get("description") || null,
+                    is_active: form.get("is_active") === "on",
+                };
+                try {
+                    if (item) {
+                        await apiFetch(`/admin/departments/${item.id}`, { method: "PUT", body: JSON.stringify(payload) });
+                    } else {
+                        await apiFetch("/admin/departments", { method: "POST", body: JSON.stringify(payload) });
+                    }
+                    closeDrawer();
+                    await loadDepartments();
+                    showToast("Department saved", payload.code, "success");
+                } catch (error) {
+                    showToast("Save failed", error.message, "error");
+                }
+            });
+        }
+
+        async function deleteDepartment(id) {
+            if (!confirm("Delete this department?")) return;
+            try {
+                await apiFetch(`/admin/departments/${id}`, { method: "DELETE" });
+                await loadDepartments();
+                showToast("Department deleted", `Record ${id} removed.`, "success");
+            } catch (error) {
+                showToast("Delete failed", error.message, "error");
+            }
+        }
+
+        async function loadPositions() {
+            const search = document.getElementById("positionSearch").value.trim();
+            const params = new URLSearchParams({ page: 1, page_size: 100 });
+            if (search) params.set("search", search);
+            const data = await apiFetch(`/admin/positions?${params.toString()}`);
+            state.positions = data.items;
+            document.getElementById("positionsTable").innerHTML = data.items.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.name)}</strong><div class="mono">${escapeHtml(item.code)}</div></td>
+                    <td>${escapeHtml(item.department_name || "--")}</td>
+                    <td>${escapeHtml(item.description || "--")}</td>
+                    <td>${statusChip(item.is_active)}</td>
+                    <td><div class="row-actions"><button class="btn-ghost" type="button" onclick="window.adminApp.editPosition(${item.id})">Edit</button><button class="btn-danger" type="button" onclick="window.adminApp.deletePosition(${item.id})">Delete</button></div></td>
+                </tr>
+            `).join("") || `<tr><td colspan="5" class="helper">No positions found.</td></tr>`;
+        }
+
+        function positionForm(item = null) {
+            const departmentOptions = buildOptions(state.departments, item?.department_id, "No department", entry => `${entry.code} - ${entry.name}`);
+            openDrawer(
+                item ? "Edit Position" : "Create Position",
+                "KT-04 Position Catalog",
+                `
+                <form id="positionForm">
+                    <label>Code <input name="code" value="${escapeHtml(item?.code || "")}" required></label>
+                    <label>Name <input name="name" value="${escapeHtml(item?.name || "")}" required></label>
+                    <label>Department
+                        <select name="department_id">${departmentOptions}</select>
+                    </label>
+                    <label>Description <textarea name="description">${escapeHtml(item?.description || "")}</textarea></label>
+                    <label><input type="checkbox" name="is_active" ${item?.is_active ?? true ? "checked" : ""}> Active</label>
+                    <div class="grid-buttons"><button class="btn-primary" type="submit">${item ? "Save changes" : "Create position"}</button></div>
+                </form>
+                `
+            );
+            document.getElementById("positionForm").addEventListener("submit", async event => {
+                event.preventDefault();
+                const form = new FormData(event.target);
+                const payload = {
+                    code: form.get("code"),
+                    name: form.get("name"),
+                    department_id: form.get("department_id") ? Number(form.get("department_id")) : null,
+                    description: form.get("description") || null,
+                    is_active: form.get("is_active") === "on",
+                };
+                try {
+                    if (item) {
+                        await apiFetch(`/admin/positions/${item.id}`, { method: "PUT", body: JSON.stringify(payload) });
+                    } else {
+                        await apiFetch("/admin/positions", { method: "POST", body: JSON.stringify(payload) });
+                    }
+                    closeDrawer();
+                    await loadPositions();
+                    showToast("Position saved", payload.code, "success");
+                } catch (error) {
+                    showToast("Save failed", error.message, "error");
+                }
+            });
+        }
+
+        async function deletePosition(id) {
+            if (!confirm("Delete this position?")) return;
+            try {
+                await apiFetch(`/admin/positions/${id}`, { method: "DELETE" });
+                await loadPositions();
+                showToast("Position deleted", `Record ${id} removed.`, "success");
+            } catch (error) {
+                showToast("Delete failed", error.message, "error");
+            }
+        }
+
+        async function loadWorkDocuments() {
+            const search = document.getElementById("workDocumentSearch").value.trim();
+            const params = new URLSearchParams({ page: 1, page_size: 100 });
+            if (search) params.set("search", search);
+            const data = await apiFetch(`/admin/work-documents?${params.toString()}`);
+            state.workDocuments = data.items;
+            document.getElementById("workDocumentsTable").innerHTML = data.items.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.title)}</strong><div class="mono">${escapeHtml(item.document_code)}</div><div class="helper">Tasks: ${escapeHtml(item.work_item_count)}</div></td>
+                    <td>${escapeHtml(item.issuing_unit_name || "--")}<div class="helper">${escapeHtml(item.department_name || "--")}</div></td>
+                    <td>${escapeHtml(item.assigned_department_name || "--")}<div class="helper">${escapeHtml(item.assigned_by_username || "--")}</div></td>
+                    <td><span class="chip">${escapeHtml(item.status)}</span><div class="helper">${item.due_date ? escapeHtml(item.due_date) : "--"}</div></td>
+                    <td><div class="row-actions"><button class="btn-ghost" type="button" onclick="window.adminApp.editWorkDocument(${item.id})">Edit</button><button class="btn-danger" type="button" onclick="window.adminApp.deleteWorkDocument(${item.id})">Delete</button></div></td>
+                </tr>
+            `).join("") || `<tr><td colspan="5" class="helper">No work documents found.</td></tr>`;
+        }
+
+        function workDocumentForm(item = null) {
+            const unitOptions = buildOptions(state.issuingUnits, item?.issuing_unit_id, "No issuing unit", entry => `${entry.code} - ${entry.name}`);
+            const departmentOptions = buildOptions(state.departments, item?.department_id, "No origin department", entry => `${entry.code} - ${entry.name}`);
+            const assignedDepartmentOptions = buildOptions(state.departments, item?.assigned_department_id, "No assigned department", entry => `${entry.code} - ${entry.name}`);
+            const userOptions = buildOptions(state.users, item?.assigned_by_user_id, "No assigning user", entry => entry.username);
+            openDrawer(
+                item ? "Edit Work Document" : "Create Work Document",
+                "KT-05 Assignment Document",
+                `
+                <form id="workDocumentForm">
+                    <label>Document code <input name="document_code" value="${escapeHtml(item?.document_code || "")}" required></label>
+                    <label>Title <input name="title" value="${escapeHtml(item?.title || "")}" required></label>
+                    <label>Content summary <textarea name="content_summary">${escapeHtml(item?.content_summary || "")}</textarea></label>
+                    <label>Issuing unit <select name="issuing_unit_id">${unitOptions}</select></label>
+                    <label>Origin department <select name="department_id">${departmentOptions}</select></label>
+                    <label>Assigned by user <select name="assigned_by_user_id">${userOptions}</select></label>
+                    <label>Assigned department <select name="assigned_department_id">${assignedDepartmentOptions}</select></label>
+                    <label>Due date <input name="due_date" type="date" value="${formatDateInput(item?.due_date)}"></label>
+                    <label>Status <input name="status" value="${escapeHtml(item?.status || "draft")}"></label>
+                    <div class="grid-buttons"><button class="btn-primary" type="submit">${item ? "Save changes" : "Create work doc"}</button></div>
+                </form>
+                `
+            );
+            document.getElementById("workDocumentForm").addEventListener("submit", async event => {
+                event.preventDefault();
+                const form = new FormData(event.target);
+                const payload = {
+                    document_code: form.get("document_code"),
+                    title: form.get("title"),
+                    content_summary: form.get("content_summary") || null,
+                    issuing_unit_id: form.get("issuing_unit_id") ? Number(form.get("issuing_unit_id")) : null,
+                    department_id: form.get("department_id") ? Number(form.get("department_id")) : null,
+                    assigned_by_user_id: form.get("assigned_by_user_id") ? Number(form.get("assigned_by_user_id")) : null,
+                    assigned_department_id: form.get("assigned_department_id") ? Number(form.get("assigned_department_id")) : null,
+                    due_date: form.get("due_date") || null,
+                    status: form.get("status") || "draft",
+                };
+                try {
+                    if (item) {
+                        await apiFetch(`/admin/work-documents/${item.id}`, { method: "PUT", body: JSON.stringify(payload) });
+                    } else {
+                        await apiFetch("/admin/work-documents", { method: "POST", body: JSON.stringify(payload) });
+                    }
+                    closeDrawer();
+                    await loadWorkDocuments();
+                    showToast("Work document saved", payload.document_code, "success");
+                } catch (error) {
+                    showToast("Save failed", error.message, "error");
+                }
+            });
+        }
+
+        async function deleteWorkDocument(id) {
+            if (!confirm("Delete this work document?")) return;
+            try {
+                await apiFetch(`/admin/work-documents/${id}`, { method: "DELETE" });
+                await loadWorkDocuments();
+                showToast("Work document deleted", `Record ${id} removed.`, "success");
+            } catch (error) {
+                showToast("Delete failed", error.message, "error");
+            }
+        }
+
+        async function loadWorkItems() {
+            const search = document.getElementById("workItemSearch").value.trim();
+            const params = new URLSearchParams({ page: 1, page_size: 100 });
+            if (search) params.set("search", search);
+            const data = await apiFetch(`/admin/work-items?${params.toString()}`);
+            state.workItems = data.items;
+            document.getElementById("workItemsTable").innerHTML = data.items.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.title)}</strong><div class="helper">${escapeHtml(item.description || "--")}</div></td>
+                    <td>${escapeHtml(item.work_document_code || "--")}</td>
+                    <td>${escapeHtml(item.assignee_username || "--")}<div class="helper">${escapeHtml(item.department_name || "--")} / ${escapeHtml(item.position_name || "--")}</div></td>
+                    <td><span class="chip">${escapeHtml(item.status)}</span><div class="helper">${escapeHtml(item.priority)}</div></td>
+                    <td><div class="row-actions"><button class="btn-ghost" type="button" onclick="window.adminApp.editWorkItem(${item.id})">Edit</button><button class="btn-danger" type="button" onclick="window.adminApp.deleteWorkItem(${item.id})">Delete</button></div></td>
+                </tr>
+            `).join("") || `<tr><td colspan="5" class="helper">No work items found.</td></tr>`;
+        }
+
+        function workItemForm(item = null) {
+            const documentOptions = buildOptions(state.workDocuments, item?.work_document_id, "Select work document", entry => `${entry.document_code} - ${entry.title}`);
+            const userOptions = buildOptions(state.users, item?.assignee_user_id, "No assignee", entry => entry.username);
+            const departmentOptions = buildOptions(state.departments, item?.department_id, "No department", entry => `${entry.code} - ${entry.name}`);
+            const positionOptions = buildOptions(state.positions, item?.position_id, "No position", entry => `${entry.code} - ${entry.name}`);
+            openDrawer(
+                item ? "Edit Work Item" : "Create Work Item",
+                "KT-06 Task Registry",
+                `
+                <form id="workItemForm">
+                    <label>Work document <select name="work_document_id">${documentOptions}</select></label>
+                    <label>Title <input name="title" value="${escapeHtml(item?.title || "")}" required></label>
+                    <label>Description <textarea name="description">${escapeHtml(item?.description || "")}</textarea></label>
+                    <label>Assignee user <select name="assignee_user_id">${userOptions}</select></label>
+                    <label>Department <select name="department_id">${departmentOptions}</select></label>
+                    <label>Position <select name="position_id">${positionOptions}</select></label>
+                    <label>Priority <input name="priority" value="${escapeHtml(item?.priority || "normal")}"></label>
+                    <label>Status <input name="status" value="${escapeHtml(item?.status || "pending")}"></label>
+                    <label>Due date <input name="due_date" type="date" value="${formatDateInput(item?.due_date)}"></label>
+                    <div class="grid-buttons"><button class="btn-primary" type="submit">${item ? "Save changes" : "Create work item"}</button></div>
+                </form>
+                `
+            );
+            document.getElementById("workItemForm").addEventListener("submit", async event => {
+                event.preventDefault();
+                const form = new FormData(event.target);
+                const payload = {
+                    work_document_id: form.get("work_document_id") ? Number(form.get("work_document_id")) : null,
+                    title: form.get("title"),
+                    description: form.get("description") || null,
+                    assignee_user_id: form.get("assignee_user_id") ? Number(form.get("assignee_user_id")) : null,
+                    department_id: form.get("department_id") ? Number(form.get("department_id")) : null,
+                    position_id: form.get("position_id") ? Number(form.get("position_id")) : null,
+                    priority: form.get("priority") || "normal",
+                    status: form.get("status") || "pending",
+                    due_date: form.get("due_date") || null,
+                };
+                try {
+                    if (item) {
+                        await apiFetch(`/admin/work-items/${item.id}`, { method: "PUT", body: JSON.stringify(payload) });
+                    } else {
+                        await apiFetch("/admin/work-items", { method: "POST", body: JSON.stringify(payload) });
+                    }
+                    closeDrawer();
+                    await loadWorkItems();
+                    showToast("Work item saved", payload.title, "success");
+                } catch (error) {
+                    showToast("Save failed", error.message, "error");
+                }
+            });
+        }
+
+        async function deleteWorkItem(id) {
+            if (!confirm("Delete this work item?")) return;
+            try {
+                await apiFetch(`/admin/work-items/${id}`, { method: "DELETE" });
+                await loadWorkItems();
+                showToast("Work item deleted", `Record ${id} removed.`, "success");
+            } catch (error) {
+                showToast("Delete failed", error.message, "error");
+            }
+        }
+
+        async function loadNoticeDocuments() {
+            const search = document.getElementById("noticeDocumentSearch").value.trim();
+            const params = new URLSearchParams({ page: 1, page_size: 100 });
+            if (search) params.set("search", search);
+            const data = await apiFetch(`/admin/notice-documents?${params.toString()}`);
+            state.noticeDocuments = data.items;
+            document.getElementById("noticeDocumentsTable").innerHTML = data.items.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.title)}</strong><div class="mono">${escapeHtml(item.notice_code)}</div></td>
+                    <td>${escapeHtml(item.issuing_unit_name || "--")}<div class="helper">${escapeHtml(item.department_name || "--")}</div></td>
+                    <td>${item.effective_date ? escapeHtml(item.effective_date) : "--"}<div class="helper">${escapeHtml(item.posted_by_username || "--")}</div></td>
+                    <td><span class="chip">${escapeHtml(item.status)}</span></td>
+                    <td><div class="row-actions"><button class="btn-ghost" type="button" onclick="window.adminApp.editNoticeDocument(${item.id})">Edit</button><button class="btn-danger" type="button" onclick="window.adminApp.deleteNoticeDocument(${item.id})">Delete</button></div></td>
+                </tr>
+            `).join("") || `<tr><td colspan="5" class="helper">No notice documents found.</td></tr>`;
+        }
+
+        function noticeDocumentForm(item = null) {
+            const unitOptions = buildOptions(state.issuingUnits, item?.issuing_unit_id, "No issuing unit", entry => `${entry.code} - ${entry.name}`);
+            const departmentOptions = buildOptions(state.departments, item?.department_id, "No department", entry => `${entry.code} - ${entry.name}`);
+            const userOptions = buildOptions(state.users, item?.posted_by_user_id, "No posting user", entry => entry.username);
+            openDrawer(
+                item ? "Edit Notice Document" : "Create Notice Document",
+                "KT-07 Notice Registry",
+                `
+                <form id="noticeDocumentForm">
+                    <label>Notice code <input name="notice_code" value="${escapeHtml(item?.notice_code || "")}" required></label>
+                    <label>Title <input name="title" value="${escapeHtml(item?.title || "")}" required></label>
+                    <label>Content <textarea name="content">${escapeHtml(item?.content || "")}</textarea></label>
+                    <label>Issuing unit <select name="issuing_unit_id">${unitOptions}</select></label>
+                    <label>Department <select name="department_id">${departmentOptions}</select></label>
+                    <label>Posted by user <select name="posted_by_user_id">${userOptions}</select></label>
+                    <label>Effective date <input name="effective_date" type="date" value="${formatDateInput(item?.effective_date)}"></label>
+                    <label>Status <input name="status" value="${escapeHtml(item?.status || "draft")}"></label>
+                    <div class="grid-buttons"><button class="btn-primary" type="submit">${item ? "Save changes" : "Create notice"}</button></div>
+                </form>
+                `
+            );
+            document.getElementById("noticeDocumentForm").addEventListener("submit", async event => {
+                event.preventDefault();
+                const form = new FormData(event.target);
+                const payload = {
+                    notice_code: form.get("notice_code"),
+                    title: form.get("title"),
+                    content: form.get("content") || null,
+                    issuing_unit_id: form.get("issuing_unit_id") ? Number(form.get("issuing_unit_id")) : null,
+                    department_id: form.get("department_id") ? Number(form.get("department_id")) : null,
+                    posted_by_user_id: form.get("posted_by_user_id") ? Number(form.get("posted_by_user_id")) : null,
+                    effective_date: form.get("effective_date") || null,
+                    status: form.get("status") || "draft",
+                };
+                try {
+                    if (item) {
+                        await apiFetch(`/admin/notice-documents/${item.id}`, { method: "PUT", body: JSON.stringify(payload) });
+                    } else {
+                        await apiFetch("/admin/notice-documents", { method: "POST", body: JSON.stringify(payload) });
+                    }
+                    closeDrawer();
+                    await loadNoticeDocuments();
+                    showToast("Notice saved", payload.notice_code, "success");
+                } catch (error) {
+                    showToast("Save failed", error.message, "error");
+                }
+            });
+        }
+
+        async function deleteNoticeDocument(id) {
+            if (!confirm("Delete this notice document?")) return;
+            try {
+                await apiFetch(`/admin/notice-documents/${id}`, { method: "DELETE" });
+                await loadNoticeDocuments();
+                showToast("Notice deleted", `Record ${id} removed.`, "success");
+            } catch (error) {
+                showToast("Delete failed", error.message, "error");
+            }
         }
 
         async function exportUsageLogs() {
@@ -1652,11 +2274,18 @@
                     refreshOverview(),
                     loadFunctions(),
                     loadGroups(),
+                    loadIssuingUnits(),
+                    loadDepartments(),
+                    loadPositions(),
                     loadUsers(),
                     loadConfigs(),
                     loadApiKeys(),
                     loadLogs("logs"),
                     loadLogs("usage-logs"),
+                    loadLoginHistory(),
+                    loadWorkDocuments(),
+                    loadWorkItems(),
+                    loadNoticeDocuments(),
                     loadBackups(),
                 ]);
                 showToast("Dashboard refreshed", "All admin views were updated.", "success");
@@ -1687,6 +2316,30 @@
             },
             resetPassword,
             toggleUser,
+            editIssuingUnit(id) {
+                issuingUnitForm(state.issuingUnits.find(item => item.id === id));
+            },
+            deleteIssuingUnit,
+            editDepartment(id) {
+                departmentForm(state.departments.find(item => item.id === id));
+            },
+            deleteDepartment,
+            editPosition(id) {
+                positionForm(state.positions.find(item => item.id === id));
+            },
+            deletePosition,
+            editWorkDocument(id) {
+                workDocumentForm(state.workDocuments.find(item => item.id === id));
+            },
+            deleteWorkDocument,
+            editWorkItem(id) {
+                workItemForm(state.workItems.find(item => item.id === id));
+            },
+            deleteWorkItem,
+            editNoticeDocument(id) {
+                noticeDocumentForm(state.noticeDocuments.find(item => item.id === id));
+            },
+            deleteNoticeDocument,
             restoreBackup,
         };
 
@@ -1712,14 +2365,14 @@
         document.getElementById("newFunctionBtn").addEventListener("click", () => functionForm());
         document.getElementById("loadUsersBtn").addEventListener("click", async () => {
             try {
-                await Promise.all([loadGroups(), loadUsers()]);
+                await Promise.all([loadGroups(), loadOrgLookups(), loadUsers()]);
             } catch (error) {
                 showToast("Load failed", error.message, "error");
             }
         });
         document.getElementById("newUserBtn").addEventListener("click", async () => {
             try {
-                await loadGroups();
+                await Promise.all([loadGroups(), loadOrgLookups()]);
                 userForm();
             } catch (error) {
                 showToast("Load failed", error.message, "error");
@@ -1727,6 +2380,61 @@
         });
         document.getElementById("loadLogsBtn").addEventListener("click", () => loadLogs("logs").catch(error => showToast("Load failed", error.message, "error")));
         document.getElementById("loadUsageLogsBtn").addEventListener("click", () => loadLogs("usage-logs").catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("loadLoginHistoryBtn").addEventListener("click", () => loadLoginHistory().catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("loadIssuingUnitsBtn").addEventListener("click", () => loadIssuingUnits().catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("newIssuingUnitBtn").addEventListener("click", async () => {
+            try {
+                await loadIssuingUnits();
+                issuingUnitForm();
+            } catch (error) {
+                showToast("Load failed", error.message, "error");
+            }
+        });
+        document.getElementById("loadDepartmentsBtn").addEventListener("click", () => loadDepartments().catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("newDepartmentBtn").addEventListener("click", async () => {
+            try {
+                await Promise.all([loadIssuingUnits(), loadDepartments()]);
+                departmentForm();
+            } catch (error) {
+                showToast("Load failed", error.message, "error");
+            }
+        });
+        document.getElementById("loadPositionsBtn").addEventListener("click", () => loadPositions().catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("newPositionBtn").addEventListener("click", async () => {
+            try {
+                await loadDepartments();
+                positionForm();
+            } catch (error) {
+                showToast("Load failed", error.message, "error");
+            }
+        });
+        document.getElementById("loadWorkDocumentsBtn").addEventListener("click", () => loadWorkDocuments().catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("newWorkDocumentBtn").addEventListener("click", async () => {
+            try {
+                await Promise.all([loadOrgLookups(), loadUsers()]);
+                workDocumentForm();
+            } catch (error) {
+                showToast("Load failed", error.message, "error");
+            }
+        });
+        document.getElementById("loadWorkItemsBtn").addEventListener("click", () => loadWorkItems().catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("newWorkItemBtn").addEventListener("click", async () => {
+            try {
+                await Promise.all([loadOrgLookups(), loadUserAndWorkLookups()]);
+                workItemForm();
+            } catch (error) {
+                showToast("Load failed", error.message, "error");
+            }
+        });
+        document.getElementById("loadNoticeDocumentsBtn").addEventListener("click", () => loadNoticeDocuments().catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("newNoticeDocumentBtn").addEventListener("click", async () => {
+            try {
+                await Promise.all([loadOrgLookups(), loadUsers()]);
+                noticeDocumentForm();
+            } catch (error) {
+                showToast("Load failed", error.message, "error");
+            }
+        });
         document.getElementById("exportUsageLogsBtn").addEventListener("click", () => exportUsageLogs().catch(error => showToast("Export failed", error.message, "error")));
         document.getElementById("createBackupBtn").addEventListener("click", createBackup);
         document.getElementById("loadBackupsBtn").addEventListener("click", () => loadBackups().catch(error => showToast("Load failed", error.message, "error")));
@@ -1745,9 +2453,16 @@
                     if (btn.dataset.view === "api-keys") await loadApiKeys();
                     if (btn.dataset.view === "permission-groups") await Promise.all([loadFunctions(), loadGroups()]);
                     if (btn.dataset.view === "system-functions") await loadFunctions();
-                    if (btn.dataset.view === "users") await Promise.all([loadGroups(), loadUsers()]);
+                    if (btn.dataset.view === "users") await Promise.all([loadGroups(), loadOrgLookups(), loadUsers()]);
                     if (btn.dataset.view === "logs") await loadLogs("logs");
                     if (btn.dataset.view === "usage-logs") await loadLogs("usage-logs");
+                    if (btn.dataset.view === "login-history") await loadLoginHistory();
+                    if (btn.dataset.view === "issuing-units") await loadIssuingUnits();
+                    if (btn.dataset.view === "departments") await Promise.all([loadIssuingUnits(), loadDepartments()]);
+                    if (btn.dataset.view === "positions") await Promise.all([loadDepartments(), loadPositions()]);
+                    if (btn.dataset.view === "work-documents") await Promise.all([loadOrgLookups(), loadUsers(), loadWorkDocuments()]);
+                    if (btn.dataset.view === "work-items") await Promise.all([loadOrgLookups(), loadUserAndWorkLookups(), loadWorkItems()]);
+                    if (btn.dataset.view === "notice-documents") await Promise.all([loadOrgLookups(), loadUsers(), loadNoticeDocuments()]);
                     if (btn.dataset.view === "backups") await loadBackups();
                 } catch (error) {
                     showToast("Load failed", error.message, "error");
@@ -1767,7 +2482,7 @@
                 } else if (action === "downloadUsage") {
                     await exportUsageLogs();
                 } else if (action === "openUserForm") {
-                    await loadGroups();
+                    await Promise.all([loadGroups(), loadOrgLookups()]);
                     userForm();
                 } else if (action === "openConfigForm") {
                     configForm();
