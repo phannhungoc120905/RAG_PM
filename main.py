@@ -4,17 +4,10 @@ from datetime import datetime
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import HTMLResponse
-from pypdf import PdfReader
-from langchain_ollama import OllamaLLM, OllamaEmbeddings
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_community.vectorstores import FAISS
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.chains import create_retrieval_chain
-
-load_dotenv()
+from ocr.router import router as ocr_router
 
 app = FastAPI()
+app.include_router(ocr_router)
 
 MODEL_NAME = "llama3.2"
 HISTORY_FILE = "history.json"
