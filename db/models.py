@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+<<<<<<< HEAD
 from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, func
+=======
+from datetime import date, datetime
+from typing import Optional
+
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Integer, String, Text, func
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,6 +31,7 @@ class PermissionGroup(Base):
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     code: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+<<<<<<< HEAD
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
@@ -40,6 +48,11 @@ class PermissionGroup(Base):
         nullable=True,
         onupdate=func.now(),
     )
+=======
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, onupdate=func.now())
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
     users: Mapped[list[User]] = relationship("User", back_populates="permission_group")
     function_permissions: Mapped[list[PermissionGroupFunction]] = relationship(
@@ -58,6 +71,7 @@ class SystemFunction(Base):
     code: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     module: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+<<<<<<< HEAD
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
@@ -74,6 +88,11 @@ class SystemFunction(Base):
         nullable=True,
         onupdate=func.now(),
     )
+=======
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, onupdate=func.now())
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
     group_permissions: Mapped[list[PermissionGroupFunction]] = relationship(
         "PermissionGroupFunction",
@@ -89,6 +108,7 @@ class PermissionGroupFunction(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     group_id: Mapped[int] = mapped_column(ForeignKey("permission_groups.id"), nullable=False)
     function_id: Mapped[int] = mapped_column(ForeignKey("system_functions.id"), nullable=False)
+<<<<<<< HEAD
     can_view: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
@@ -122,6 +142,108 @@ class PermissionGroupFunction(Base):
         "SystemFunction",
         back_populates="group_permissions",
     )
+=======
+    can_view: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    can_create: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    can_update: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    can_delete: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+
+    group: Mapped[PermissionGroup] = relationship("PermissionGroup", back_populates="function_permissions")
+    function: Mapped[SystemFunction] = relationship("SystemFunction", back_populates="group_permissions")
+
+
+class IssuingUnit(Base):
+    __tablename__ = "issuing_units"
+    __table_args__ = MYSQL_TABLE_ARGS
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    short_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("issuing_units.id"), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, onupdate=func.now())
+
+    parent: Mapped[Optional[IssuingUnit]] = relationship("IssuingUnit", remote_side=[id], back_populates="children")
+    children: Mapped[list[IssuingUnit]] = relationship("IssuingUnit", back_populates="parent")
+    departments: Mapped[list[Department]] = relationship("Department", back_populates="issuing_unit")
+    work_assignment_documents: Mapped[list[WorkAssignmentDocument]] = relationship(
+        "WorkAssignmentDocument",
+        back_populates="issuing_unit",
+    )
+    notice_documents: Mapped[list[NoticeDocument]] = relationship("NoticeDocument", back_populates="issuing_unit")
+
+
+class Department(Base):
+    __tablename__ = "departments"
+    __table_args__ = MYSQL_TABLE_ARGS
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    issuing_unit_id: Mapped[Optional[int]] = mapped_column(ForeignKey("issuing_units.id"), nullable=True)
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("departments.id"), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, onupdate=func.now())
+
+    issuing_unit: Mapped[Optional[IssuingUnit]] = relationship("IssuingUnit", back_populates="departments")
+    parent: Mapped[Optional[Department]] = relationship("Department", remote_side=[id], back_populates="children")
+    children: Mapped[list[Department]] = relationship("Department", back_populates="parent")
+    positions: Mapped[list[Position]] = relationship("Position", back_populates="department")
+    users: Mapped[list[User]] = relationship("User", back_populates="department")
+    work_assignment_documents: Mapped[list[WorkAssignmentDocument]] = relationship(
+        "WorkAssignmentDocument",
+        back_populates="department",
+        foreign_keys="WorkAssignmentDocument.department_id",
+    )
+    assigned_work_documents: Mapped[list[WorkAssignmentDocument]] = relationship(
+        "WorkAssignmentDocument",
+        back_populates="assigned_department",
+        foreign_keys="WorkAssignmentDocument.assigned_department_id",
+    )
+    work_items: Mapped[list[WorkItem]] = relationship("WorkItem", back_populates="department")
+    notice_documents: Mapped[list[NoticeDocument]] = relationship("NoticeDocument", back_populates="department")
+
+
+class Position(Base):
+    __tablename__ = "positions"
+    __table_args__ = MYSQL_TABLE_ARGS
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    department_id: Mapped[Optional[int]] = mapped_column(ForeignKey("departments.id"), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, onupdate=func.now())
+
+    department: Mapped[Optional[Department]] = relationship("Department", back_populates="positions")
+    users: Mapped[list[User]] = relationship("User", back_populates="position")
+    work_items: Mapped[list[WorkItem]] = relationship("WorkItem", back_populates="position")
+
+
+class LoginHistory(Base):
+    __tablename__ = "login_history"
+    __table_args__ = MYSQL_TABLE_ARGS
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    username_snapshot: Mapped[str] = mapped_column(String(100), nullable=False)
+    login_type: Mapped[str] = mapped_column(String(50), nullable=False, default="local", server_default="local")
+    session_id: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    login_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    logout_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="success", server_default="success")
+    ip_address: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    detail: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    user: Mapped[Optional[User]] = relationship("User", back_populates="login_history_records")
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
 
 class SystemConfig(Base):
@@ -131,6 +253,7 @@ class SystemConfig(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     config_key: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     config_value: Mapped[str] = mapped_column(Text, nullable=False)
+<<<<<<< HEAD
     category: Mapped[str] = mapped_column(
         String(100),
         nullable=False,
@@ -166,6 +289,17 @@ class SystemConfig(Base):
         "User",
         back_populates="updated_configs",
     )
+=======
+    category: Mapped[str] = mapped_column(String(100), nullable=False, default="general", server_default="general")
+    data_type: Mapped[str] = mapped_column(String(50), nullable=False, default="string", server_default="string")
+    description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    updated_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, onupdate=func.now())
+
+    updated_by_user: Mapped[Optional[User]] = relationship("User", back_populates="updated_configs")
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
 
 class User(Base):
@@ -182,6 +316,7 @@ class User(Base):
         default="user",
         server_default="user",
     )
+<<<<<<< HEAD
     permission_group_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("permission_groups.id"),
         nullable=True,
@@ -203,6 +338,20 @@ class User(Base):
         "PermissionGroup",
         back_populates="users",
     )
+=======
+    permission_group_id: Mapped[Optional[int]] = mapped_column(ForeignKey("permission_groups.id"), nullable=True)
+    department_id: Mapped[Optional[int]] = mapped_column(ForeignKey("departments.id"), nullable=True)
+    position_id: Mapped[Optional[int]] = mapped_column(ForeignKey("positions.id"), nullable=True)
+    sso_subject: Mapped[Optional[str]] = mapped_column(String(150), unique=True, nullable=True)
+    auth_source: Mapped[str] = mapped_column(String(30), nullable=False, default="local", server_default="local")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    permission_group: Mapped[Optional[PermissionGroup]] = relationship("PermissionGroup", back_populates="users")
+    department: Mapped[Optional[Department]] = relationship("Department", back_populates="users")
+    position: Mapped[Optional[Position]] = relationship("Position", back_populates="users")
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     documents: Mapped[list[Document]] = relationship("Document", back_populates="owner")
     summaries: Mapped[list[SummaryHistory]] = relationship(
         "SummaryHistory",
@@ -216,10 +365,21 @@ class User(Base):
     )
     system_logs: Mapped[list[SystemLog]] = relationship("SystemLog", back_populates="user")
     api_keys: Mapped[list[APIKey]] = relationship("APIKey", back_populates="creator")
+<<<<<<< HEAD
     updated_configs: Mapped[list[SystemConfig]] = relationship(
         "SystemConfig",
         back_populates="updated_by_user",
     )
+=======
+    updated_configs: Mapped[list[SystemConfig]] = relationship("SystemConfig", back_populates="updated_by_user")
+    login_history_records: Mapped[list[LoginHistory]] = relationship("LoginHistory", back_populates="user")
+    created_work_documents: Mapped[list[WorkAssignmentDocument]] = relationship(
+        "WorkAssignmentDocument",
+        back_populates="assigned_by_user",
+    )
+    assigned_work_items: Mapped[list[WorkItem]] = relationship("WorkItem", back_populates="assignee")
+    posted_notice_documents: Mapped[list[NoticeDocument]] = relationship("NoticeDocument", back_populates="posted_by_user")
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
 
 class Document(Base):
@@ -231,6 +391,7 @@ class Document(Base):
     original_filename: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     file_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     file_size_kb: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+<<<<<<< HEAD
     status: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
@@ -243,6 +404,11 @@ class Document(Base):
         nullable=False,
         server_default=func.now(),
     )
+=======
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="processing", server_default="processing")
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
     processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     owner: Mapped[User] = relationship("User", back_populates="documents")
@@ -281,6 +447,7 @@ class SummaryHistory(Base):
     document_id: Mapped[int] = mapped_column(ForeignKey("documents.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     summary_text: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
+<<<<<<< HEAD
     is_reviewed: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
@@ -306,6 +473,92 @@ class SummaryHistory(Base):
         back_populates="reviewed_summaries",
         foreign_keys=[reviewed_by],
     )
+=======
+    is_reviewed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    reviewed_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    document: Mapped[Document] = relationship("Document", back_populates="summaries")
+    user: Mapped[User] = relationship("User", back_populates="summaries", foreign_keys=[user_id])
+    reviewer: Mapped[Optional[User]] = relationship("User", back_populates="reviewed_summaries", foreign_keys=[reviewed_by])
+
+
+class WorkAssignmentDocument(Base):
+    __tablename__ = "work_assignment_documents"
+    __table_args__ = MYSQL_TABLE_ARGS
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    document_code: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    content_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    issuing_unit_id: Mapped[Optional[int]] = mapped_column(ForeignKey("issuing_units.id"), nullable=True)
+    department_id: Mapped[Optional[int]] = mapped_column(ForeignKey("departments.id"), nullable=True)
+    assigned_by_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    assigned_department_id: Mapped[Optional[int]] = mapped_column(ForeignKey("departments.id"), nullable=True)
+    due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft", server_default="draft")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, onupdate=func.now())
+
+    issuing_unit: Mapped[Optional[IssuingUnit]] = relationship("IssuingUnit", back_populates="work_assignment_documents")
+    department: Mapped[Optional[Department]] = relationship(
+        "Department",
+        back_populates="work_assignment_documents",
+        foreign_keys=[department_id],
+    )
+    assigned_department: Mapped[Optional[Department]] = relationship(
+        "Department",
+        back_populates="assigned_work_documents",
+        foreign_keys=[assigned_department_id],
+    )
+    assigned_by_user: Mapped[Optional[User]] = relationship("User", back_populates="created_work_documents")
+    work_items: Mapped[list[WorkItem]] = relationship("WorkItem", back_populates="work_document", cascade="all, delete-orphan")
+
+
+class WorkItem(Base):
+    __tablename__ = "work_items"
+    __table_args__ = MYSQL_TABLE_ARGS
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    work_document_id: Mapped[int] = mapped_column(ForeignKey("work_assignment_documents.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    assignee_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    department_id: Mapped[Optional[int]] = mapped_column(ForeignKey("departments.id"), nullable=True)
+    position_id: Mapped[Optional[int]] = mapped_column(ForeignKey("positions.id"), nullable=True)
+    priority: Mapped[str] = mapped_column(String(30), nullable=False, default="normal", server_default="normal")
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending", server_default="pending")
+    due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, onupdate=func.now())
+
+    work_document: Mapped[WorkAssignmentDocument] = relationship("WorkAssignmentDocument", back_populates="work_items")
+    assignee: Mapped[Optional[User]] = relationship("User", back_populates="assigned_work_items")
+    department: Mapped[Optional[Department]] = relationship("Department", back_populates="work_items")
+    position: Mapped[Optional[Position]] = relationship("Position", back_populates="work_items")
+
+
+class NoticeDocument(Base):
+    __tablename__ = "notice_documents"
+    __table_args__ = MYSQL_TABLE_ARGS
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    notice_code: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    issuing_unit_id: Mapped[Optional[int]] = mapped_column(ForeignKey("issuing_units.id"), nullable=True)
+    department_id: Mapped[Optional[int]] = mapped_column(ForeignKey("departments.id"), nullable=True)
+    posted_by_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    effective_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft", server_default="draft")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, onupdate=func.now())
+
+    issuing_unit: Mapped[Optional[IssuingUnit]] = relationship("IssuingUnit", back_populates="notice_documents")
+    department: Mapped[Optional[Department]] = relationship("Department", back_populates="notice_documents")
+    posted_by_user: Mapped[Optional[User]] = relationship("User", back_populates="posted_notice_documents")
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
 
 class SystemLog(Base):
@@ -318,11 +571,15 @@ class SystemLog(Base):
     detail: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     ip_address: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     status_code: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+<<<<<<< HEAD
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,
         server_default=func.now(),
     )
+=======
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
     user: Mapped[Optional[User]] = relationship("User", back_populates="system_logs")
 
@@ -336,6 +593,7 @@ class APIKey(Base):
     description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     key_hash: Mapped[str] = mapped_column(String(500), nullable=False)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+<<<<<<< HEAD
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
@@ -352,5 +610,10 @@ class APIKey(Base):
         nullable=True,
         onupdate=func.now(),
     )
+=======
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, onupdate=func.now())
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 
     creator: Mapped[User] = relationship("User", back_populates="api_keys")
