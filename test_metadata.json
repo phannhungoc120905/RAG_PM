@@ -1,0 +1,26 @@
+[
+  {
+    "content": "Dieu 1. Cong van ve tai chinh",
+    "metadata": {
+      "page_number": 1,
+      "page_label": "(Trang 1)",
+      "dieu": "1"
+    }
+  },
+  {
+    "content": "Dieu 2. Quy dinh nhan su",
+    "metadata": {
+      "page_number": 2,
+      "page_label": "(Trang 2)",
+      "dieu": "2"
+    }
+  },
+  {
+    "content": "Dieu 1. Quy dinh ve lao dong.",
+    "metadata": {
+      "dieu": "1",
+      "page_number": 1,
+      "page_label": "(Trang 1)"
+    }
+  }
+]

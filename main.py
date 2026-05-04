@@ -4,21 +4,13 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
-<<<<<<< HEAD
 
 import uvicorn
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from ocr.router import router as ocr_router
-=======
-
-import uvicorn
-from fastapi import FastAPI, File, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
-
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
+from ocr.service import OCRService
 from admin.router import router as admin_router
 from api.router import router as api_router
 from auth.middleware import add_middlewares
@@ -26,16 +18,9 @@ from auth.router import router as auth_router
 from config import settings
 from logger import get_logger
 
-<<<<<<< HEAD
-app = FastAPI()
-app.include_router(ocr_router)
-
-
-=======
-
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 log = get_logger("app.main")
 HISTORY_FILE = "history.json"
+legacy_ocr_service = OCRService()
 
 
 @asynccontextmanager
@@ -62,6 +47,7 @@ app = FastAPI(
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(admin_router, prefix="/admin", tags=["Admin"])
 app.include_router(api_router, prefix="/api", tags=["AI"])
+app.include_router(ocr_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -170,22 +156,24 @@ async def history() -> list[dict]:
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)) -> dict:
-    temp_path = f"temp_{file.filename}"
     try:
         contents = await file.read()
-        with open(temp_path, "wb") as temp_file:
-            temp_file.write(contents)
-
-        text = extract_text(temp_path)
+        result = legacy_ocr_service.process_document(contents, file.filename)
+        text = result["clean_text"]
+        if not text:
+            return {"error": "Khong trich xuat duoc noi dung tu tep tai len."}
         summary = summarize_with_ollama(text)
         save_to_history(file.filename, summary)
-        return {"summary": summary}
+        return {
+            "summary": summary,
+            "page_count": result["page_count"],
+            "page_index": result["page_index"],
+            "classification": result["classification"],
+            "structure": result["structure"],
+        }
     except Exception as exc:
         log.error("legacy_upload_failed", extra={"filename": file.filename, "error": str(exc)})
         return {"error": str(exc)}
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
 
 
 @app.get("/health")
