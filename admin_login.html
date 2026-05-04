@@ -241,6 +241,32 @@
                 <div><strong>Current token state</strong></div>
                 <div class="mini-copy" id="tokenState">No admin session stored.</div>
             </div>
+<<<<<<< HEAD
+=======
+            <div class="status-box">
+                <div><strong>Mock Internal SSO</strong></div>
+                <p class="mini-copy">Use this only to test KT-01 before connecting to the real internal SSO gateway.</p>
+                <label>
+                    SSO Username
+                    <input id="ssoUsername" type="text" value="sso_user">
+                </label>
+                <label>
+                    SSO Email
+                    <input id="ssoEmail" type="text" value="sso_user@example.com">
+                </label>
+                <label>
+                    SSO Subject
+                    <input id="ssoSubject" type="text" value="EMP-001">
+                </label>
+                <label>
+                    Shared Secret
+                    <input id="ssoSecret" type="password" value="change-me-sso">
+                </label>
+                <div class="actions">
+                    <button class="btn-ghost" id="ssoLoginBtn" type="button">Login with Mock SSO</button>
+                </div>
+            </div>
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
             <div class="toast" id="message">Ready.</div>
         </section>
     </div>
@@ -293,7 +319,51 @@
             }
         }
 
+<<<<<<< HEAD
         document.getElementById("loginBtn").addEventListener("click", login);
+=======
+        async function loginWithSso() {
+            const payload = {
+                username: document.getElementById("ssoUsername").value.trim(),
+                email: document.getElementById("ssoEmail").value.trim() || null,
+                sso_subject: document.getElementById("ssoSubject").value.trim(),
+                shared_secret: document.getElementById("ssoSecret").value,
+                full_name: document.getElementById("ssoUsername").value.trim(),
+            };
+            if (!payload.username || !payload.sso_subject || !payload.shared_secret) {
+                showMessage("SSO username, subject, and shared secret are required.", true);
+                return;
+            }
+
+            try {
+                const response = await fetch("/auth/sso/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data?.detail || "SSO login failed.");
+                }
+
+                localStorage.setItem("ragpm_token", data.access_token);
+                localStorage.setItem("ragpm_user", JSON.stringify(data.user));
+                if (data.user?.role === "admin") {
+                    window.location.href = "/admin/dashboard";
+                    return;
+                }
+                showMessage(`SSO login OK for ${data.user.username}. Role=${data.user.role}. Open Swagger or login local admin for dashboard.`);
+            } catch (error) {
+                showMessage(error.message || "SSO login failed.", true);
+            }
+        }
+
+        document.getElementById("loginBtn").addEventListener("click", login);
+        document.getElementById("ssoLoginBtn").addEventListener("click", loginWithSso);
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
         document.getElementById("password").addEventListener("keydown", event => {
             if (event.key === "Enter") {
                 login();

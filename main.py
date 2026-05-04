@@ -4,12 +4,21 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
+<<<<<<< HEAD
 
 import uvicorn
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from ocr.router import router as ocr_router
+=======
+
+import uvicorn
+from fastapi import FastAPI, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 from admin.router import router as admin_router
 from api.router import router as api_router
 from auth.middleware import add_middlewares
@@ -17,10 +26,14 @@ from auth.router import router as auth_router
 from config import settings
 from logger import get_logger
 
+<<<<<<< HEAD
 app = FastAPI()
 app.include_router(ocr_router)
 
 
+=======
+
+>>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
 log = get_logger("app.main")
 HISTORY_FILE = "history.json"
 
