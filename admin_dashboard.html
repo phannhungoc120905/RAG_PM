@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG_PM Admin Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f4f1ea;
+            --panel: rgba(255, 250, 242, 0.86);
+            --panel-strong: #fffaf2;
+            --line: rgba(43, 30, 10, 0.12);
+            --ink: #24180a;
+            --muted: #6c5a45;
+            --accent: #bb4d00;
+            --accent-soft: rgba(187, 77, 0, 0.12);
+            --accent-2: #00473d;
+            --ok: #0f766e;
+            --warn: #b45309;
+            --danger: #b42318;
+            --shadow: 0 24px 70px rgba(36, 24, 10, 0.12);
+            --radius-xl: 28px;
+            --radius-lg: 18px;
+            --radius-md: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Space Grotesk", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(187, 77, 0, 0.18), transparent 28%),
+                radial-gradient(circle at top right, rgba(0, 71, 61, 0.14), transparent 24%),
+                linear-gradient(145deg, #f7f2e9 0%, #efe6d7 44%, #f4f1ea 100%);
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(36, 24, 10, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(36, 24, 10, 0.03) 1px, transparent 1px);
+            background-size: 34px 34px;
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent);
+        }
+
+        .app-shell {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 28px;
+            display: grid;
+            gap: 24px;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.25fr 0.75fr;
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        .hero-card,
+        .login-card,
+        .sidebar,
+        .content-panel,
+        .panel,
+        .drawer,
+        .toast {
+            background: var(--panel);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+        }
+
+        .hero-card,
+        .login-card,
+        .sidebar,
+        .content-panel,
+        .panel,
+        .drawer {
+            border-radius: var(--radius-xl);
+        }
+
+        .hero-card {
+            padding: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-card::after {
+            content: "";
+            position: absolute;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            right: -48px;
+            top: -54px;
+            background: radial-gradient(circle, rgba(187, 77, 0, 0.22), transparent 62%);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            gap: 10px;
+            align-items: center;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        h1 {
+            margin: 18px 0 12px;
+            font-size: clamp(2rem, 4vw, 3.6rem);
+            line-height: 0.95;
+        }
+
+        .hero-copy {
+            max-width: 760px;
+            color: var(--muted);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        .hero-stats {
+            margin-top: 26px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .stat-card {
+            padding: 16px;
+            border-radius: var(--radius-lg);
+            background: rgba(255, 255, 255, 0.62);
+            border: 1px solid rgba(36, 24, 10, 0.08);
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 1.7rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .login-card {
+            padding: 22px;
+            display: grid;
+            gap: 14px;
+            align-content: start;
+        }
+
+        .login-card h2,
+        .section-head h2 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .login-card p,
+        .section-head p,
+        .helper,
+        .table-note {
+            color: var(--muted);
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .sidebar {
+            padding: 20px;
+            position: sticky;
+            top: 20px;
+        }
+
+        .brand {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .brand h2 {
+            margin: 0;
+            font-size: 1rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .token-pill {
+            display: none;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(15, 118, 110, 0.12);
+            color: var(--ok);
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .token-pill.visible {
+            display: inline-flex;
+        }
+
+        .nav-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .nav-btn,
+        button,
+        .chip {
+            font-family: inherit;
+        }
+
+        .nav-btn {
+            width: 100%;
+            text-align: left;
+            border: 0;
+            cursor: pointer;
+            background: transparent;
+            padding: 14px 16px;
+            border-radius: 16px;
+            transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+            color: var(--ink);
+        }
+
+        .nav-btn small {
+            display: block;
+            margin-top: 4px;
+            color: var(--muted);
+        }
+
+        .nav-btn.active,
+        .nav-btn:hover {
+            background: linear-gradient(135deg, #2b1e0a, #59351b);
+            color: #fff;
+            transform: translateX(4px);
+        }
+
+        .nav-btn.active small,
+        .nav-btn:hover small {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .sidebar-footer {
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px solid var(--line);
+            display: grid;
+            gap: 10px;
+        }
+
+        .content-panel {
+            padding: 22px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            align-items: end;
+        }
+
+        .actions-row,
+        .filter-row,
+        .quick-actions,
+        .status-grid,
+        .two-col {
+            display: grid;
+            gap: 14px;
+        }
+
+        .actions-row,
+        .filter-row {
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+
+        .two-col {
+            grid-template-columns: 1.3fr 0.7fr;
+        }
+
+        .panel {
+            padding: 18px;
+            border-radius: var(--radius-lg);
+        }
+
+        .panel h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .status-grid {
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+
+        .status-box {
+            padding: 18px;
+            border-radius: var(--radius-lg);
+            background: rgba(255, 255, 255, 0.74);
+            border: 1px solid rgba(36, 24, 10, 0.08);
+        }
+
+        .status-box strong {
+            display: block;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        .stack {
+            display: grid;
+            gap: 12px;
+        }
+
+        label {
+            display: grid;
+            gap: 6px;
+            font-size: 0.92rem;
+            font-weight: 500;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(36, 24, 10, 0.14);
+            background: rgba(255, 255, 255, 0.85);
+            padding: 12px 14px;
+            color: var(--ink);
+            font: inherit;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: 2px solid rgba(187, 77, 0, 0.18);
+            border-color: rgba(187, 77, 0, 0.4);
+        }
+
+        button {
+            border: 0;
+            cursor: pointer;
+            border-radius: 14px;
+            padding: 12px 16px;
+            font-weight: 700;
+            transition: transform 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #bb4d00, #e16f12);
+            color: white;
+        }
+
+        .btn-dark {
+            background: linear-gradient(135deg, #2b1e0a, #59351b);
+            color: white;
+        }
+
+        .btn-ghost {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(36, 24, 10, 0.12);
+            color: var(--ink);
+        }
+
+        .btn-danger {
+            background: rgba(180, 35, 24, 0.12);
+            color: var(--danger);
+            border: 1px solid rgba(180, 35, 24, 0.18);
+        }
+
+        .grid-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .toggle-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.86rem;
+            font-weight: 500;
+        }
+
+        .toggle-cell input {
+            width: auto;
+            margin: 0;
+        }
+
+        .permission-builder {
+            display: grid;
+            gap: 12px;
+        }
+
+        .permission-builder .table-wrap {
+            max-height: 320px;
+        }
+
+        .table-wrap {
+            overflow: auto;
+            border-radius: 18px;
+            border: 1px solid rgba(36, 24, 10, 0.08);
+            background: rgba(255, 255, 255, 0.82);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 760px;
+        }
+
+        th,
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(36, 24, 10, 0.08);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: rgba(36, 24, 10, 0.04);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .row-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 0.84rem;
+            background: rgba(36, 24, 10, 0.06);
+            color: var(--ink);
+        }
+
+        .chip.ok {
+            background: rgba(15, 118, 110, 0.14);
+            color: var(--ok);
+        }
+
+        .chip.warn {
+            background: rgba(180, 83, 9, 0.14);
+            color: var(--warn);
+        }
+
+        .chip.danger {
+            background: rgba(180, 35, 24, 0.14);
+            color: var(--danger);
+        }
+
+        .drawer {
+            position: fixed;
+            top: 28px;
+            right: 28px;
+            width: min(520px, calc(100vw - 34px));
+            max-height: calc(100vh - 56px);
+            overflow: auto;
+            padding: 22px;
+            z-index: 40;
+            transform: translateX(120%);
+            transition: transform 0.28s ease;
+        }
+
+        .drawer.open {
+            transform: translateX(0);
+        }
+
+        .drawer-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: start;
+            margin-bottom: 18px;
+        }
+
+        .drawer form {
+            display: grid;
+            gap: 12px;
+        }
+
+        .meta {
+            font-family: "IBM Plex Mono", monospace;
+            color: var(--muted);
+            font-size: 0.84rem;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            min-width: 260px;
+            max-width: 420px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            z-index: 50;
+            transform: translateY(24px);
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast-title {
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(36, 24, 10, 0.14);
+            z-index: 35;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .mono {
+            font-family: "IBM Plex Mono", monospace;
+            font-size: 0.86rem;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .hero,
+            .workspace,
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .app-shell {
+                padding: 16px;
+            }
+
+            .hero-card,
+            .login-card,
+            .sidebar,
+            .content-panel,
+            .drawer {
+                border-radius: 20px;
+            }
+
+            .hero-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .drawer {
+                top: 10px;
+                right: 10px;
+                max-height: calc(100vh - 20px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <section class="hero fade-in">
+            <div class="hero-card">
+                <span class="eyebrow">RAG_PM Admin Suite</span>
+                <h1>System governance for AI document operations.</h1>
+                <p class="hero-copy">
+                    Control runtime configuration, permissions, API keys, user accounts, activity logs,
+                    data exports, backups, and restore workflows from one operational console.
+                </p>
+                <div class="hero-stats">
+                    <div class="stat-card">
+                        <span class="stat-value" id="heroUsers">--</span>
+                        <span class="stat-label">Users in database</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="heroDocs">--</span>
+                        <span class="stat-label">Tracked documents</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="heroBackups">--</span>
+                        <span class="stat-label">Available backups</span>
+                    </div>
+                </div>
+            </div>
+
+                <div class="login-card">
+                    <div>
+                    <h2>Admin Session</h2>
+                    <p>The dashboard uses the token stored during admin login.</p>
+                    </div>
+                <div class="grid-buttons">
+                    <a class="btn-primary" href="/summarizer" style="text-decoration:none;text-align:center;">Open Summarizer</a>
+                    <button class="btn-ghost" id="logoutBtn" type="button">Logout</button>
+                </div>
+                <div class="panel">
+                    <div class="meta">Current user</div>
+                    <div id="currentUserInfo" class="helper">Not authenticated</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="workspace fade-in">
+            <aside class="sidebar">
+                <div class="brand">
+                    <h2>Control Deck</h2>
+                    <span class="token-pill" id="tokenState">Token ready</span>
+                </div>
+                <div class="nav-list">
+                    <button class="nav-btn active" data-view="overview">Overview <small>Status, metrics, quick actions</small></button>
+                    <button class="nav-btn" data-view="configs">System Configs <small>QT-01 runtime parameters</small></button>
+                    <button class="nav-btn" data-view="api-keys">API Keys <small>QT-02 external integration keys</small></button>
+                    <button class="nav-btn" data-view="permission-groups">Permission Groups <small>QT-03 role bundles</small></button>
+                    <button class="nav-btn" data-view="system-functions">System Functions <small>QT-04 capability catalog</small></button>
+                    <button class="nav-btn" data-view="users">Users <small>QT-05 admin and user accounts</small></button>
+                    <button class="nav-btn" data-view="logs">API Logs <small>QT-06 access traces</small></button>
+                    <button class="nav-btn" data-view="usage-logs">Usage Logs <small>QT-07 exportable activity history</small></button>
+                    <button class="nav-btn" data-view="backups">Backups <small>QT-08 backup and restore</small></button>
+                </div>
+                <div class="sidebar-footer">
+                    <button class="btn-dark" type="button" id="refreshAllBtn">Refresh Dashboard</button>
+                    <a class="btn-ghost" href="/docs" target="_blank" style="text-decoration:none;text-align:center;">Open Swagger</a>
+                </div>
+            </aside>
+
+            <main class="content-panel">
+                <div class="section-head">
+                    <div>
+                        <h2 id="viewTitle">Overview</h2>
+                        <p id="viewSubtitle">Read system status, verify authentication, and launch operations.</p>
+                    </div>
+                    <div class="chip" id="apiBaseChip">API: <span class="mono" id="apiBaseValue">http://localhost:8001</span></div>
+                </div>
+
+                <section id="view-overview" class="view">
+                    <div class="status-grid" id="statusCards">
+                        <div class="status-box">
+                            <strong id="statusUsers">--</strong>
+                            <span>Total users</span>
+                        </div>
+                        <div class="status-box">
+                            <strong id="statusDocs">--</strong>
+                            <span>Total documents</span>
+                        </div>
+                        <div class="status-box">
+                            <strong id="statusSummaries">--</strong>
+                            <span>Total summaries</span>
+                        </div>
+                        <div class="status-box">
+                            <strong id="statusDiskFree">--</strong>
+                            <span>Disk free (GB)</span>
+                        </div>
+                    </div>
+                    <div class="two-col">
+                        <div class="panel">
+                            <h3>Quick Actions</h3>
+                            <div class="quick-actions">
+                                <button class="btn-primary" type="button" data-quick="createBackup">Create backup now</button>
+                                <button class="btn-ghost" type="button" data-quick="downloadUsage">Export usage logs</button>
+                                <button class="btn-ghost" type="button" data-quick="openUserForm">Create user</button>
+                                <button class="btn-ghost" type="button" data-quick="openConfigForm">Add config</button>
+                            </div>
+                        </div>
+                        <div class="panel stack">
+                            <h3>Upload Storage</h3>
+                            <div class="chip ok">Processing: <span id="uploadProcessing">--</span></div>
+                            <div class="chip">Done: <span id="uploadDone">--</span></div>
+                            <div class="chip warn">Failed: <span id="uploadFailed">--</span></div>
+                            <div class="helper" id="debugModeFlag">Debug mode: --</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-configs" class="view hidden">
+                    <div class="actions-row">
+                        <label>Search <input id="configSearch" placeholder="Search by key or description"></label>
+                        <label>Category <input id="configCategory" placeholder="ai / upload / backup"></label>
+                        <button class="btn-dark" type="button" id="loadConfigsBtn">Load configs</button>
+                        <button class="btn-primary" type="button" id="newConfigBtn">Add config</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Key</th><th>Value</th><th>Meta</th><th>State</th><th>Actions</th></tr></thead><tbody id="configsTable"></tbody></table></div>
+                </section>
+
+                <section id="view-api-keys" class="view hidden">
+                    <div class="actions-row">
+                        <label>Search <input id="apiKeySearch" placeholder="Search by name or description"></label>
+                        <button class="btn-dark" type="button" id="loadApiKeysBtn">Load API keys</button>
+                        <button class="btn-primary" type="button" id="newApiKeyBtn">Create API key</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Name</th><th>Description</th><th>State</th><th>Hash preview</th><th>Actions</th></tr></thead><tbody id="apiKeysTable"></tbody></table></div>
+                </section>
+
+                <section id="view-permission-groups" class="view hidden">
+                    <div class="actions-row">
+                        <label>Search <input id="groupSearch" placeholder="Search group code or name"></label>
+                        <button class="btn-dark" type="button" id="loadGroupsBtn">Load groups</button>
+                        <button class="btn-primary" type="button" id="newGroupBtn">Create group</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Group</th><th>Description</th><th>Permissions</th><th>State</th><th>Actions</th></tr></thead><tbody id="groupsTable"></tbody></table></div>
+                </section>
+
+                <section id="view-system-functions" class="view hidden">
+                    <div class="actions-row">
+                        <label>Search <input id="functionSearch" placeholder="Search function code, name, module"></label>
+                        <button class="btn-dark" type="button" id="loadFunctionsBtn">Load functions</button>
+                        <button class="btn-primary" type="button" id="newFunctionBtn">Create function</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Name</th><th>Code</th><th>Module</th><th>State</th><th>Actions</th></tr></thead><tbody id="functionsTable"></tbody></table></div>
+                </section>
+
+                <section id="view-users" class="view hidden">
+                    <div class="actions-row">
+                        <label>Search <input id="userSearch" placeholder="Search username or email"></label>
+                        <button class="btn-dark" type="button" id="loadUsersBtn">Load users</button>
+                        <button class="btn-primary" type="button" id="newUserBtn">Create user</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Group</th><th>State</th><th>Actions</th></tr></thead><tbody id="usersTable"></tbody></table></div>
+                </section>
+
+                <section id="view-logs" class="view hidden">
+                    <div class="filter-row">
+                        <label>User ID <input id="logUserId" type="number" min="1" placeholder="Optional"></label>
+                        <label>Action <input id="logAction" placeholder="login / GET /admin/users"></label>
+                        <label>Date from <input id="logDateFrom" type="datetime-local"></label>
+                        <label>Date to <input id="logDateTo" type="datetime-local"></label>
+                    </div>
+                    <div class="grid-buttons">
+                        <button class="btn-dark" type="button" id="loadLogsBtn">Load API logs</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Detail</th><th>Status</th></tr></thead><tbody id="logsTable"></tbody></table></div>
+                </section>
+
+                <section id="view-usage-logs" class="view hidden">
+                    <div class="filter-row">
+                        <label>User ID <input id="usageUserId" type="number" min="1" placeholder="Optional"></label>
+                        <label>Action <input id="usageAction" placeholder="manual_backup / logout"></label>
+                        <label>Date from <input id="usageDateFrom" type="datetime-local"></label>
+                        <label>Date to <input id="usageDateTo" type="datetime-local"></label>
+                    </div>
+                    <div class="grid-buttons">
+                        <button class="btn-dark" type="button" id="loadUsageLogsBtn">Load usage logs</button>
+                        <button class="btn-primary" type="button" id="exportUsageLogsBtn">Export to Excel</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Detail</th><th>Status</th></tr></thead><tbody id="usageLogsTable"></tbody></table></div>
+                </section>
+
+                <section id="view-backups" class="view hidden">
+                    <div class="grid-buttons">
+                        <button class="btn-primary" type="button" id="createBackupBtn">Create backup</button>
+                        <button class="btn-dark" type="button" id="loadBackupsBtn">Refresh backup list</button>
+                    </div>
+                    <div class="table-wrap"><table><thead><tr><th>Backup</th><th>Created at</th><th>Contents</th><th>Actions</th></tr></thead><tbody id="backupsTable"></tbody></table></div>
+                </section>
+            </main>
+        </section>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <aside class="drawer" id="drawer">
+        <div class="drawer-header">
+            <div>
+                <div class="meta" id="drawerMeta">Create record</div>
+                <h3 id="drawerTitle">Form</h3>
+            </div>
+            <button class="btn-ghost" type="button" id="closeDrawerBtn">Close</button>
+        </div>
+        <div id="drawerContent"></div>
+    </aside>
+
+    <div class="toast" id="toast">
+        <div class="toast-title" id="toastTitle">Notice</div>
+        <div id="toastMessage">Ready</div>
+    </div>
+
+    <script>
+        const state = {
+            apiBase: window.location.origin,
+            token: localStorage.getItem("ragpm_token") || "",
+            currentUser: JSON.parse(localStorage.getItem("ragpm_user") || "null"),
+            activeView: "overview",
+            functions: [],
+            groups: [],
+            configs: [],
+            apiKeys: [],
+            users: [],
+            backups: [],
+        };
+
+        const ui = {
+            tokenState: document.getElementById("tokenState"),
+            currentUserInfo: document.getElementById("currentUserInfo"),
+            toast: document.getElementById("toast"),
+            toastTitle: document.getElementById("toastTitle"),
+            toastMessage: document.getElementById("toastMessage"),
+            drawer: document.getElementById("drawer"),
+            drawerContent: document.getElementById("drawerContent"),
+            drawerTitle: document.getElementById("drawerTitle"),
+            drawerMeta: document.getElementById("drawerMeta"),
+            overlay: document.getElementById("overlay"),
+            apiBaseValue: document.getElementById("apiBaseValue"),
+            viewTitle: document.getElementById("viewTitle"),
+            viewSubtitle: document.getElementById("viewSubtitle"),
+        };
+
+        const viewMeta = {
+            overview: ["Overview", "Read system status, verify authentication, and launch operations."],
+            configs: ["System Configs", "Manage AI parameters, model settings, upload limits, and runtime toggles."],
+            "api-keys": ["API Keys", "Create and maintain hashed integration keys for external systems."],
+            "permission-groups": ["Permission Groups", "Bundle feature-level permissions into reusable access groups."],
+            "system-functions": ["System Functions", "Define the system capability catalog used by permission groups."],
+            users: ["Users", "Create, edit, suspend, and reset passwords for accounts."],
+            logs: ["API Logs", "Inspect raw access events and filter request-level traces."],
+            "usage-logs": ["Usage Logs", "Review system activity and export the journal to Excel."],
+            backups: ["Backups", "Create, inspect, and restore operational snapshots."],
+        };
+
+        function showToast(title, message, kind = "default") {
+            ui.toastTitle.textContent = title;
+            ui.toastMessage.textContent = message;
+            ui.toast.className = "toast visible";
+            ui.toast.style.borderColor =
+                kind === "error" ? "rgba(180,35,24,0.22)" :
+                kind === "success" ? "rgba(15,118,110,0.24)" :
+                "rgba(36,24,10,0.12)";
+            setTimeout(() => ui.toast.classList.remove("visible"), 3200);
+        }
+
+        function updateAuthUI() {
+            const hasToken = Boolean(state.token);
+            ui.tokenState.classList.toggle("visible", hasToken);
+            ui.currentUserInfo.textContent = state.currentUser
+                ? `${state.currentUser.username} · ${state.currentUser.role}`
+                : "Not authenticated";
+            ui.apiBaseValue.textContent = state.apiBase;
+        }
+
+        function persistAuth(token = "", user = null) {
+            state.token = token;
+            state.currentUser = user;
+            if (token) {
+                localStorage.setItem("ragpm_token", token);
+            } else {
+                localStorage.removeItem("ragpm_token");
+            }
+            if (user) {
+                localStorage.setItem("ragpm_user", JSON.stringify(user));
+            } else {
+                localStorage.removeItem("ragpm_user");
+            }
+            updateAuthUI();
+        }
+
+        async function apiFetch(path, options = {}) {
+            const headers = {
+                Accept: "application/json",
+                ...(options.body ? { "Content-Type": "application/json" } : {}),
+                ...(options.headers || {}),
+            };
+            if (state.token) {
+                headers.Authorization = `Bearer ${state.token}`;
+            }
+
+            const response = await fetch(`${state.apiBase}${path}`, {
+                ...options,
+                headers,
+            });
+
+            if (response.status === 204) {
+                return null;
+            }
+
+            const contentType = response.headers.get("content-type") || "";
+            const data = contentType.includes("application/json")
+                ? await response.json()
+                : await response.text();
+
+            if (!response.ok) {
+                const detail = typeof data === "string"
+                    ? data
+                    : data?.detail
+                        ? Array.isArray(data.detail)
+                            ? data.detail.map(item => item.msg).join(", ")
+                            : data.detail
+                        : JSON.stringify(data);
+                throw new Error(detail || `Request failed: ${response.status}`);
+            }
+
+            return data;
+        }
+
+        function setActiveView(viewName) {
+            state.activeView = viewName;
+            document.querySelectorAll(".nav-btn").forEach(btn => {
+                btn.classList.toggle("active", btn.dataset.view === viewName);
+            });
+            document.querySelectorAll(".view").forEach(section => {
+                section.classList.toggle("hidden", section.id !== `view-${viewName}`);
+            });
+            const [title, subtitle] = viewMeta[viewName];
+            ui.viewTitle.textContent = title;
+            ui.viewSubtitle.textContent = subtitle;
+        }
+
+        function openDrawer(title, meta, contentHtml) {
+            ui.drawerTitle.textContent = title;
+            ui.drawerMeta.textContent = meta;
+            ui.drawerContent.innerHTML = contentHtml;
+            ui.drawer.classList.add("open");
+            ui.overlay.classList.add("visible");
+        }
+
+        function closeDrawer() {
+            ui.drawer.classList.remove("open");
+            ui.overlay.classList.remove("visible");
+            ui.drawerContent.innerHTML = "";
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
+        }
+
+        function formatDate(value) {
+            if (!value) {
+                return "--";
+            }
+            return new Date(value).toLocaleString();
+        }
+
+        function statusChip(active) {
+            return active
+                ? '<span class="chip ok">Active</span>'
+                : '<span class="chip danger">Inactive</span>';
+        }
+
+        async function loadOverviewData() {
+            if (!state.token) {
+                return;
+            }
+            const [statusData, backups] = await Promise.all([
+                apiFetch("/admin/system-status"),
+                apiFetch("/admin/backup"),
+            ]);
+            state.backups = backups;
+            document.getElementById("statusUsers").textContent = statusData.db.users_count;
+            document.getElementById("statusDocs").textContent = statusData.db.documents_count;
+            document.getElementById("statusSummaries").textContent = statusData.db.summaries_count;
+            document.getElementById("statusDiskFree").textContent = statusData.disk.free_gb;
+            document.getElementById("uploadProcessing").textContent = statusData.uploads.processing_count;
+            document.getElementById("uploadDone").textContent = statusData.uploads.done_count;
+            document.getElementById("uploadFailed").textContent = statusData.uploads.failed_count;
+            document.getElementById("debugModeFlag").textContent = `Debug mode: ${statusData.app.debug}`;
+            document.getElementById("heroUsers").textContent = statusData.db.users_count;
+            document.getElementById("heroDocs").textContent = statusData.db.documents_count;
+            document.getElementById("heroBackups").textContent = backups.length;
+        }
+
+        async function refreshOverview() {
+            try {
+                await loadOverviewData();
+            } catch (error) {
+                showToast("Overview failed", error.message, "error");
+            }
+        }
+
+        async function loadConfigs() {
+            const search = document.getElementById("configSearch").value.trim();
+            const category = document.getElementById("configCategory").value.trim();
+            const params = new URLSearchParams({ page: 1, page_size: 100 });
+            if (search) params.set("search", search);
+            if (category) params.set("category", category);
+            const data = await apiFetch(`/admin/configs?${params.toString()}`);
+            state.configs = data.items;
+            document.getElementById("configsTable").innerHTML = data.items.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.config_key)}</strong><div class="meta">${escapeHtml(item.data_type)}</div></td>
+                    <td class="mono">${escapeHtml(item.config_value)}</td>
+                    <td>${escapeHtml(item.category)}<div class="helper">${escapeHtml(item.description || "--")}</div></td>
+                    <td>${statusChip(item.is_active)}</td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn-ghost" type="button" onclick="window.adminApp.editConfig(${item.id})">Edit</button>
+                            <button class="btn-danger" type="button" onclick="window.adminApp.deleteConfig(${item.id})">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join("") || `<tr><td colspan="5" class="helper">No configs found.</td></tr>`;
+        }
+
+        function configForm(item = null) {
+            openDrawer(
+                item ? "Edit Config" : "Create Config",
+                "QT-01 System Configuration",
+                `
+                <form id="configForm">
+                    <label>Config key <input name="config_key" value="${escapeHtml(item?.config_key || "")}" required></label>
+                    <label>Config value <textarea name="config_value" required>${escapeHtml(item?.config_value || "")}</textarea></label>
+                    <label>Category <input name="category" value="${escapeHtml(item?.category || "general")}"></label>
+                    <label>Data type
+                        <select name="data_type">
+                            ${["string", "int", "bool"].map(type => `<option value="${type}" ${item?.data_type === type ? "selected" : ""}>${type}</option>`).join("")}
+                        </select>
+                    </label>
+                    <label>Description <textarea name="description">${escapeHtml(item?.description || "")}</textarea></label>
+                    <label><input type="checkbox" name="is_active" ${item?.is_active ?? true ? "checked" : ""}> Active</label>
+                    <div class="grid-buttons">
+                        <button class="btn-primary" type="submit">${item ? "Save changes" : "Create config"}</button>
+                    </div>
+                </form>
+                `
+            );
+            document.getElementById("configForm").addEventListener("submit", async event => {
+                event.preventDefault();
+                const form = new FormData(event.target);
+                const payload = {
+                    config_key: form.get("config_key"),
+                    config_value: form.get("config_value"),
+                    category: form.get("category"),
+                    data_type: form.get("data_type"),
+                    description: form.get("description"),
+                    is_active: form.get("is_active") === "on",
+                };
+                try {
+                    if (item) {
+                        await apiFetch(`/admin/configs/${item.id}`, {
+                            method: "PUT",
+                            body: JSON.stringify(payload),
+                        });
+                        showToast("Config updated", payload.config_key, "success");
+                    } else {
+                        await apiFetch("/admin/configs", {
+                            method: "POST",
+                            body: JSON.stringify(payload),
+                        });
+                        showToast("Config created", payload.config_key, "success");
+                    }
+                    closeDrawer();
+                    await loadConfigs();
+                } catch (error) {
+                    showToast("Config failed", error.message, "error");
+                }
+            });
+        }
+
+        async function deleteConfig(id) {
+            if (!confirm("Delete this config?")) return;
+            try {
+                await apiFetch(`/admin/configs/${id}`, { method: "DELETE" });
+                await loadConfigs();
+                showToast("Config deleted", `Record ${id} removed.`, "success");
+            } catch (error) {
+                showToast("Delete failed", error.message, "error");
+            }
+        }
+
+        async function loadApiKeys() {
+            const search = document.getElementById("apiKeySearch").value.trim();
+            const params = new URLSearchParams({ page: 1, page_size: 100 });
+            if (search) params.set("search", search);
+            const data = await apiFetch(`/admin/api-keys?${params.toString()}`);
+            state.apiKeys = data.items;
+            document.getElementById("apiKeysTable").innerHTML = data.items.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.name || "--")}</strong><div class="helper">ID ${item.id}</div></td>
+                    <td>${escapeHtml(item.description || "--")}</td>
+                    <td>${statusChip(item.is_active)}</td>
+                    <td class="mono">${escapeHtml(item.key_hash_preview)}</td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn-ghost" type="button" onclick="window.adminApp.editApiKey(${item.id})">Edit</button>
+                            <button class="btn-danger" type="button" onclick="window.adminApp.deleteApiKey(${item.id})">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join("") || `<tr><td colspan="5" class="helper">No API keys found.</td></tr>`;
+        }
+
+        function apiKeyForm(item = null) {
+            openDrawer(
+                item ? "Edit API Key" : "Create API Key",
+                "QT-02 External Integration Key",
+                `
+                <form id="apiKeyForm">
+                    <label>Name <input name="name" value="${escapeHtml(item?.name || "")}" required></label>
+                    <label>Description <textarea name="description">${escapeHtml(item?.description || "")}</textarea></label>
+                    <label><input type="checkbox" name="is_active" ${item?.is_active ?? true ? "checked" : ""}> Active</label>
+                    <div class="grid-buttons">
+                        <button class="btn-primary" type="submit">${item ? "Save changes" : "Create key"}</button>
+                    </div>
+                </form>
+                `
+            );
+            document.getElementById("apiKeyForm").addEventListener("submit", async event => {
+                event.preventDefault();
+                const form = new FormData(event.target);
+                const payload = {
+                    name: form.get("name"),
+                    description: form.get("description"),
+                    is_active: form.get("is_active") === "on",
+                };
+                try {
+                    if (item) {
+                        await apiFetch(`/admin/api-keys/${item.id}`, {
+                            method: "PUT",
+                            body: JSON.stringify(payload),
+                        });
+                        showToast("API key updated", payload.name, "success");
+                    } else {
+                        const data = await apiFetch("/admin/api-keys", {
+                            method: "POST",
+                            body: JSON.stringify(payload),
+                        });
+                        showToast("API key created", `Copy this key now: ${data.plain_key}`, "success");
+                    }
+                    closeDrawer();
+                    await loadApiKeys();
+                } catch (error) {
+                    showToast("API key failed", error.message, "error");
+                }
+            });
+        }
+
+        async function deleteApiKey(id) {
+            if (!confirm("Delete this API key?")) return;
+            try {
+                await apiFetch(`/admin/api-keys/${id}`, { method: "DELETE" });
+                await loadApiKeys();
+                showToast("API key deleted", `Record ${id} removed.`, "success");
+            } catch (error) {
+                showToast("Delete failed", error.message, "error");
+            }
+        }
+
+        async function loadFunctions() {
+            const search = document.getElementById("functionSearch").value.trim();
+            const params = new URLSearchParams({ page: 1, page_size: 100 });
+            if (search) params.set("search", search);
+            const data = await apiFetch(`/admin/system-functions?${params.toString()}`);
+            state.functions = data.items;
+            document.getElementById("functionsTable").innerHTML = data.items.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.name)}</strong><div class="helper">${escapeHtml(item.description || "--")}</div></td>
+                    <td class="mono">${escapeHtml(item.code)}</td>
+                    <td>${escapeHtml(item.module || "--")}</td>
+                    <td>${statusChip(item.is_active)}</td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn-ghost" type="button" onclick="window.adminApp.editFunction(${item.id})">Edit</button>
+                            <button class="btn-danger" type="button" onclick="window.adminApp.deleteFunction(${item.id})">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join("") || `<tr><td colspan="5" class="helper">No system functions found.</td></tr>`;
+        }
+
+        function functionForm(item = null) {
+            openDrawer(
+                item ? "Edit System Function" : "Create System Function",
+                "QT-04 Capability Catalog",
+                `
+                <form id="functionForm">
+                    <label>Name <input name="name" value="${escapeHtml(item?.name || "")}" required></label>
+                    <label>Code <input name="code" value="${escapeHtml(item?.code || "")}" required></label>
+                    <label>Module <input name="module" value="${escapeHtml(item?.module || "")}"></label>
+                    <label>Description <textarea name="description">${escapeHtml(item?.description || "")}</textarea></label>
+                    <label><input type="checkbox" name="is_active" ${item?.is_active ?? true ? "checked" : ""}> Active</label>
+                    <div class="grid-buttons">
+                        <button class="btn-primary" type="submit">${item ? "Save changes" : "Create function"}</button>
+                    </div>
+                </form>
+                `
+            );
+            document.getElementById("functionForm").addEventListener("submit", async event => {
+                event.preventDefault();
+                const form = new FormData(event.target);
+                const payload = {
+                    name: form.get("name"),
+                    code: form.get("code"),
+                    module: form.get("module"),
+                    description: form.get("description"),
+                    is_active: form.get("is_active") === "on",
+                };
+                try {
+                    if (item) {
+                        await apiFetch(`/admin/system-functions/${item.id}`, {
+                            method: "PUT",
+                            body: JSON.stringify(payload),
+                        });
+                        showToast("Function updated", payload.code, "success");
+                    } else {
+                        await apiFetch("/admin/system-functions", {
+                            method: "POST",
+                            body: JSON.stringify(payload),
+                        });
+                        showToast("Function created", payload.code, "success");
+                    }
+                    closeDrawer();
+                    await loadFunctions();
+                } catch (error) {
+                    showToast("Function failed", error.message, "error");
+                }
+            });
+        }
+
+        async function deleteFunction(id) {
+            if (!confirm("Delete this system function?")) return;
+            try {
+                await apiFetch(`/admin/system-functions/${id}`, { method: "DELETE" });
+                await loadFunctions();
+                showToast("Function deleted", `Record ${id} removed.`, "success");
+            } catch (error) {
+                showToast("Delete failed", error.message, "error");
+            }
+        }
+
+        async function loadGroups() {
+            const search = document.getElementById("groupSearch").value.trim();
+            const params = new URLSearchParams({ page: 1, page_size: 100 });
+            if (search) params.set("search", search);
+            const data = await apiFetch(`/admin/permission-groups?${params.toString()}`);
+            state.groups = data.items;
+            document.getElementById("groupsTable").innerHTML = data.items.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.name)}</strong><div class="mono">${escapeHtml(item.code)}</div></td>
+                    <td>${escapeHtml(item.description || "--")}</td>
+                    <td>${item.permissions.length ? item.permissions.map(perm => `<div class="chip">${escapeHtml(perm.function_code)} · V${perm.can_view ? 1 : 0} C${perm.can_create ? 1 : 0} U${perm.can_update ? 1 : 0} D${perm.can_delete ? 1 : 0}</div>`).join(" ") : '<span class="helper">No assignments</span>'}</td>
+                    <td>${statusChip(item.is_active)}</td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn-ghost" type="button" onclick="window.adminApp.editGroup(${item.id})">Edit</button>
+                            <button class="btn-danger" type="button" onclick="window.adminApp.deleteGroup(${item.id})">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join("") || `<tr><td colspan="5" class="helper">No permission groups found.</td></tr>`;
+        }
+
+        function groupForm(item = null) {
+            const permissionMap = new Map(
+                (item?.permissions || []).map(perm => [perm.function_id, perm])
+            );
+            const permissionRows = state.functions.length
+                ? state.functions.map(fn => {
+                    const current = permissionMap.get(fn.id) || {};
+                    return `
+                        <tr>
+                            <td>
+                                <strong>${escapeHtml(fn.name)}</strong>
+                                <div class="mono">${escapeHtml(fn.code)}</div>
+                                <div class="helper">${escapeHtml(fn.module || "--")}</div>
+                            </td>
+                            <td><label class="toggle-cell"><input type="checkbox" data-permission data-function-id="${fn.id}" data-action="can_view" ${current.can_view ? "checked" : ""}>View</label></td>
+                            <td><label class="toggle-cell"><input type="checkbox" data-permission data-function-id="${fn.id}" data-action="can_create" ${current.can_create ? "checked" : ""}>Create</label></td>
+                            <td><label class="toggle-cell"><input type="checkbox" data-permission data-function-id="${fn.id}" data-action="can_update" ${current.can_update ? "checked" : ""}>Update</label></td>
+                            <td><label class="toggle-cell"><input type="checkbox" data-permission data-function-id="${fn.id}" data-action="can_delete" ${current.can_delete ? "checked" : ""}>Delete</label></td>
+                        </tr>
+                    `;
+                }).join("")
+                : `<tr><td colspan="5" class="helper">No system functions available. Create functions first.</td></tr>`;
+
+            openDrawer(
+                item ? "Edit Permission Group" : "Create Permission Group",
+                "QT-03 Access Bundle",
+                `
+                <form id="groupForm">
+                    <label>Name <input name="name" value="${escapeHtml(item?.name || "")}" required></label>
+                    <label>Code <input name="code" value="${escapeHtml(item?.code || "")}" required></label>
+                    <label>Description <textarea name="description">${escapeHtml(item?.description || "")}</textarea></label>
+                    <label class="toggle-cell"><input type="checkbox" name="is_active" ${item?.is_active ?? true ? "checked" : ""}> Active</label>
+                    <div class="permission-builder">
+                        <div>
+                            <div class="meta">Permission Matrix</div>
+                            <div class="helper">Choose the allowed actions for each system function.</div>
+                        </div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Function</th>
+                                        <th>View</th>
+                                        <th>Create</th>
+                                        <th>Update</th>
+                                        <th>Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${permissionRows}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="grid-buttons">
+                        <button class="btn-primary" type="submit">${item ? "Save changes" : "Create group"}</button>
+                    </div>
+                </form>
+                `
+            );
+            document.getElementById("groupForm").addEventListener("submit", async event => {
+                event.preventDefault();
+                const form = new FormData(event.target);
+                const permissionBuckets = new Map();
+                document.querySelectorAll("#groupForm [data-permission]").forEach(input => {
+                    const functionId = Number(input.dataset.functionId);
+                    const action = input.dataset.action;
+                    const current = permissionBuckets.get(functionId) || {
+                        function_id: functionId,
+                        can_view: false,
+                        can_create: false,
+                        can_update: false,
+                        can_delete: false,
+                    };
+                    current[action] = input.checked;
+                    permissionBuckets.set(functionId, current);
+                });
+                const permissions = Array.from(permissionBuckets.values()).filter(perm =>
+                    perm.can_view || perm.can_create || perm.can_update || perm.can_delete
+                );
+                const payload = {
+                    name: form.get("name"),
+                    code: form.get("code"),
+                    description: form.get("description"),
+                    is_active: form.get("is_active") === "on",
+                    permissions,
+                };
+                try {
+                    if (item) {
+                        await apiFetch(`/admin/permission-groups/${item.id}`, {
+                            method: "PUT",
+                            body: JSON.stringify(payload),
+                        });
+                        showToast("Group updated", payload.code, "success");
+                    } else {
+                        await apiFetch("/admin/permission-groups", {
+                            method: "POST",
+                            body: JSON.stringify(payload),
+                        });
+                        showToast("Group created", payload.code, "success");
+                    }
+                    closeDrawer();
+                    await loadGroups();
+                } catch (error) {
+                    showToast("Group failed", error.message, "error");
+                }
+            });
+        }
+
+        async function deleteGroup(id) {
+            if (!confirm("Delete this permission group?")) return;
+            try {
+                await apiFetch(`/admin/permission-groups/${id}`, { method: "DELETE" });
+                await loadGroups();
+                showToast("Group deleted", `Record ${id} removed.`, "success");
+            } catch (error) {
+                showToast("Delete failed", error.message, "error");
+            }
+        }
+
+        async function loadUsers() {
+            const search = document.getElementById("userSearch").value.trim();
+            const params = new URLSearchParams({ page: 1, page_size: 100 });
+            if (search) params.set("search", search);
+            const data = await apiFetch(`/admin/users?${params.toString()}`);
+            state.users = data.items;
+            document.getElementById("usersTable").innerHTML = data.items.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.username)}</strong><div class="helper">${escapeHtml(item.email || "--")}</div></td>
+                    <td><span class="chip ${item.role === "admin" ? "warn" : ""}">${escapeHtml(item.role)}</span></td>
+                    <td>${escapeHtml(item.permission_group_name || "--")}</td>
+                    <td>${statusChip(item.is_active)}</td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn-ghost" type="button" onclick="window.adminApp.editUser(${item.id})">Edit</button>
+                            <button class="btn-ghost" type="button" onclick="window.adminApp.resetPassword(${item.id})">Reset password</button>
+                            <button class="btn-danger" type="button" onclick="window.adminApp.toggleUser(${item.id})">${item.is_active ? "Deactivate" : "Activate"}</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join("") || `<tr><td colspan="5" class="helper">No users found.</td></tr>`;
+        }
+
+        function userForm(item = null) {
+            const groupOptions = ['<option value="">No group</option>'].concat(
+                state.groups.map(group => `<option value="${group.id}" ${item?.permission_group_id === group.id ? "selected" : ""}>${escapeHtml(group.name)}</option>`)
+            ).join("");
+            openDrawer(
+                item ? "Edit User" : "Create User",
+                "QT-05 Account Administration",
+                `
+                <form id="userForm">
+                    <label>Username <input name="username" value="${escapeHtml(item?.username || "")}" required></label>
+                    <label>Email <input name="email" type="email" value="${escapeHtml(item?.email || "")}"></label>
+                    ${item ? "" : '<label>Password <input name="password" type="password" minlength="6" required></label>'}
+                    <label>Role
+                        <select name="role">
+                            <option value="user" ${item?.role !== "admin" ? "selected" : ""}>user</option>
+                            <option value="admin" ${item?.role === "admin" ? "selected" : ""}>admin</option>
+                        </select>
+                    </label>
+                    <label>Permission group
+                        <select name="permission_group_id">${groupOptions}</select>
+                    </label>
+                    <label><input type="checkbox" name="is_active" ${item?.is_active ?? true ? "checked" : ""}> Active</label>
+                    <div class="grid-buttons">
+                        <button class="btn-primary" type="submit">${item ? "Save changes" : "Create user"}</button>
+                    </div>
+                </form>
+                `
+            );
+            document.getElementById("userForm").addEventListener("submit", async event => {
+                event.preventDefault();
+                const form = new FormData(event.target);
+                const payload = {
+                    username: form.get("username"),
+                    email: form.get("email") || null,
+                    role: form.get("role"),
+                    permission_group_id: form.get("permission_group_id") ? Number(form.get("permission_group_id")) : null,
+                    is_active: form.get("is_active") === "on",
+                };
+                if (!item) {
+                    payload.password = form.get("password");
+                }
+                try {
+                    if (item) {
+                        await apiFetch(`/admin/users/${item.id}`, {
+                            method: "PUT",
+                            body: JSON.stringify(payload),
+                        });
+                        showToast("User updated", payload.username, "success");
+                    } else {
+                        await apiFetch("/admin/users", {
+                            method: "POST",
+                            body: JSON.stringify(payload),
+                        });
+                        showToast("User created", payload.username, "success");
+                    }
+                    closeDrawer();
+                    await loadUsers();
+                } catch (error) {
+                    showToast("User failed", error.message, "error");
+                }
+            });
+        }
+
+        async function resetPassword(userId) {
+            const newPassword = prompt("Enter new password (min 6 chars):");
+            if (!newPassword) return;
+            try {
+                await apiFetch(`/admin/users/${userId}/reset-password`, {
+                    method: "POST",
+                    body: JSON.stringify({ new_password: newPassword }),
+                });
+                showToast("Password reset", `User ${userId} updated.`, "success");
+            } catch (error) {
+                showToast("Reset failed", error.message, "error");
+            }
+        }
+
+        async function toggleUser(userId) {
+            try {
+                await apiFetch(`/admin/users/${userId}/toggle-active`, { method: "PUT" });
+                await loadUsers();
+                showToast("User status updated", `User ${userId} toggled.`, "success");
+            } catch (error) {
+                showToast("Toggle failed", error.message, "error");
+            }
+        }
+
+        async function loadLogs(target = "logs") {
+            const prefix = target === "usage-logs" ? "usage" : "log";
+            const tbodyId = target === "usage-logs" ? "usageLogsTable" : "logsTable";
+            const userId = document.getElementById(`${prefix}UserId`).value;
+            const action = document.getElementById(`${prefix}Action`).value.trim();
+            const dateFrom = document.getElementById(`${prefix}DateFrom`).value;
+            const dateTo = document.getElementById(`${prefix}DateTo`).value;
+            const params = new URLSearchParams({ page: 1, page_size: 100 });
+            if (userId) params.set("user_id", userId);
+            if (action) params.set("action", action);
+            if (dateFrom) params.set("date_from", new Date(dateFrom).toISOString());
+            if (dateTo) params.set("date_to", new Date(dateTo).toISOString());
+            const path = target === "usage-logs" ? "/admin/usage-logs" : "/admin/logs";
+            const data = await apiFetch(`${path}?${params.toString()}`);
+            document.getElementById(tbodyId).innerHTML = data.items.map(item => `
+                <tr>
+                    <td>${formatDate(item.created_at)}</td>
+                    <td>${escapeHtml(item.user_id ?? "--")}</td>
+                    <td>${escapeHtml(item.action)}</td>
+                    <td class="mono">${escapeHtml(item.detail || "--")}</td>
+                    <td>${escapeHtml(item.status_code ?? "--")}</td>
+                </tr>
+            `).join("") || `<tr><td colspan="5" class="helper">No log rows found.</td></tr>`;
+        }
+
+        async function exportUsageLogs() {
+            const userId = document.getElementById("usageUserId").value;
+            const action = document.getElementById("usageAction").value.trim();
+            const dateFrom = document.getElementById("usageDateFrom").value;
+            const dateTo = document.getElementById("usageDateTo").value;
+            const params = new URLSearchParams();
+            if (userId) params.set("user_id", userId);
+            if (action) params.set("action", action);
+            if (dateFrom) params.set("date_from", new Date(dateFrom).toISOString());
+            if (dateTo) params.set("date_to", new Date(dateTo).toISOString());
+            const url = `${state.apiBase}/admin/usage-logs/export?${params.toString()}`;
+            const response = await fetch(url, {
+                headers: { Authorization: `Bearer ${state.token}` },
+            });
+            if (!response.ok) {
+                showToast("Export failed", await response.text(), "error");
+                return;
+            }
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            const anchor = document.createElement("a");
+            anchor.href = objectUrl;
+            anchor.download = `usage_logs_${Date.now()}.xlsx`;
+            anchor.click();
+            URL.revokeObjectURL(objectUrl);
+            showToast("Export ready", "Usage log workbook downloaded.", "success");
+        }
+
+        async function loadBackups() {
+            const data = await apiFetch("/admin/backup");
+            state.backups = data;
+            document.getElementById("backupsTable").innerHTML = data.map(item => `
+                <tr>
+                    <td><strong>${escapeHtml(item.backup_name)}</strong><div class="mono">${escapeHtml(item.backup_path)}</div></td>
+                    <td>${formatDate(item.created_at)}</td>
+                    <td>
+                        <div class="chip ${item.has_db_snapshot ? "ok" : ""}">DB snapshot: ${item.has_db_snapshot ? "yes" : "no"}</div>
+                        <div class="chip ${item.has_db_dump ? "ok" : "warn"}">DB dump: ${item.has_db_dump ? "yes" : "no"}</div>
+                        <div class="chip ${item.has_faiss_index ? "ok" : "warn"}">FAISS: ${item.has_faiss_index ? "yes" : "no"}</div>
+                    </td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn-primary" type="button" onclick="window.adminApp.restoreBackup('${escapeHtml(item.backup_name)}')">Restore</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join("") || `<tr><td colspan="4" class="helper">No backups available.</td></tr>`;
+            document.getElementById("heroBackups").textContent = data.length;
+        }
+
+        async function createBackup() {
+            try {
+                const result = await apiFetch("/admin/backup", { method: "POST" });
+                showToast("Backup created", result.backup_name, "success");
+                await loadBackups();
+            } catch (error) {
+                showToast("Backup failed", error.message, "error");
+            }
+        }
+
+        async function restoreBackup(name) {
+            if (!confirm(`Restore backup ${name}? This will overwrite current database snapshot data.`)) {
+                return;
+            }
+            try {
+                await apiFetch(`/admin/backup/${encodeURIComponent(name)}/restore`, { method: "POST" });
+                showToast("Backup restored", name, "success");
+                await refreshAllData();
+            } catch (error) {
+                showToast("Restore failed", error.message, "error");
+            }
+        }
+
+        async function refreshAllData() {
+            if (!state.token) {
+                showToast("Authentication required", "Log in first to load admin resources.", "error");
+                return;
+            }
+            try {
+                await Promise.all([
+                    refreshOverview(),
+                    loadFunctions(),
+                    loadGroups(),
+                    loadUsers(),
+                    loadConfigs(),
+                    loadApiKeys(),
+                    loadLogs("logs"),
+                    loadLogs("usage-logs"),
+                    loadBackups(),
+                ]);
+                showToast("Dashboard refreshed", "All admin views were updated.", "success");
+            } catch (error) {
+                showToast("Refresh failed", error.message, "error");
+            }
+        }
+
+        window.adminApp = {
+            editConfig(id) {
+                configForm(state.configs.find(item => item.id === id));
+            },
+            deleteConfig,
+            editApiKey(id) {
+                apiKeyForm(state.apiKeys.find(item => item.id === id));
+            },
+            deleteApiKey,
+            editFunction(id) {
+                functionForm(state.functions.find(item => item.id === id));
+            },
+            deleteFunction,
+            editGroup(id) {
+                groupForm(state.groups.find(item => item.id === id));
+            },
+            deleteGroup,
+            editUser(id) {
+                userForm(state.users.find(item => item.id === id));
+            },
+            resetPassword,
+            toggleUser,
+            restoreBackup,
+        };
+
+        document.getElementById("logoutBtn").addEventListener("click", () => {
+            persistAuth("", null);
+            window.location.href = "/";
+        });
+        document.getElementById("refreshAllBtn").addEventListener("click", refreshAllData);
+        document.getElementById("loadConfigsBtn").addEventListener("click", () => loadConfigs().catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("newConfigBtn").addEventListener("click", () => configForm());
+        document.getElementById("loadApiKeysBtn").addEventListener("click", () => loadApiKeys().catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("newApiKeyBtn").addEventListener("click", () => apiKeyForm());
+        document.getElementById("loadGroupsBtn").addEventListener("click", () => loadGroups().catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("newGroupBtn").addEventListener("click", async () => {
+            try {
+                await loadFunctions();
+                groupForm();
+            } catch (error) {
+                showToast("Load failed", error.message, "error");
+            }
+        });
+        document.getElementById("loadFunctionsBtn").addEventListener("click", () => loadFunctions().catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("newFunctionBtn").addEventListener("click", () => functionForm());
+        document.getElementById("loadUsersBtn").addEventListener("click", async () => {
+            try {
+                await Promise.all([loadGroups(), loadUsers()]);
+            } catch (error) {
+                showToast("Load failed", error.message, "error");
+            }
+        });
+        document.getElementById("newUserBtn").addEventListener("click", async () => {
+            try {
+                await loadGroups();
+                userForm();
+            } catch (error) {
+                showToast("Load failed", error.message, "error");
+            }
+        });
+        document.getElementById("loadLogsBtn").addEventListener("click", () => loadLogs("logs").catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("loadUsageLogsBtn").addEventListener("click", () => loadLogs("usage-logs").catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("exportUsageLogsBtn").addEventListener("click", () => exportUsageLogs().catch(error => showToast("Export failed", error.message, "error")));
+        document.getElementById("createBackupBtn").addEventListener("click", createBackup);
+        document.getElementById("loadBackupsBtn").addEventListener("click", () => loadBackups().catch(error => showToast("Load failed", error.message, "error")));
+        document.getElementById("closeDrawerBtn").addEventListener("click", closeDrawer);
+        document.getElementById("overlay").addEventListener("click", closeDrawer);
+
+        document.querySelectorAll(".nav-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                setActiveView(btn.dataset.view);
+                if (!state.token) {
+                    return;
+                }
+                try {
+                    if (btn.dataset.view === "overview") await refreshOverview();
+                    if (btn.dataset.view === "configs") await loadConfigs();
+                    if (btn.dataset.view === "api-keys") await loadApiKeys();
+                    if (btn.dataset.view === "permission-groups") await Promise.all([loadFunctions(), loadGroups()]);
+                    if (btn.dataset.view === "system-functions") await loadFunctions();
+                    if (btn.dataset.view === "users") await Promise.all([loadGroups(), loadUsers()]);
+                    if (btn.dataset.view === "logs") await loadLogs("logs");
+                    if (btn.dataset.view === "usage-logs") await loadLogs("usage-logs");
+                    if (btn.dataset.view === "backups") await loadBackups();
+                } catch (error) {
+                    showToast("Load failed", error.message, "error");
+                }
+            });
+        });
+
+        document.querySelectorAll("[data-quick]").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                if (!state.token) {
+                    showToast("Authentication required", "Log in first.", "error");
+                    return;
+                }
+                const action = btn.dataset.quick;
+                if (action === "createBackup") {
+                    await createBackup();
+                } else if (action === "downloadUsage") {
+                    await exportUsageLogs();
+                } else if (action === "openUserForm") {
+                    await loadGroups();
+                    userForm();
+                } else if (action === "openConfigForm") {
+                    configForm();
+                }
+            });
+        });
+
+        if (!state.token) {
+            window.location.href = "/";
+        } else {
+            updateAuthUI();
+            setActiveView("overview");
+            refreshAllData().catch(error => showToast("Auto refresh failed", error.message, "error"));
+        }
+    </script>
+</body>
+</html>

@@ -1,1 +1,4 @@
-"""Application API router placeholder for future mounts."""
+from fastapi import APIRouter
+
+
+router = APIRouter()
