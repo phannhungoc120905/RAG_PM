@@ -280,9 +280,7 @@ class TestOCR(unittest.TestCase):
                 self.assertIn("không thể tìm thấy câu trả lời chính xác", result["answer"])
                 self.assertFalse(result["grounded"])
 
-    def test_supported_extensions(self):
-        # We don't run full OCR test here because it requires system tools (Tesseract/Poppler)
-        # But we can verify the check logic if we want, or just assume it works once configured.
+    def test_supported_extensions(self):        
         pass
 
 if __name__ == "__main__":
