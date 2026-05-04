@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import FileResponse
@@ -8,33 +8,58 @@ from sqlalchemy.orm import Session
 from admin.service import (
     create_api_key,
     create_backup,
+    create_department,
+    create_issuing_unit,
+    create_notice_document,
     create_permission_group,
+    create_position,
     create_system_config,
     create_system_function,
     create_user,
+    create_work_document,
+    create_work_item,
     delete_api_key,
+    delete_department,
+    delete_issuing_unit,
+    delete_notice_document,
     delete_permission_group,
+    delete_position,
     delete_system_config,
     delete_system_function,
+    delete_work_document,
+    delete_work_item,
     export_logs_to_excel,
     get_safe_config,
     get_system_status,
     list_api_keys,
     list_backups,
+    list_departments,
+    list_issuing_units,
+    list_login_history,
     list_logs,
+    list_notice_documents,
     list_permission_groups,
+    list_positions,
     list_system_configs,
     list_system_functions,
     list_users,
+    list_work_documents,
+    list_work_items,
     reset_user_password,
     restore_backup,
     toggle_user_active,
     update_api_key,
+    update_department,
+    update_issuing_unit,
+    update_notice_document,
     update_permission_group,
+    update_position,
     update_runtime_config,
     update_system_config,
     update_system_function,
     update_user,
+    update_work_document,
+    update_work_item,
 )
 from auth.dependencies import require_admin
 from db.database import get_db
@@ -205,6 +230,8 @@ class UserCreateRequest(BaseModel):
     password: str = Field(min_length=6)
     role: str = "user"
     permission_group_id: int | None = None
+    department_id: int | None = None
+    position_id: int | None = None
     is_active: bool = True
 
 
@@ -213,6 +240,8 @@ class UserUpdateRequest(BaseModel):
     email: str | None = None
     role: str | None = None
     permission_group_id: int | None = None
+    department_id: int | None = None
+    position_id: int | None = None
     is_active: bool | None = None
 
 
@@ -227,6 +256,11 @@ class UserItem(BaseModel):
     role: str
     permission_group_id: int | None
     permission_group_name: str | None
+    department_id: int | None
+    department_name: str | None
+    position_id: int | None
+    position_name: str | None
+    auth_source: str
     is_active: bool
     created_at: datetime
     last_login: datetime | None
@@ -261,6 +295,32 @@ class LogItem(BaseModel):
 
 class LogsResponse(BaseModel):
     items: list[LogItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class LoginHistoryItem(BaseModel):
+    id: int
+    user_id: int | None
+    username_snapshot: str
+    login_type: str
+    session_id: str
+    login_at: datetime
+    logout_at: datetime | None
+    status: str
+    ip_address: str | None
+    detail: str | None
+
+
+class LoginHistoryResponse(BaseModel):
+    items: list[LoginHistoryItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class NamedListResponse(BaseModel):
     total: int
     page: int
     page_size: int
@@ -335,6 +395,265 @@ class RestoreBackupResponse(BaseModel):
     restored_at: str
 
 
+class IssuingUnitCreateRequest(BaseModel):
+    code: str
+    name: str
+    short_name: str | None = None
+    parent_id: int | None = None
+    address: str | None = None
+    is_active: bool = True
+
+
+class IssuingUnitUpdateRequest(BaseModel):
+    code: str | None = None
+    name: str | None = None
+    short_name: str | None = None
+    parent_id: int | None = None
+    address: str | None = None
+    is_active: bool | None = None
+
+
+class IssuingUnitItem(BaseModel):
+    id: int
+    code: str
+    name: str
+    short_name: str | None
+    parent_id: int | None
+    parent_name: str | None
+    address: str | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime | None
+
+
+class IssuingUnitsResponse(BaseModel):
+    items: list[IssuingUnitItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class DepartmentCreateRequest(BaseModel):
+    code: str
+    name: str
+    issuing_unit_id: int | None = None
+    parent_id: int | None = None
+    description: str | None = None
+    is_active: bool = True
+
+
+class DepartmentUpdateRequest(BaseModel):
+    code: str | None = None
+    name: str | None = None
+    issuing_unit_id: int | None = None
+    parent_id: int | None = None
+    description: str | None = None
+    is_active: bool | None = None
+
+
+class DepartmentItem(BaseModel):
+    id: int
+    code: str
+    name: str
+    issuing_unit_id: int | None
+    issuing_unit_name: str | None
+    parent_id: int | None
+    parent_name: str | None
+    description: str | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime | None
+
+
+class DepartmentsResponse(BaseModel):
+    items: list[DepartmentItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class PositionCreateRequest(BaseModel):
+    code: str
+    name: str
+    department_id: int | None = None
+    description: str | None = None
+    is_active: bool = True
+
+
+class PositionUpdateRequest(BaseModel):
+    code: str | None = None
+    name: str | None = None
+    department_id: int | None = None
+    description: str | None = None
+    is_active: bool | None = None
+
+
+class PositionItem(BaseModel):
+    id: int
+    code: str
+    name: str
+    department_id: int | None
+    department_name: str | None
+    description: str | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime | None
+
+
+class PositionsResponse(BaseModel):
+    items: list[PositionItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class WorkDocumentCreateRequest(BaseModel):
+    document_code: str
+    title: str
+    content_summary: str | None = None
+    issuing_unit_id: int | None = None
+    department_id: int | None = None
+    assigned_by_user_id: int | None = None
+    assigned_department_id: int | None = None
+    due_date: date | None = None
+    status: str = "draft"
+
+
+class WorkDocumentUpdateRequest(BaseModel):
+    document_code: str | None = None
+    title: str | None = None
+    content_summary: str | None = None
+    issuing_unit_id: int | None = None
+    department_id: int | None = None
+    assigned_by_user_id: int | None = None
+    assigned_department_id: int | None = None
+    due_date: date | None = None
+    status: str | None = None
+
+
+class WorkDocumentItem(BaseModel):
+    id: int
+    document_code: str
+    title: str
+    content_summary: str | None
+    issuing_unit_id: int | None
+    issuing_unit_name: str | None
+    department_id: int | None
+    department_name: str | None
+    assigned_by_user_id: int | None
+    assigned_by_username: str | None
+    assigned_department_id: int | None
+    assigned_department_name: str | None
+    due_date: date | None
+    status: str
+    work_item_count: int
+    created_at: datetime
+    updated_at: datetime | None
+
+
+class WorkDocumentsResponse(BaseModel):
+    items: list[WorkDocumentItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class WorkItemCreateRequest(BaseModel):
+    work_document_id: int
+    title: str
+    description: str | None = None
+    assignee_user_id: int | None = None
+    department_id: int | None = None
+    position_id: int | None = None
+    priority: str = "normal"
+    status: str = "pending"
+    due_date: date | None = None
+
+
+class WorkItemUpdateRequest(BaseModel):
+    work_document_id: int | None = None
+    title: str | None = None
+    description: str | None = None
+    assignee_user_id: int | None = None
+    department_id: int | None = None
+    position_id: int | None = None
+    priority: str | None = None
+    status: str | None = None
+    due_date: date | None = None
+
+
+class WorkItemEntry(BaseModel):
+    id: int
+    work_document_id: int
+    work_document_code: str | None
+    title: str
+    description: str | None
+    assignee_user_id: int | None
+    assignee_username: str | None
+    department_id: int | None
+    department_name: str | None
+    position_id: int | None
+    position_name: str | None
+    priority: str
+    status: str
+    due_date: date | None
+    created_at: datetime
+    updated_at: datetime | None
+
+
+class WorkItemsResponse(BaseModel):
+    items: list[WorkItemEntry]
+    total: int
+    page: int
+    page_size: int
+
+
+class NoticeDocumentCreateRequest(BaseModel):
+    notice_code: str
+    title: str
+    content: str | None = None
+    issuing_unit_id: int | None = None
+    department_id: int | None = None
+    posted_by_user_id: int | None = None
+    effective_date: date | None = None
+    status: str = "draft"
+
+
+class NoticeDocumentUpdateRequest(BaseModel):
+    notice_code: str | None = None
+    title: str | None = None
+    content: str | None = None
+    issuing_unit_id: int | None = None
+    department_id: int | None = None
+    posted_by_user_id: int | None = None
+    effective_date: date | None = None
+    status: str | None = None
+
+
+class NoticeDocumentItem(BaseModel):
+    id: int
+    notice_code: str
+    title: str
+    content: str | None
+    issuing_unit_id: int | None
+    issuing_unit_name: str | None
+    department_id: int | None
+    department_name: str | None
+    posted_by_user_id: int | None
+    posted_by_username: str | None
+    effective_date: date | None
+    status: str
+    created_at: datetime
+    updated_at: datetime | None
+
+
+class NoticeDocumentsResponse(BaseModel):
+    items: list[NoticeDocumentItem]
+    total: int
+    page: int
+    page_size: int
+
+
 def _serialize_user(item) -> UserItem:
     return UserItem(
         id=item.id,
@@ -343,6 +662,11 @@ def _serialize_user(item) -> UserItem:
         role=item.role,
         permission_group_id=item.permission_group_id,
         permission_group_name=item.permission_group.name if item.permission_group else None,
+        department_id=item.department_id,
+        department_name=item.department.name if item.department else None,
+        position_id=item.position_id,
+        position_name=item.position.name if item.position else None,
+        auth_source=item.auth_source,
         is_active=item.is_active,
         created_at=item.created_at,
         last_login=item.last_login,
@@ -373,6 +697,113 @@ def _serialize_permission_group(item) -> PermissionGroupItem:
     )
 
 
+def _serialize_issuing_unit(item) -> IssuingUnitItem:
+    return IssuingUnitItem(
+        id=item.id,
+        code=item.code,
+        name=item.name,
+        short_name=item.short_name,
+        parent_id=item.parent_id,
+        parent_name=item.parent.name if item.parent else None,
+        address=item.address,
+        is_active=item.is_active,
+        created_at=item.created_at,
+        updated_at=item.updated_at,
+    )
+
+
+def _serialize_department(item) -> DepartmentItem:
+    return DepartmentItem(
+        id=item.id,
+        code=item.code,
+        name=item.name,
+        issuing_unit_id=item.issuing_unit_id,
+        issuing_unit_name=item.issuing_unit.name if item.issuing_unit else None,
+        parent_id=item.parent_id,
+        parent_name=item.parent.name if item.parent else None,
+        description=item.description,
+        is_active=item.is_active,
+        created_at=item.created_at,
+        updated_at=item.updated_at,
+    )
+
+
+def _serialize_position(item) -> PositionItem:
+    return PositionItem(
+        id=item.id,
+        code=item.code,
+        name=item.name,
+        department_id=item.department_id,
+        department_name=item.department.name if item.department else None,
+        description=item.description,
+        is_active=item.is_active,
+        created_at=item.created_at,
+        updated_at=item.updated_at,
+    )
+
+
+def _serialize_work_document(item) -> WorkDocumentItem:
+    return WorkDocumentItem(
+        id=item.id,
+        document_code=item.document_code,
+        title=item.title,
+        content_summary=item.content_summary,
+        issuing_unit_id=item.issuing_unit_id,
+        issuing_unit_name=item.issuing_unit.name if item.issuing_unit else None,
+        department_id=item.department_id,
+        department_name=item.department.name if item.department else None,
+        assigned_by_user_id=item.assigned_by_user_id,
+        assigned_by_username=item.assigned_by_user.username if item.assigned_by_user else None,
+        assigned_department_id=item.assigned_department_id,
+        assigned_department_name=item.assigned_department.name if item.assigned_department else None,
+        due_date=item.due_date,
+        status=item.status,
+        work_item_count=len(item.work_items or []),
+        created_at=item.created_at,
+        updated_at=item.updated_at,
+    )
+
+
+def _serialize_work_item(item) -> WorkItemEntry:
+    return WorkItemEntry(
+        id=item.id,
+        work_document_id=item.work_document_id,
+        work_document_code=item.work_document.document_code if item.work_document else None,
+        title=item.title,
+        description=item.description,
+        assignee_user_id=item.assignee_user_id,
+        assignee_username=item.assignee.username if item.assignee else None,
+        department_id=item.department_id,
+        department_name=item.department.name if item.department else None,
+        position_id=item.position_id,
+        position_name=item.position.name if item.position else None,
+        priority=item.priority,
+        status=item.status,
+        due_date=item.due_date,
+        created_at=item.created_at,
+        updated_at=item.updated_at,
+    )
+
+
+def _serialize_notice_document(item) -> NoticeDocumentItem:
+    return NoticeDocumentItem(
+        id=item.id,
+        notice_code=item.notice_code,
+        title=item.title,
+        content=item.content,
+        issuing_unit_id=item.issuing_unit_id,
+        issuing_unit_name=item.issuing_unit.name if item.issuing_unit else None,
+        department_id=item.department_id,
+        department_name=item.department.name if item.department else None,
+        posted_by_user_id=item.posted_by_user_id,
+        posted_by_username=item.posted_by_user.username if item.posted_by_user else None,
+        effective_date=item.effective_date,
+        status=item.status,
+        created_at=item.created_at,
+        updated_at=item.updated_at,
+    )
+
+
 @router.get("/configs", response_model=SystemConfigsResponse)
 async def get_system_configs(
     page: int = Query(default=1, ge=1),
@@ -382,6 +813,7 @@ async def get_system_configs(
     admin_user: dict = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> SystemConfigsResponse:
+    del admin_user
     items, total = list_system_configs(db, page, page_size, search, category)
     return SystemConfigsResponse(
         items=[
@@ -433,12 +865,7 @@ async def edit_config(
     admin_user: dict = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> SystemConfigItem:
-    item = update_system_config(
-        db,
-        config_id,
-        int(admin_user["sub"]),
-        payload.model_dump(exclude_none=True),
-    )
+    item = update_system_config(db, config_id, int(admin_user["sub"]), payload.model_dump(exclude_none=True))
     return SystemConfigItem(
         id=item.id,
         config_key=item.config_key,
@@ -501,12 +928,7 @@ async def add_api_key(
     db: Session = Depends(get_db),
 ) -> APIKeyCreateResponse:
     item, plain_key = create_api_key(db, int(admin_user["sub"]), payload.model_dump())
-    return APIKeyCreateResponse(
-        id=item.id,
-        name=item.name,
-        plain_key=plain_key,
-        created_at=item.created_at,
-    )
+    return APIKeyCreateResponse(id=item.id, name=item.name, plain_key=plain_key, created_at=item.created_at)
 
 
 @router.put("/api-keys/{api_key_id}", response_model=APIKeyItem)
@@ -551,12 +973,7 @@ async def get_permission_groups(
 ) -> PermissionGroupsResponse:
     del admin_user
     items, total = list_permission_groups(db, page, page_size, search)
-    return PermissionGroupsResponse(
-        items=[_serialize_permission_group(item) for item in items],
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+    return PermissionGroupsResponse(items=[_serialize_permission_group(item) for item in items], total=total, page=page, page_size=page_size)
 
 
 @router.post("/permission-groups", response_model=PermissionGroupItem)
@@ -687,12 +1104,7 @@ async def get_users(
 ) -> UsersResponse:
     del admin_user
     items, total = list_users(db, page, page_size, search)
-    return UsersResponse(
-        items=[_serialize_user(item) for item in items],
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+    return UsersResponse(items=[_serialize_user(item) for item in items], total=total, page=page, page_size=page_size)
 
 
 @router.post("/users", response_model=UserItem)
@@ -739,11 +1151,7 @@ async def toggle_active(
     db: Session = Depends(get_db),
 ) -> ToggleActiveResponse:
     item = toggle_user_active(db, user_id, int(admin_user["sub"]))
-    return ToggleActiveResponse(
-        id=item.id,
-        is_active=item.is_active,
-        message="User status updated",
-    )
+    return ToggleActiveResponse(id=item.id, is_active=item.is_active, message="User status updated")
 
 
 @router.get("/logs", response_model=LogsResponse)
@@ -803,10 +1211,43 @@ async def export_usage_logs(
 ) -> FileResponse:
     del admin_user
     path = export_logs_to_excel(db, user_id, action, date_from, date_to)
-    return FileResponse(
-        path,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        filename=path.name,
+    return FileResponse(path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename=path.name)
+
+
+@router.get("/login-history", response_model=LoginHistoryResponse)
+async def get_login_history(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    search: str | None = None,
+    user_id: int | None = None,
+    login_type: str | None = None,
+    status_value: str | None = Query(default=None, alias="status"),
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> LoginHistoryResponse:
+    del admin_user
+    items, total = list_login_history(db, page, page_size, search, user_id, login_type, status_value, date_from, date_to)
+    return LoginHistoryResponse(
+        items=[
+            LoginHistoryItem(
+                id=item.id,
+                user_id=item.user_id,
+                username_snapshot=item.username_snapshot,
+                login_type=item.login_type,
+                session_id=item.session_id,
+                login_at=item.login_at,
+                logout_at=item.logout_at,
+                status=item.status,
+                ip_address=item.ip_address,
+                detail=item.detail,
+            )
+            for item in items
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
     )
 
 
@@ -826,9 +1267,7 @@ async def system_status(
 
 
 @router.get("/config", response_model=AdminConfigResponse)
-async def get_config(
-    admin_user: dict = Depends(require_admin),
-) -> AdminConfigResponse:
+async def get_config(admin_user: dict = Depends(require_admin)) -> AdminConfigResponse:
     del admin_user
     return AdminConfigResponse(**get_safe_config())
 
@@ -851,9 +1290,7 @@ async def backup_now(
 
 
 @router.get("/backup", response_model=list[BackupItem])
-async def get_backups(
-    admin_user: dict = Depends(require_admin),
-) -> list[BackupItem]:
+async def get_backups(admin_user: dict = Depends(require_admin)) -> list[BackupItem]:
     del admin_user
     return [BackupItem(**item) for item in list_backups()]
 
@@ -865,7 +1302,290 @@ async def restore_backup_data(
     db: Session = Depends(get_db),
 ) -> RestoreBackupResponse:
     result = restore_backup(db, backup_name, int(admin_user["sub"]))
-    return RestoreBackupResponse(
-        backup_name=result["backup_name"],
-        restored_at=result["restored_at"],
-    )
+    return RestoreBackupResponse(backup_name=result["backup_name"], restored_at=result["restored_at"])
+
+
+@router.get("/issuing-units", response_model=IssuingUnitsResponse)
+async def get_issuing_units(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    search: str | None = None,
+    is_active: bool | None = None,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> IssuingUnitsResponse:
+    del admin_user
+    items, total = list_issuing_units(db, page, page_size, search, is_active)
+    return IssuingUnitsResponse(items=[_serialize_issuing_unit(item) for item in items], total=total, page=page, page_size=page_size)
+
+
+@router.post("/issuing-units", response_model=IssuingUnitItem)
+async def add_issuing_unit(
+    payload: IssuingUnitCreateRequest,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> IssuingUnitItem:
+    del admin_user
+    return _serialize_issuing_unit(create_issuing_unit(db, payload.model_dump()))
+
+
+@router.put("/issuing-units/{unit_id}", response_model=IssuingUnitItem)
+async def edit_issuing_unit(
+    unit_id: int,
+    payload: IssuingUnitUpdateRequest,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> IssuingUnitItem:
+    del admin_user
+    return _serialize_issuing_unit(update_issuing_unit(db, unit_id, payload.model_dump(exclude_none=True)))
+
+
+@router.delete("/issuing-units/{unit_id}", response_model=MessageResponse)
+async def remove_issuing_unit(
+    unit_id: int,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    del admin_user
+    delete_issuing_unit(db, unit_id)
+    return MessageResponse(message="Issuing unit deleted")
+
+
+@router.get("/departments", response_model=DepartmentsResponse)
+async def get_departments(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    search: str | None = None,
+    issuing_unit_id: int | None = None,
+    is_active: bool | None = None,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> DepartmentsResponse:
+    del admin_user
+    items, total = list_departments(db, page, page_size, search, issuing_unit_id, is_active)
+    return DepartmentsResponse(items=[_serialize_department(item) for item in items], total=total, page=page, page_size=page_size)
+
+
+@router.post("/departments", response_model=DepartmentItem)
+async def add_department(
+    payload: DepartmentCreateRequest,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> DepartmentItem:
+    del admin_user
+    return _serialize_department(create_department(db, payload.model_dump()))
+
+
+@router.put("/departments/{department_id}", response_model=DepartmentItem)
+async def edit_department(
+    department_id: int,
+    payload: DepartmentUpdateRequest,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> DepartmentItem:
+    del admin_user
+    return _serialize_department(update_department(db, department_id, payload.model_dump(exclude_none=True)))
+
+
+@router.delete("/departments/{department_id}", response_model=MessageResponse)
+async def remove_department(
+    department_id: int,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    del admin_user
+    delete_department(db, department_id)
+    return MessageResponse(message="Department deleted")
+
+
+@router.get("/positions", response_model=PositionsResponse)
+async def get_positions(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    search: str | None = None,
+    department_id: int | None = None,
+    is_active: bool | None = None,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> PositionsResponse:
+    del admin_user
+    items, total = list_positions(db, page, page_size, search, department_id, is_active)
+    return PositionsResponse(items=[_serialize_position(item) for item in items], total=total, page=page, page_size=page_size)
+
+
+@router.post("/positions", response_model=PositionItem)
+async def add_position(
+    payload: PositionCreateRequest,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> PositionItem:
+    del admin_user
+    return _serialize_position(create_position(db, payload.model_dump()))
+
+
+@router.put("/positions/{position_id}", response_model=PositionItem)
+async def edit_position(
+    position_id: int,
+    payload: PositionUpdateRequest,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> PositionItem:
+    del admin_user
+    return _serialize_position(update_position(db, position_id, payload.model_dump(exclude_none=True)))
+
+
+@router.delete("/positions/{position_id}", response_model=MessageResponse)
+async def remove_position(
+    position_id: int,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    del admin_user
+    delete_position(db, position_id)
+    return MessageResponse(message="Position deleted")
+
+
+@router.get("/work-documents", response_model=WorkDocumentsResponse)
+async def get_work_documents(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    search: str | None = None,
+    status_value: str | None = Query(default=None, alias="status"),
+    issuing_unit_id: int | None = None,
+    department_id: int | None = None,
+    assigned_department_id: int | None = None,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> WorkDocumentsResponse:
+    del admin_user
+    items, total = list_work_documents(db, page, page_size, search, status_value, issuing_unit_id, department_id, assigned_department_id)
+    return WorkDocumentsResponse(items=[_serialize_work_document(item) for item in items], total=total, page=page, page_size=page_size)
+
+
+@router.post("/work-documents", response_model=WorkDocumentItem)
+async def add_work_document(
+    payload: WorkDocumentCreateRequest,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> WorkDocumentItem:
+    del admin_user
+    return _serialize_work_document(create_work_document(db, payload.model_dump()))
+
+
+@router.put("/work-documents/{document_id}", response_model=WorkDocumentItem)
+async def edit_work_document(
+    document_id: int,
+    payload: WorkDocumentUpdateRequest,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> WorkDocumentItem:
+    del admin_user
+    return _serialize_work_document(update_work_document(db, document_id, payload.model_dump(exclude_none=True)))
+
+
+@router.delete("/work-documents/{document_id}", response_model=MessageResponse)
+async def remove_work_document(
+    document_id: int,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    del admin_user
+    delete_work_document(db, document_id)
+    return MessageResponse(message="Work document deleted")
+
+
+@router.get("/work-items", response_model=WorkItemsResponse)
+async def get_work_items(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    search: str | None = None,
+    status_value: str | None = Query(default=None, alias="status"),
+    work_document_id: int | None = None,
+    assignee_user_id: int | None = None,
+    department_id: int | None = None,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> WorkItemsResponse:
+    del admin_user
+    items, total = list_work_items(db, page, page_size, search, status_value, work_document_id, assignee_user_id, department_id)
+    return WorkItemsResponse(items=[_serialize_work_item(item) for item in items], total=total, page=page, page_size=page_size)
+
+
+@router.post("/work-items", response_model=WorkItemEntry)
+async def add_work_item(
+    payload: WorkItemCreateRequest,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> WorkItemEntry:
+    del admin_user
+    return _serialize_work_item(create_work_item(db, payload.model_dump()))
+
+
+@router.put("/work-items/{item_id}", response_model=WorkItemEntry)
+async def edit_work_item(
+    item_id: int,
+    payload: WorkItemUpdateRequest,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> WorkItemEntry:
+    del admin_user
+    return _serialize_work_item(update_work_item(db, item_id, payload.model_dump(exclude_none=True)))
+
+
+@router.delete("/work-items/{item_id}", response_model=MessageResponse)
+async def remove_work_item(
+    item_id: int,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    del admin_user
+    delete_work_item(db, item_id)
+    return MessageResponse(message="Work item deleted")
+
+
+@router.get("/notice-documents", response_model=NoticeDocumentsResponse)
+async def get_notice_documents(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    search: str | None = None,
+    status_value: str | None = Query(default=None, alias="status"),
+    issuing_unit_id: int | None = None,
+    department_id: int | None = None,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> NoticeDocumentsResponse:
+    del admin_user
+    items, total = list_notice_documents(db, page, page_size, search, status_value, issuing_unit_id, department_id)
+    return NoticeDocumentsResponse(items=[_serialize_notice_document(item) for item in items], total=total, page=page, page_size=page_size)
+
+
+@router.post("/notice-documents", response_model=NoticeDocumentItem)
+async def add_notice_document(
+    payload: NoticeDocumentCreateRequest,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> NoticeDocumentItem:
+    del admin_user
+    return _serialize_notice_document(create_notice_document(db, payload.model_dump()))
+
+
+@router.put("/notice-documents/{notice_id}", response_model=NoticeDocumentItem)
+async def edit_notice_document(
+    notice_id: int,
+    payload: NoticeDocumentUpdateRequest,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> NoticeDocumentItem:
+    del admin_user
+    return _serialize_notice_document(update_notice_document(db, notice_id, payload.model_dump(exclude_none=True)))
+
+
+@router.delete("/notice-documents/{notice_id}", response_model=MessageResponse)
+async def remove_notice_document(
+    notice_id: int,
+    admin_user: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    del admin_user
+    delete_notice_document(db, notice_id)
+    return MessageResponse(message="Notice document deleted")

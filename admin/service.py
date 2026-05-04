@@ -2,7 +2,7 @@ import hashlib
 import json
 import secrets
 import shutil
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -15,14 +15,21 @@ from config import settings
 from db.models import (
     APIKey,
     ChunkMetadata,
+    Department,
     Document,
+    IssuingUnit,
+    LoginHistory,
+    NoticeDocument,
     PermissionGroup,
     PermissionGroupFunction,
+    Position,
     SummaryHistory,
     SystemConfig,
     SystemFunction,
     SystemLog,
     User,
+    WorkAssignmentDocument,
+    WorkItem,
 )
 
 
@@ -30,11 +37,18 @@ SNAPSHOT_MODELS = [
     PermissionGroup,
     SystemFunction,
     PermissionGroupFunction,
+    IssuingUnit,
+    Department,
+    Position,
     User,
+    LoginHistory,
     SystemConfig,
     Document,
     ChunkMetadata,
     SummaryHistory,
+    WorkAssignmentDocument,
+    WorkItem,
+    NoticeDocument,
     SystemLog,
     APIKey,
 ]
@@ -43,11 +57,18 @@ SNAPSHOT_DELETE_ORDER = [
     PermissionGroupFunction,
     APIKey,
     SystemLog,
+    WorkItem,
+    NoticeDocument,
+    WorkAssignmentDocument,
     SummaryHistory,
     ChunkMetadata,
     Document,
+    LoginHistory,
     SystemConfig,
     User,
+    Position,
+    Department,
+    IssuingUnit,
     SystemFunction,
     PermissionGroup,
 ]
@@ -60,7 +81,9 @@ def list_users(
     search: str | None,
 ) -> tuple[list[User], int]:
     statement: Select[tuple[User]] = select(User).options(
-        selectinload(User.permission_group)
+        selectinload(User.permission_group),
+        selectinload(User.department),
+        selectinload(User.position),
     )
     count_statement = select(func.count()).select_from(User)
 
@@ -81,16 +104,22 @@ def list_users(
 
 def create_user(db: Session, payload: dict[str, Any]) -> User:
     _assert_unique_user(db, payload["username"], payload.get("email"))
-    permission_group_id = payload.get("permission_group_id")
-    if permission_group_id is not None:
-        _get_group_or_404(db, permission_group_id)
+    _validate_user_relations(
+        db,
+        payload.get("permission_group_id"),
+        payload.get("department_id"),
+        payload.get("position_id"),
+    )
     user = User(
         username=payload["username"],
         email=payload.get("email"),
         hashed_password=hash_password(payload["password"]),
         role=payload.get("role", "user"),
-        permission_group_id=permission_group_id,
+        permission_group_id=payload.get("permission_group_id"),
+        department_id=payload.get("department_id"),
+        position_id=payload.get("position_id"),
         is_active=payload.get("is_active", True),
+        auth_source=payload.get("auth_source", "local"),
     )
     db.add(user)
     db.commit()
@@ -113,10 +142,15 @@ def update_user(db: Session, user_id: int, payload: dict[str, Any]) -> User:
             raise HTTPException(status_code=409, detail="Email already exists")
         user.email = email
 
-    for field in ("role", "is_active", "permission_group_id"):
+    _validate_user_relations(
+        db,
+        payload.get("permission_group_id", user.permission_group_id) if "permission_group_id" in payload else user.permission_group_id,
+        payload.get("department_id", user.department_id) if "department_id" in payload else user.department_id,
+        payload.get("position_id", user.position_id) if "position_id" in payload else user.position_id,
+    )
+
+    for field in ("role", "is_active", "permission_group_id", "department_id", "position_id"):
         if field in payload:
-            if field == "permission_group_id" and payload[field] is not None:
-                _get_group_or_404(db, payload[field])
             setattr(user, field, payload[field])
 
     db.add(user)
@@ -179,6 +213,49 @@ def list_logs(
     total = db.scalar(count_statement) or 0
     items = db.scalars(
         statement.order_by(SystemLog.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).all()
+    return items, total
+
+
+def list_login_history(
+    db: Session,
+    page: int,
+    page_size: int,
+    search: str | None,
+    user_id: int | None,
+    login_type: str | None,
+    status_value: str | None,
+    date_from: datetime | None,
+    date_to: datetime | None,
+) -> tuple[list[LoginHistory], int]:
+    statement: Select[tuple[LoginHistory]] = select(LoginHistory).options(selectinload(LoginHistory.user))
+    count_statement = select(func.count()).select_from(LoginHistory)
+
+    if search:
+        criteria = LoginHistory.username_snapshot.ilike(f"%{search}%")
+        statement = statement.where(criteria)
+        count_statement = count_statement.where(criteria)
+    if user_id is not None:
+        statement = statement.where(LoginHistory.user_id == user_id)
+        count_statement = count_statement.where(LoginHistory.user_id == user_id)
+    if login_type:
+        statement = statement.where(LoginHistory.login_type == login_type)
+        count_statement = count_statement.where(LoginHistory.login_type == login_type)
+    if status_value:
+        statement = statement.where(LoginHistory.status == status_value)
+        count_statement = count_statement.where(LoginHistory.status == status_value)
+    if date_from:
+        statement = statement.where(LoginHistory.login_at >= date_from)
+        count_statement = count_statement.where(LoginHistory.login_at >= date_from)
+    if date_to:
+        statement = statement.where(LoginHistory.login_at <= date_to)
+        count_statement = count_statement.where(LoginHistory.login_at <= date_to)
+
+    total = db.scalar(count_statement) or 0
+    items = db.scalars(
+        statement.order_by(LoginHistory.id.desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
     ).all()
@@ -309,9 +386,7 @@ def update_system_config(
 ) -> SystemConfig:
     config = _get_config_or_404(db, config_id)
     if "config_key" in payload and payload["config_key"] != config.config_key:
-        if db.scalar(
-            select(SystemConfig).where(SystemConfig.config_key == payload["config_key"])
-        ):
+        if db.scalar(select(SystemConfig).where(SystemConfig.config_key == payload["config_key"])):
             raise HTTPException(status_code=409, detail="Config key already exists")
     for field in ("config_key", "config_value", "category", "data_type", "description", "is_active"):
         if field in payload:
@@ -558,6 +633,430 @@ def delete_system_function(db: Session, function_id: int) -> None:
     db.commit()
 
 
+def list_issuing_units(
+    db: Session,
+    page: int,
+    page_size: int,
+    search: str | None,
+    is_active: bool | None,
+) -> tuple[list[IssuingUnit], int]:
+    statement: Select[tuple[IssuingUnit]] = select(IssuingUnit).options(selectinload(IssuingUnit.parent))
+    count_statement = select(func.count()).select_from(IssuingUnit)
+    if search:
+        criteria = or_(
+            IssuingUnit.code.ilike(f"%{search}%"),
+            IssuingUnit.name.ilike(f"%{search}%"),
+            IssuingUnit.short_name.ilike(f"%{search}%"),
+        )
+        statement = statement.where(criteria)
+        count_statement = count_statement.where(criteria)
+    if is_active is not None:
+        statement = statement.where(IssuingUnit.is_active == is_active)
+        count_statement = count_statement.where(IssuingUnit.is_active == is_active)
+    total = db.scalar(count_statement) or 0
+    items = db.scalars(
+        statement.order_by(IssuingUnit.id.desc()).offset((page - 1) * page_size).limit(page_size)
+    ).all()
+    return items, total
+
+
+def create_issuing_unit(db: Session, payload: dict[str, Any]) -> IssuingUnit:
+    if db.scalar(select(IssuingUnit).where(IssuingUnit.code == payload["code"])):
+        raise HTTPException(status_code=409, detail="Issuing unit code already exists")
+    if payload.get("parent_id") is not None:
+        _get_issuing_unit_or_404(db, payload["parent_id"])
+    item = IssuingUnit(**payload)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def update_issuing_unit(db: Session, unit_id: int, payload: dict[str, Any]) -> IssuingUnit:
+    item = _get_issuing_unit_or_404(db, unit_id)
+    if "code" in payload and payload["code"] != item.code:
+        if db.scalar(select(IssuingUnit).where(IssuingUnit.code == payload["code"])):
+            raise HTTPException(status_code=409, detail="Issuing unit code already exists")
+    if "parent_id" in payload:
+        if payload["parent_id"] == unit_id:
+            raise HTTPException(status_code=400, detail="Parent cannot be self")
+        if payload["parent_id"] is not None:
+            _get_issuing_unit_or_404(db, payload["parent_id"])
+    for field, value in payload.items():
+        setattr(item, field, value)
+    item.updated_at = datetime.utcnow()
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def delete_issuing_unit(db: Session, unit_id: int) -> None:
+    item = _get_issuing_unit_or_404(db, unit_id)
+    if item.children or item.departments or item.work_assignment_documents or item.notice_documents:
+        raise HTTPException(status_code=400, detail="Issuing unit is in use")
+    db.delete(item)
+    db.commit()
+
+
+def list_departments(
+    db: Session,
+    page: int,
+    page_size: int,
+    search: str | None,
+    issuing_unit_id: int | None,
+    is_active: bool | None,
+) -> tuple[list[Department], int]:
+    statement: Select[tuple[Department]] = select(Department).options(
+        selectinload(Department.issuing_unit),
+        selectinload(Department.parent),
+    )
+    count_statement = select(func.count()).select_from(Department)
+    if search:
+        criteria = or_(
+            Department.code.ilike(f"%{search}%"),
+            Department.name.ilike(f"%{search}%"),
+        )
+        statement = statement.where(criteria)
+        count_statement = count_statement.where(criteria)
+    if issuing_unit_id is not None:
+        statement = statement.where(Department.issuing_unit_id == issuing_unit_id)
+        count_statement = count_statement.where(Department.issuing_unit_id == issuing_unit_id)
+    if is_active is not None:
+        statement = statement.where(Department.is_active == is_active)
+        count_statement = count_statement.where(Department.is_active == is_active)
+    total = db.scalar(count_statement) or 0
+    items = db.scalars(
+        statement.order_by(Department.id.desc()).offset((page - 1) * page_size).limit(page_size)
+    ).all()
+    return items, total
+
+
+def create_department(db: Session, payload: dict[str, Any]) -> Department:
+    if db.scalar(select(Department).where(Department.code == payload["code"])):
+        raise HTTPException(status_code=409, detail="Department code already exists")
+    if payload.get("issuing_unit_id") is not None:
+        _get_issuing_unit_or_404(db, payload["issuing_unit_id"])
+    if payload.get("parent_id") is not None:
+        _get_department_or_404(db, payload["parent_id"])
+    item = Department(**payload)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def update_department(db: Session, department_id: int, payload: dict[str, Any]) -> Department:
+    item = _get_department_or_404(db, department_id)
+    if "code" in payload and payload["code"] != item.code:
+        if db.scalar(select(Department).where(Department.code == payload["code"])):
+            raise HTTPException(status_code=409, detail="Department code already exists")
+    if "issuing_unit_id" in payload and payload["issuing_unit_id"] is not None:
+        _get_issuing_unit_or_404(db, payload["issuing_unit_id"])
+    if "parent_id" in payload:
+        if payload["parent_id"] == department_id:
+            raise HTTPException(status_code=400, detail="Parent cannot be self")
+        if payload["parent_id"] is not None:
+            _get_department_or_404(db, payload["parent_id"])
+    for field, value in payload.items():
+        setattr(item, field, value)
+    item.updated_at = datetime.utcnow()
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def delete_department(db: Session, department_id: int) -> None:
+    item = _get_department_or_404(db, department_id)
+    if item.children or item.positions or item.users or item.work_items or item.work_assignment_documents or item.assigned_work_documents or item.notice_documents:
+        raise HTTPException(status_code=400, detail="Department is in use")
+    db.delete(item)
+    db.commit()
+
+
+def list_positions(
+    db: Session,
+    page: int,
+    page_size: int,
+    search: str | None,
+    department_id: int | None,
+    is_active: bool | None,
+) -> tuple[list[Position], int]:
+    statement: Select[tuple[Position]] = select(Position).options(selectinload(Position.department))
+    count_statement = select(func.count()).select_from(Position)
+    if search:
+        criteria = or_(
+            Position.code.ilike(f"%{search}%"),
+            Position.name.ilike(f"%{search}%"),
+        )
+        statement = statement.where(criteria)
+        count_statement = count_statement.where(criteria)
+    if department_id is not None:
+        statement = statement.where(Position.department_id == department_id)
+        count_statement = count_statement.where(Position.department_id == department_id)
+    if is_active is not None:
+        statement = statement.where(Position.is_active == is_active)
+        count_statement = count_statement.where(Position.is_active == is_active)
+    total = db.scalar(count_statement) or 0
+    items = db.scalars(
+        statement.order_by(Position.id.desc()).offset((page - 1) * page_size).limit(page_size)
+    ).all()
+    return items, total
+
+
+def create_position(db: Session, payload: dict[str, Any]) -> Position:
+    if db.scalar(select(Position).where(Position.code == payload["code"])):
+        raise HTTPException(status_code=409, detail="Position code already exists")
+    if payload.get("department_id") is not None:
+        _get_department_or_404(db, payload["department_id"])
+    item = Position(**payload)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def update_position(db: Session, position_id: int, payload: dict[str, Any]) -> Position:
+    item = _get_position_or_404(db, position_id)
+    if "code" in payload and payload["code"] != item.code:
+        if db.scalar(select(Position).where(Position.code == payload["code"])):
+            raise HTTPException(status_code=409, detail="Position code already exists")
+    if "department_id" in payload and payload["department_id"] is not None:
+        _get_department_or_404(db, payload["department_id"])
+    for field, value in payload.items():
+        setattr(item, field, value)
+    item.updated_at = datetime.utcnow()
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def delete_position(db: Session, position_id: int) -> None:
+    item = _get_position_or_404(db, position_id)
+    if item.users or item.work_items:
+        raise HTTPException(status_code=400, detail="Position is in use")
+    db.delete(item)
+    db.commit()
+
+
+def list_work_documents(
+    db: Session,
+    page: int,
+    page_size: int,
+    search: str | None,
+    status_value: str | None,
+    issuing_unit_id: int | None,
+    department_id: int | None,
+    assigned_department_id: int | None,
+) -> tuple[list[WorkAssignmentDocument], int]:
+    statement: Select[tuple[WorkAssignmentDocument]] = select(WorkAssignmentDocument).options(
+        selectinload(WorkAssignmentDocument.issuing_unit),
+        selectinload(WorkAssignmentDocument.department),
+        selectinload(WorkAssignmentDocument.assigned_department),
+        selectinload(WorkAssignmentDocument.assigned_by_user),
+        selectinload(WorkAssignmentDocument.work_items),
+    )
+    count_statement = select(func.count()).select_from(WorkAssignmentDocument)
+    if search:
+        criteria = or_(
+            WorkAssignmentDocument.document_code.ilike(f"%{search}%"),
+            WorkAssignmentDocument.title.ilike(f"%{search}%"),
+        )
+        statement = statement.where(criteria)
+        count_statement = count_statement.where(criteria)
+    if status_value:
+        statement = statement.where(WorkAssignmentDocument.status == status_value)
+        count_statement = count_statement.where(WorkAssignmentDocument.status == status_value)
+    if issuing_unit_id is not None:
+        statement = statement.where(WorkAssignmentDocument.issuing_unit_id == issuing_unit_id)
+        count_statement = count_statement.where(WorkAssignmentDocument.issuing_unit_id == issuing_unit_id)
+    if department_id is not None:
+        statement = statement.where(WorkAssignmentDocument.department_id == department_id)
+        count_statement = count_statement.where(WorkAssignmentDocument.department_id == department_id)
+    if assigned_department_id is not None:
+        statement = statement.where(WorkAssignmentDocument.assigned_department_id == assigned_department_id)
+        count_statement = count_statement.where(WorkAssignmentDocument.assigned_department_id == assigned_department_id)
+    total = db.scalar(count_statement) or 0
+    items = db.scalars(
+        statement.order_by(WorkAssignmentDocument.id.desc()).offset((page - 1) * page_size).limit(page_size)
+    ).all()
+    return items, total
+
+
+def create_work_document(db: Session, payload: dict[str, Any]) -> WorkAssignmentDocument:
+    if db.scalar(select(WorkAssignmentDocument).where(WorkAssignmentDocument.document_code == payload["document_code"])):
+        raise HTTPException(status_code=409, detail="Work document code already exists")
+    _validate_work_document_relations(db, payload)
+    item = WorkAssignmentDocument(**payload)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def update_work_document(db: Session, document_id: int, payload: dict[str, Any]) -> WorkAssignmentDocument:
+    item = _get_work_document_or_404(db, document_id)
+    if "document_code" in payload and payload["document_code"] != item.document_code:
+        if db.scalar(select(WorkAssignmentDocument).where(WorkAssignmentDocument.document_code == payload["document_code"])):
+            raise HTTPException(status_code=409, detail="Work document code already exists")
+    _validate_work_document_relations(db, payload)
+    for field, value in payload.items():
+        setattr(item, field, value)
+    item.updated_at = datetime.utcnow()
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def delete_work_document(db: Session, document_id: int) -> None:
+    item = _get_work_document_or_404(db, document_id)
+    db.delete(item)
+    db.commit()
+
+
+def list_work_items(
+    db: Session,
+    page: int,
+    page_size: int,
+    search: str | None,
+    status_value: str | None,
+    work_document_id: int | None,
+    assignee_user_id: int | None,
+    department_id: int | None,
+) -> tuple[list[WorkItem], int]:
+    statement: Select[tuple[WorkItem]] = select(WorkItem).options(
+        selectinload(WorkItem.work_document),
+        selectinload(WorkItem.assignee),
+        selectinload(WorkItem.department),
+        selectinload(WorkItem.position),
+    )
+    count_statement = select(func.count()).select_from(WorkItem)
+    if search:
+        criteria = or_(
+            WorkItem.title.ilike(f"%{search}%"),
+            WorkItem.description.ilike(f"%{search}%"),
+        )
+        statement = statement.where(criteria)
+        count_statement = count_statement.where(criteria)
+    if status_value:
+        statement = statement.where(WorkItem.status == status_value)
+        count_statement = count_statement.where(WorkItem.status == status_value)
+    if work_document_id is not None:
+        statement = statement.where(WorkItem.work_document_id == work_document_id)
+        count_statement = count_statement.where(WorkItem.work_document_id == work_document_id)
+    if assignee_user_id is not None:
+        statement = statement.where(WorkItem.assignee_user_id == assignee_user_id)
+        count_statement = count_statement.where(WorkItem.assignee_user_id == assignee_user_id)
+    if department_id is not None:
+        statement = statement.where(WorkItem.department_id == department_id)
+        count_statement = count_statement.where(WorkItem.department_id == department_id)
+    total = db.scalar(count_statement) or 0
+    items = db.scalars(
+        statement.order_by(WorkItem.id.desc()).offset((page - 1) * page_size).limit(page_size)
+    ).all()
+    return items, total
+
+
+def create_work_item(db: Session, payload: dict[str, Any]) -> WorkItem:
+    _validate_work_item_relations(db, payload)
+    item = WorkItem(**payload)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def update_work_item(db: Session, item_id: int, payload: dict[str, Any]) -> WorkItem:
+    item = _get_work_item_or_404(db, item_id)
+    _validate_work_item_relations(db, payload)
+    for field, value in payload.items():
+        setattr(item, field, value)
+    item.updated_at = datetime.utcnow()
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def delete_work_item(db: Session, item_id: int) -> None:
+    item = _get_work_item_or_404(db, item_id)
+    db.delete(item)
+    db.commit()
+
+
+def list_notice_documents(
+    db: Session,
+    page: int,
+    page_size: int,
+    search: str | None,
+    status_value: str | None,
+    issuing_unit_id: int | None,
+    department_id: int | None,
+) -> tuple[list[NoticeDocument], int]:
+    statement: Select[tuple[NoticeDocument]] = select(NoticeDocument).options(
+        selectinload(NoticeDocument.issuing_unit),
+        selectinload(NoticeDocument.department),
+        selectinload(NoticeDocument.posted_by_user),
+    )
+    count_statement = select(func.count()).select_from(NoticeDocument)
+    if search:
+        criteria = or_(
+            NoticeDocument.notice_code.ilike(f"%{search}%"),
+            NoticeDocument.title.ilike(f"%{search}%"),
+        )
+        statement = statement.where(criteria)
+        count_statement = count_statement.where(criteria)
+    if status_value:
+        statement = statement.where(NoticeDocument.status == status_value)
+        count_statement = count_statement.where(NoticeDocument.status == status_value)
+    if issuing_unit_id is not None:
+        statement = statement.where(NoticeDocument.issuing_unit_id == issuing_unit_id)
+        count_statement = count_statement.where(NoticeDocument.issuing_unit_id == issuing_unit_id)
+    if department_id is not None:
+        statement = statement.where(NoticeDocument.department_id == department_id)
+        count_statement = count_statement.where(NoticeDocument.department_id == department_id)
+    total = db.scalar(count_statement) or 0
+    items = db.scalars(
+        statement.order_by(NoticeDocument.id.desc()).offset((page - 1) * page_size).limit(page_size)
+    ).all()
+    return items, total
+
+
+def create_notice_document(db: Session, payload: dict[str, Any]) -> NoticeDocument:
+    if db.scalar(select(NoticeDocument).where(NoticeDocument.notice_code == payload["notice_code"])):
+        raise HTTPException(status_code=409, detail="Notice code already exists")
+    _validate_notice_relations(db, payload)
+    item = NoticeDocument(**payload)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def update_notice_document(db: Session, notice_id: int, payload: dict[str, Any]) -> NoticeDocument:
+    item = _get_notice_document_or_404(db, notice_id)
+    if "notice_code" in payload and payload["notice_code"] != item.notice_code:
+        if db.scalar(select(NoticeDocument).where(NoticeDocument.notice_code == payload["notice_code"])):
+            raise HTTPException(status_code=409, detail="Notice code already exists")
+    _validate_notice_relations(db, payload)
+    for field, value in payload.items():
+        setattr(item, field, value)
+    item.updated_at = datetime.utcnow()
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+def delete_notice_document(db: Session, notice_id: int) -> None:
+    item = _get_notice_document_or_404(db, notice_id)
+    db.delete(item)
+    db.commit()
+
+
 def create_backup(db: Session, actor_user_id: int) -> dict[str, Any]:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_root = Path(settings.BACKUP_DIR) / timestamp
@@ -707,6 +1206,22 @@ def _assert_unique_user(db: Session, username: str, email: str | None) -> None:
         raise HTTPException(status_code=409, detail="Email already exists")
 
 
+def _validate_user_relations(
+    db: Session,
+    permission_group_id: int | None,
+    department_id: int | None,
+    position_id: int | None,
+) -> None:
+    if permission_group_id is not None:
+        _get_group_or_404(db, permission_group_id)
+    if department_id is not None:
+        _get_department_or_404(db, department_id)
+    if position_id is not None:
+        position = _get_position_or_404(db, position_id)
+        if department_id is not None and position.department_id not in {None, department_id}:
+            raise HTTPException(status_code=400, detail="Position does not belong to selected department")
+
+
 def _get_user_or_404(db: Session, user_id: int) -> User:
     user = db.get(User, user_id)
     if not user:
@@ -742,6 +1257,48 @@ def _get_function_or_404(db: Session, function_id: int) -> SystemFunction:
     return function
 
 
+def _get_issuing_unit_or_404(db: Session, unit_id: int) -> IssuingUnit:
+    item = db.get(IssuingUnit, unit_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Issuing unit not found")
+    return item
+
+
+def _get_department_or_404(db: Session, department_id: int) -> Department:
+    item = db.get(Department, department_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Department not found")
+    return item
+
+
+def _get_position_or_404(db: Session, position_id: int) -> Position:
+    item = db.get(Position, position_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Position not found")
+    return item
+
+
+def _get_work_document_or_404(db: Session, document_id: int) -> WorkAssignmentDocument:
+    item = db.get(WorkAssignmentDocument, document_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Work document not found")
+    return item
+
+
+def _get_work_item_or_404(db: Session, item_id: int) -> WorkItem:
+    item = db.get(WorkItem, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Work item not found")
+    return item
+
+
+def _get_notice_document_or_404(db: Session, notice_id: int) -> NoticeDocument:
+    item = db.get(NoticeDocument, notice_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Notice document not found")
+    return item
+
+
 def _replace_group_permissions(
     db: Session,
     group: PermissionGroup,
@@ -770,6 +1327,37 @@ def _replace_group_permissions(
         )
 
 
+def _validate_work_document_relations(db: Session, payload: dict[str, Any]) -> None:
+    if payload.get("issuing_unit_id") is not None:
+        _get_issuing_unit_or_404(db, payload["issuing_unit_id"])
+    if payload.get("department_id") is not None:
+        _get_department_or_404(db, payload["department_id"])
+    if payload.get("assigned_department_id") is not None:
+        _get_department_or_404(db, payload["assigned_department_id"])
+    if payload.get("assigned_by_user_id") is not None:
+        _get_user_or_404(db, payload["assigned_by_user_id"])
+
+
+def _validate_work_item_relations(db: Session, payload: dict[str, Any]) -> None:
+    if payload.get("work_document_id") is not None:
+        _get_work_document_or_404(db, payload["work_document_id"])
+    if payload.get("assignee_user_id") is not None:
+        _get_user_or_404(db, payload["assignee_user_id"])
+    if payload.get("department_id") is not None:
+        _get_department_or_404(db, payload["department_id"])
+    if payload.get("position_id") is not None:
+        _get_position_or_404(db, payload["position_id"])
+
+
+def _validate_notice_relations(db: Session, payload: dict[str, Any]) -> None:
+    if payload.get("issuing_unit_id") is not None:
+        _get_issuing_unit_or_404(db, payload["issuing_unit_id"])
+    if payload.get("department_id") is not None:
+        _get_department_or_404(db, payload["department_id"])
+    if payload.get("posted_by_user_id") is not None:
+        _get_user_or_404(db, payload["posted_by_user_id"])
+
+
 def _sync_config_to_settings(config_key: str, config_value: str, data_type: str) -> None:
     mapping = {
         "MODEL_NAME": "MODEL_NAME",
@@ -782,6 +1370,10 @@ def _sync_config_to_settings(config_key: str, config_value: str, data_type: str)
         "UPLOAD_DIR": "UPLOAD_DIR",
         "MAX_FILE_SIZE_MB": "MAX_FILE_SIZE_MB",
         "BACKUP_DIR": "BACKUP_DIR",
+        "SSO_ENABLED": "SSO_ENABLED",
+        "SSO_PROVIDER_NAME": "SSO_PROVIDER_NAME",
+        "SSO_SHARED_SECRET": "SSO_SHARED_SECRET",
+        "SSO_AUTO_CREATE_USERS": "SSO_AUTO_CREATE_USERS",
     }
     setting_name = mapping.get(config_key.upper())
     if not setting_name:
@@ -809,8 +1401,7 @@ def _restore_db_snapshot(db: Session, snapshot: dict[str, list[dict[str, Any]]])
         db.execute(delete(model))
     db.commit()
 
-    insert_order = SNAPSHOT_MODELS
-    for model in insert_order:
+    for model in SNAPSHOT_MODELS:
         rows = snapshot.get(model.__tablename__, [])
         if not rows:
             continue
@@ -823,7 +1414,7 @@ def _serialize_model_row(model: type, row: Any) -> dict[str, Any]:
     data: dict[str, Any] = {}
     for column in model.__table__.columns:
         value = getattr(row, column.name)
-        if isinstance(value, datetime):
+        if isinstance(value, (datetime, date)):
             data[column.name] = value.isoformat()
         else:
             data[column.name] = value
@@ -843,6 +1434,8 @@ def _deserialize_model_row(model: type, row: dict[str, Any]) -> dict[str, Any]:
             python_type = None
         if python_type is datetime and isinstance(value, str):
             restored[column.name] = datetime.fromisoformat(value)
+        elif python_type is date and isinstance(value, str):
+            restored[column.name] = date.fromisoformat(value)
         else:
             restored[column.name] = value
     return restored
