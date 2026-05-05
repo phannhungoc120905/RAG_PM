@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cấu hình hệ thống - RAG_PM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f7fa;
+            color: #1a202c;
+        }
+
+        /* =============== SIDEBAR =============== */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 200px;
+            height: 100vh;
+            background: #2d3748;
+            border-right: 1px solid #1a202c;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px 16px;
+            border-bottom: 1px solid #4a5568;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #2563eb;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 8px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 12px;
+            margin-bottom: 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #a0aec0;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: #4a5568;
+            color: #cbd5e0;
+        }
+
+        .nav-item.active {
+            background: #2563eb;
+            color: white;
+        }
+
+        .nav-item i {
+            width: 16px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid #4a5568;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 8px;
+            border-radius: 6px;
+            background: #4a5568;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 12px;
+            color: #e2e8f0;
+        }
+
+        .user-email {
+            font-size: 11px;
+            color: #a0aec0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 8px;
+            background: #fc8181;
+            color: #c53030;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #f56565;
+        }
+
+        /* =============== MAIN CONTENT =============== */
+        .main {
+            margin-left: 200px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: #f5f7fa;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 4px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #d1fae5;
+            color: #059669;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .header-right {
+            text-align: right;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* =============== CONTENT =============== */
+        .content {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-primary {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-secondary {
+            padding: 10px 20px;
+            background: white;
+            color: #2563eb;
+            border: 2px solid #2563eb;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #dbeafe;
+        }
+
+        /* =============== CONFIG GRID =============== */
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .config-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .config-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .config-icon {
+            width: 40px;
+            height: 40px;
+            background: #dbeafe;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2563eb;
+            font-size: 18px;
+        }
+
+        .config-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .config-description {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .form-section {
+            margin-bottom: 24px;
+        }
+
+        .form-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1a202c;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a202c;
+            margin-bottom: 6px;
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-input:disabled {
+            background: #f9fafb;
+            color: #9ca3af;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: #cbd5e0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            border: none;
+        }
+
+        .toggle-switch.active {
+            background: #10b981;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s ease;
+        }
+
+        .toggle-switch.active::after {
+            left: 22px;
+        }
+
+        /* =============== INFO CARD =============== */
+        .info-card {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border-left: 4px solid #2563eb;
+        }
+
+        .info-card-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1d4ed8;
+            margin-bottom: 4px;
+        }
+
+        .info-card-text {
+            font-size: 12px;
+            color: #0c4a6e;
+        }
+
+        /* =============== STATS GRID =============== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 12px;
+        }
+
+        .stat-subtext {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%);
+            border-radius: 3px;
+        }
+
+        .progress-label {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        /* =============== SCROLLBAR =============== */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        @media (max-width: 1200px) {
+            .config-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <span>RAG_PM</span>
+            </div>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-item">
+                <i class="fas fa-chart-pie"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-file-pdf"></i>
+                <span>AI Summarizer</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-image"></i>
+                <span>OCR Processing</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-search"></i>
+                <span>Hybrid Search</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Users</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-lock"></i>
+                <span>Permissions</span>
+            </div>
+            <div class="nav-item active">
+                <i class="fas fa-cog"></i>
+                <span>System Config</span>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">A</div>
+                <div class="user-details">
+                    <div class="user-name">Alex Administrator</div>
+                    <div class="user-email">admin@ragpm.ai</div>
+                </div>
+            </div>
+            <button class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>Cấu hình hệ thống</h1>
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    SYSTEM ACTIVE
+                </div>
+            </div>
+            <div class="header-right">
+                <div>Server Status</div>
+                <div>Latency: 24ms</div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">Cài đặt Admin</h2>
+                    <p class="page-subtitle">Quản lý các thông số và cấu hình chung của hệ thống RAG_PM AI Suite.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-secondary">
+                        <i class="fas fa-edit"></i>
+                        <span>Chỉnh sửa</span>
+                    </button>
+                    <button class="btn-primary">
+                        <i class="fas fa-save"></i>
+                        <span>Lưu cấu hình</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Config Grid -->
+            <div class="config-grid">
+                <!-- Left Column -->
+                <div>
+                    <!-- System Info Card -->
+                    <div class="config-card">
+                        <div class="config-header">
+                            <div class="config-icon">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <div>
+                                <div class="config-title">Thông tin nền tảng</div>
+                                <div class="config-description">Cầu hình thông tin cơ bản về ứng dụng</div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="form-group">
+                                <label class="form-label">Tên ứng dụng</label>
+                                <input type="text" class="form-input" value="RAG_PM AI Suite" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">URL Logo</label>
+                                <input type="text" class="form-input" value="https://cdn.ragpm.ai/logo.png" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Ngôn ngữ mặc định</label>
+                                <select class="form-select" disabled>
+                                    <option>Tiếng Việt</option>
+                                    <option>English</option>
+                                    <option>中文</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI & LLM Model Card -->
+                    <div class="config-card" style="margin-top: 24px;">
+                        <div class="config-header">
+                            <div class="config-icon" style="background: #fed7aa; color: #d97706;">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <div>
+                                <div class="config-title">AI & LLM Model</div>
+                                <div class="config-description">Thiết lập mô hình AI và các mô hình ngôn ngữ lớn</div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="form-section-title">LLM Configuration</div>
+                            <div class="form-group">
+                                <label class="form-label">Model mô tả</label>
+                                <select class="form-select" disabled>
+                                    <option>OpenAI GPT 4o (Khuyến dùng)</option>
+                                    <option>Claude 3 Opus</option>
+                                    <option>Gemini Pro</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">API Key</label>
+                                <input type="password" class="form-input" value="sk-proj-••••••••••••••••••••••••" disabled>
+                                <div class="form-hint">
+                                    <i class="fas fa-lock"></i>
+                                    Khóa được che giấu vì lý do bảo mật
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="form-section-title">Advance Configuration</div>
+                            <div class="form-group">
+                                <label class="form-label">Đạo ngôn mô hình</label>
+                                <input type="text" class="form-input" value="OpenAI GPT 4o (Khuyến dùng)" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Độ sáng bao nhiêu (Temperature): 0.7</label>
+                                <input type="range" class="form-input" min="0" max="1" step="0.1" value="0.7" disabled style="padding: 6px 12px;">
+                                <div class="form-hint">
+                                    <i class="fas fa-sliders-h"></i>
+                                    Giá trị cao hơn = sáng tạo, giá trị thấp = chính xác
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="form-section-title">Token Configuration</div>
+                            <div class="form-group">
+                                <label class="form-label">Gọi ngạn Token tối đa</label>
+                                <input type="text" class="form-input" value="4096" disabled>
+                                <div class="form-hint">
+                                    <i class="fas fa-info-circle"></i>
+                                    Số lượng token tối đa cho mỗi câu trả lời
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Storage & Hybrid Search Card -->
+                    <div class="config-card" style="margin-top: 24px;">
+                        <div class="config-header">
+                            <div class="config-icon" style="background: #ddd6fe; color: #7c3aed;">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <div>
+                                <div class="config-title">Lưu trữ & Hybrid Search</div>
+                                <div class="config-description">Quản lý cơ sở dữ liệu vector và kiếm tìm lai ghép</div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <div class="form-group">
+                                <label class="form-label">Số kết quả tìm kiếm (Top-K)</label>
+                                <input type="number" class="form-input" value="5" min="1" max="50" disabled>
+                                <div class="form-hint">
+                                    <i class="fas fa-info-circle"></i>
+                                    Số lượng kết quả được trả về tối đa
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Similarity Threshold</label>
+                                <input type="number" class="form-input" value="0.75" min="0" max="1" step="0.01" disabled>
+                                <div class="form-hint">
+                                    <i class="fas fa-sliders-h"></i>
+                                    Ngưỡng độ tương tự để lọc kết quả
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" style="display: flex; align-items: center; gap: 8px;">
+                                    <span>Tự động lưu tập</span>
+                                    <button class="toggle-switch active" onclick="toggleSetting(this)"></button>
+                                </label>
+                                <div class="form-hint">
+                                    <i class="fas fa-info-circle"></i>
+                                    Tự động lưu cache kết quả tìm kiếm
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div>
+                    <!-- Warning Card -->
+                    <div class="info-card">
+                        <div class="info-card-title">
+                            <i class="fas fa-exclamation-triangle"></i> Xóa Cache Vector
+                        </div>
+                        <div class="info-card-text">
+                            Làm mới bộ nhớ cache vector sẽ xóa tất cả dữ liệu được cache. Hành động này không thể hoàn tác!
+                        </div>
+                    </div>
+
+                    <!-- System Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">PHIÊN BẢN</div>
+                            <div class="stat-value">v2.4.8</div>
+                            <div class="stat-subtext">stable</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">API UPTIME</div>
+                            <div class="stat-value">99.98%</div>
+                            <div class="stat-subtext">Cập nhật 5 phút trước</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">STORAGE USAGE</div>
+                            <div class="stat-value">142.5</div>
+                            <div class="stat-subtext">GB / 250GB</div>
+                        </div>
+                    </div>
+
+                    <!-- Storage Progress -->
+                    <div class="stat-card" style="margin-top: 16px;">
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" style="width: 57%;"></div>
+                        </div>
+                        <div class="progress-label">57% đã sử dụng</div>
+                    </div>
+
+                    <!-- System Health -->
+                    <div class="stat-card" style="margin-top: 16px;">
+                        <div style="text-align: left; margin-bottom: 16px;">
+                            <div style="font-size: 13px; font-weight: 600; color: #1a202c; margin-bottom: 12px;">
+                                <i class="fas fa-heartbeat"></i> Health Status
+                            </div>
+
+                            <div style="margin-bottom: 12px;">
+                                <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">CPU Usage</div>
+                                <div class="progress-bar">
+                                    <div class="progress-bar-fill" style="width: 42%;"></div>
+                                </div>
+                                <div class="progress-label">42%</div>
+                            </div>
+
+                            <div style="margin-bottom: 12px;">
+                                <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Memory Usage</div>
+                                <div class="progress-bar">
+                                    <div class="progress-bar-fill" style="width: 65%;"></div>
+                                </div>
+                                <div class="progress-label">8.2 / 16 GB</div>
+                            </div>
+
+                            <div>
+                                <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">Vector DB Latency</div>
+                                <div style="font-size: 14px; font-weight: 700; color: #10b981;">
+                                    <i class="fas fa-check-circle"></i> 12ms
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Database Info -->
+                    <div class="stat-card" style="margin-top: 16px;">
+                        <div style="text-align: left;">
+                            <div style="font-size: 13px; font-weight: 600; color: #1a202c; margin-bottom: 12px;">
+                                <i class="fas fa-database"></i> Database Info
+                            </div>
+
+                            <div style="font-size: 12px; color: #64748b; margin-bottom: 8px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span>Connection Status</span>
+                                    <span style="color: #10b981; font-weight: 600;">
+                                        <i class="fas fa-check-circle"></i> Connected
+                                    </span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span>Active Connections</span>
+                                    <span style="color: #1a202c; font-weight: 600;">12 / 100</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span>Query Performance</span>
+                                    <span style="color: #10b981; font-weight: 600;">Optimal</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleSetting(button) {
+            button.classList.toggle('active');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG_PM - AI Document Processing System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { scrollbar-width: thin; scrollbar-color: #cbd5e0 #f7fafc; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f7fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+        
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .sidebar { background: rgba(30, 30, 46, 0.95); backdrop-filter: blur(10px); }
+        .sidebar-item { @apply px-4 py-3 rounded-lg cursor-pointer transition-all hover:bg-white/10 flex items-center gap-3; }
+        .sidebar-item.active { @apply bg-blue-500 text-white; }
+        .toast-enter { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .fade-enter { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="text-gray-800">
+    <!-- Main Container -->
+    <div id="app" class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="sidebar w-64 h-screen overflow-y-auto fixed left-0 top-0 shadow-2xl z-50">
+            <div class="p-6 border-b border-white/10">
+                <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-robot text-blue-400"></i> RAG_PM
+                </h1>
+                <p class="text-xs text-gray-300 mt-2">AI Document Processing</p>
+            </div>
+
+            <nav class="p-4 space-y-2">
+                <div onclick="switchTab('summarizer')" class="sidebar-item active tab-btn" data-tab="summarizer">
+                    <i class="fas fa-file-pdf w-5"></i> <span>Tóm tắt PDF</span>
+                </div>
+                <div onclick="switchTab('ocr')" class="sidebar-item tab-btn" data-tab="ocr">
+                    <i class="fas fa-image w-5"></i> <span>OCR & Trích xuất</span>
+                </div>
+                <div onclick="switchTab('search')" class="sidebar-item tab-btn" data-tab="search">
+                    <i class="fas fa-search w-5"></i> <span>Tìm kiếm</span>
+                </div>
+                <div class="border-t border-white/10 my-4 pt-4">
+                    <p class="text-xs text-gray-400 px-2 uppercase tracking-wider">Quản lý</p>
+                </div>
+                <div onclick="switchTab('admin')" class="sidebar-item tab-btn" data-tab="admin">
+                    <i class="fas fa-cog w-5"></i> <span>Cấu hình hệ thống</span>
+                </div>
+                <div onclick="switchTab('logs')" class="sidebar-item tab-btn" data-tab="logs">
+                    <i class="fas fa-list w-5"></i> <span>Lịch sử hoạt động</span>
+                </div>
+            </nav>
+
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
+                <div class="text-center">
+                    <p class="text-xs text-gray-400">👤 Admin</p>
+                    <button onclick="logout()" class="w-full mt-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/40 text-red-300 rounded-lg text-sm transition-all">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Đăng xuất
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="ml-64 flex-1 overflow-y-auto">
+            <div class="p-8">
+                <!-- Header -->
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 id="pageTitle" class="text-4xl font-bold text-white mb-2">Tóm tắt PDF</h2>
+                        <p id="pageDesc" class="text-white/70">Tóm tắt tài liệu PDF bằng AI Llama 3.2</p>
+                    </div>
+                    <div class="text-right text-white">
+                        <p class="text-sm opacity-70" id="currentTime"></p>
+                        <p class="text-2xl font-bold" id="systemStatus">🟢 Online</p>
+                    </div>
+                </div>
+
+                <!-- Tab Content -->
+                <div id="tabs-container">
+                    <!-- 1. Tóm tắt PDF Tab -->
+                    <div id="summarizer-tab" class="tab-content fade-enter">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <!-- Upload Section -->
+                            <div class="lg:col-span-1">
+                                <div class="glass rounded-2xl p-6 shadow-xl">
+                                    <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                                        <i class="fas fa-upload text-blue-600"></i> Upload PDF
+                                    </h3>
+
+                                    <div id="dropZone" class="border-2 border-dashed border-blue-400 rounded-xl p-8 text-center hover:bg-blue-50/50 transition-all cursor-pointer mb-4">
+                                        <input type="file" id="pdfFile" class="hidden" accept=".pdf">
+                                        <i class="fas fa-cloud-upload-alt text-5xl text-blue-400 mb-3 block"></i>
+                                        <p class="font-semibold text-gray-700">Kéo thả file PDF</p>
+                                        <p class="text-sm text-gray-500 mt-1">hoặc click để chọn</p>
+                                        <p id="fileName" class="text-xs text-green-600 mt-3 font-semibold"></p>
+                                    </div>
+
+                                    <button onclick="uploadPdf()" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                                        <i class="fas fa-magic"></i> Tóm tắt ngay
+                                    </button>
+
+                                    <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                                        <p class="text-xs text-gray-600">
+                                            <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                                            Hỗ trợ file PDF, ảnh (JPG, PNG)
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- History Section -->
+                                <div class="glass rounded-2xl p-6 shadow-xl mt-8">
+                                    <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                        <i class="fas fa-history text-purple-600"></i> Lịch sử
+                                    </h3>
+                                    <div id="historyList" class="space-y-3 max-h-80 overflow-y-auto">
+                                        <p class="text-center text-gray-400 py-4">Không có lịch sử</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Result Section -->
+                            <div class="lg:col-span-2">
+                                <div class="glass rounded-2xl p-8 shadow-xl min-h-96">
+                                    <div class="flex justify-between items-center mb-6">
+                                        <h3 class="text-xl font-bold flex items-center gap-2">
+                                            <i class="fas fa-file-lines text-green-600"></i> <span id="resultTitle">Kết quả tóm tắt</span>
+                                        </h3>
+                                        <div id="loadingSpinner" class="hidden">
+                                            <svg class="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+
+                                    <div id="resultContent" class="prose prose-blue max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                        <p class="text-center text-gray-400 py-12">
+                                            Vui lòng chọn file PDF để bắt đầu tóm tắt
+                                        </p>
+                                    </div>
+
+                                    <div class="mt-4 flex gap-2">
+                                        <button onclick="copyResult()" class="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-all flex items-center justify-center gap-2">
+                                            <i class="fas fa-copy"></i> Copy
+                                        </button>
+                                        <button onclick="downloadResult()" class="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-all flex items-center justify-center gap-2">
+                                            <i class="fas fa-download"></i> Download
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. OCR & Extract Tab -->
+                    <div id="ocr-tab" class="tab-content hidden fade-enter">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="glass rounded-2xl p-8 shadow-xl">
+                                <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                                    <i class="fas fa-image text-orange-600"></i> Trích xuất từ ảnh
+                                </h3>
+
+                                <div id="ocrDropZone" class="border-2 border-dashed border-orange-400 rounded-xl p-8 text-center hover:bg-orange-50/50 transition-all cursor-pointer mb-4">
+                                    <input type="file" id="ocrFile" class="hidden" accept="image/*,.pdf">
+                                    <i class="fas fa-image text-5xl text-orange-400 mb-3 block"></i>
+                                    <p class="font-semibold text-gray-700">Kéo thả ảnh hoặc PDF</p>
+                                    <p class="text-sm text-gray-500 mt-1">JPG, PNG, PDF</p>
+                                    <p id="ocrFileName" class="text-xs text-green-600 mt-3 font-semibold"></p>
+                                </div>
+
+                                <button onclick="extractOcr()" class="w-full bg-gradient-to-r from-orange-600 to-orange-700 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all">
+                                    <i class="fas fa-wand-magic-sparkles mr-2"></i> Trích xuất text
+                                </button>
+
+                                <div class="mt-6 p-4 bg-orange-50 rounded-lg">
+                                    <p class="text-sm font-semibold text-orange-900 mb-2">Hoặc xử lý đầy đủ:</p>
+                                    <button onclick="processOcrFull()" class="w-full bg-orange-100 hover:bg-orange-200 text-orange-900 py-2 rounded-lg transition-all text-sm">
+                                        <i class="fas fa-cogs mr-2"></i> Upload & Xử lý + Embedding
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="glass rounded-2xl p-8 shadow-xl">
+                                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                    <i class="fas fa-file-lines text-green-600"></i> Kết quả OCR
+                                </h3>
+                                <div id="ocrResult" class="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto whitespace-pre-wrap text-sm font-mono text-gray-700">
+                                    <p class="text-center text-gray-400 py-8">Kết quả sẽ hiển thị ở đây</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Search Tab -->
+                    <div id="search-tab" class="tab-content hidden fade-enter">
+                        <div class="glass rounded-2xl p-8 shadow-xl">
+                            <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                                <i class="fas fa-search text-cyan-600"></i> Tìm kiếm thông minh
+                            </h3>
+
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-sm font-semibold mb-2">Nhập câu hỏi hoặc từ khóa:</label>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="searchQuery" placeholder="Tìm kiếm..." class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-cyan-600 focus:outline-none transition-all">
+                                        <button onclick="performSearch()" class="px-6 py-3 bg-gradient-to-r from-cyan-600 to-cyan-700 text-white rounded-lg font-semibold hover:shadow-lg transition-all">
+                                            <i class="fas fa-search mr-2"></i> Tìm kiếm
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold mb-2">Số kết quả (Top K):</label>
+                                    <input type="number" id="topK" value="5" min="1" max="20" class="w-24 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-cyan-600 focus:outline-none">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold mb-3">Kết quả tìm kiếm:</label>
+                                    <div id="searchResults" class="space-y-3 max-h-96 overflow-y-auto">
+                                        <p class="text-center text-gray-400 py-8">Tìm kiếm sẽ hiển thị ở đây</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Admin Settings Tab -->
+                    <div id="admin-tab" class="tab-content hidden fade-enter">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="glass rounded-2xl p-8 shadow-xl">
+                                <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                                    <i class="fas fa-cog text-purple-600"></i> Cấu hình hệ thống
+                                </h3>
+
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-semibold mb-2">Tên ứng dụng:</label>
+                                        <input type="text" value="RAG_PM" disabled class="w-full px-4 py-2 bg-gray-100 border-2 border-gray-300 rounded-lg">
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold mb-2">Model AI:</label>
+                                        <input type="text" value="Llama 3.2" disabled class="w-full px-4 py-2 bg-gray-100 border-2 border-gray-300 rounded-lg">
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold mb-2">Ngôn ngữ OCR:</label>
+                                        <select class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-600 focus:outline-none">
+                                            <option>Tiếng Việt (vie)</option>
+                                            <option>English (eng)</option>
+                                            <option>Both (vie+eng)</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold mb-2">Kích thước chunk:</label>
+                                        <input type="number" value="1000" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-600 focus:outline-none">
+                                    </div>
+
+                                    <button onclick="saveSettings()" class="w-full mt-6 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:shadow-lg transition-all">
+                                        <i class="fas fa-save mr-2"></i> Lưu cài đặt
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="glass rounded-2xl p-8 shadow-xl">
+                                <h3 class="text-lg font-bold mb-6 flex items-center gap-2">
+                                    <i class="fas fa-database text-red-600"></i> Backup & Restore
+                                </h3>
+
+                                <div class="space-y-3">
+                                    <button onclick="createBackup()" class="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-all">
+                                        <i class="fas fa-cloud-upload-alt mr-2"></i> Tạo Backup
+                                    </button>
+
+                                    <button onclick="listBackups()" class="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all">
+                                        <i class="fas fa-list mr-2"></i> Danh sách Backup
+                                    </button>
+
+                                    <div id="backupList" class="mt-4 space-y-2 max-h-48 overflow-y-auto">
+                                        <p class="text-center text-gray-400 py-4">Chưa có backup</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Logs Tab -->
+                    <div id="logs-tab" class="tab-content hidden fade-enter">
+                        <div class="glass rounded-2xl p-8 shadow-xl">
+                            <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                                <i class="fas fa-list text-indigo-600"></i> Lịch sử hoạt động hệ thống
+                            </h3>
+
+                            <div class="flex gap-4 mb-6">
+                                <select id="logFilter" class="px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-indigo-600 focus:outline-none">
+                                    <option value="">Tất cả hành động</option>
+                                    <option value="upload">Upload</option>
+                                    <option value="login">Đăng nhập</option>
+                                    <option value="error">Lỗi</option>
+                                </select>
+                                <button onclick="exportLogs()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-all">
+                                    <i class="fas fa-download mr-2"></i> Xuất Excel
+                                </button>
+                            </div>
+
+                            <div id="logsList" class="space-y-3 max-h-96 overflow-y-auto">
+                                <div class="p-4 bg-gray-50 rounded-lg flex items-start gap-3">
+                                    <span class="text-2xl">📝</span>
+                                    <div class="flex-1">
+                                        <p class="font-semibold text-gray-900">Khởi động hệ thống</p>
+                                        <p class="text-sm text-gray-500">Hệ thống đã sẵn sàng</p>
+                                        <p class="text-xs text-gray-400 mt-1">2026-05-05 14:44:54</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastContainer" class="fixed bottom-8 right-8 space-y-3 z-50"></div>
+
+    <script>
+        // State
+        const state = {
+            currentTab: 'summarizer',
+            selectedPdfFile: null,
+            selectedOcrFile: null,
+            results: {}
+        };
+
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('vi-VN');
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Switch tabs
+        function switchTab(tabName) {
+            state.currentTab = tabName;
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            
+            // Update sidebar
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            // Update header
+            const titles = {
+                summarizer: { title: 'Tóm tắt PDF', desc: 'Tóm tắt tài liệu PDF bằng AI Llama 3.2' },
+                ocr: { title: 'OCR & Trích xuất', desc: 'Trích xuất text từ ảnh và PDF' },
+                search: { title: 'Tìm kiếm thông minh', desc: 'Tìm kiếm hybrid (BM25 + Vector)' },
+                admin: { title: 'Cấu hình hệ thống', desc: 'Quản lý cài đặt và backup' },
+                logs: { title: 'Lịch sử hoạt động', desc: 'Xem nhật ký hệ thống' }
+            };
+            
+            const pageInfo = titles[tabName] || { title: 'Dashboard', desc: '' };
+            document.getElementById('pageTitle').textContent = pageInfo.title;
+            document.getElementById('pageDesc').textContent = pageInfo.desc;
+        }
+
+        // PDF Upload & Summarize
+        document.getElementById('dropZone').addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.add('bg-blue-50');
+        });
+
+        document.getElementById('dropZone').addEventListener('dragleave', (e) => {
+            e.currentTarget.classList.remove('bg-blue-50');
+        });
+
+        document.getElementById('dropZone').addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.remove('bg-blue-50');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                state.selectedPdfFile = files[0];
+                document.getElementById('fileName').textContent = '✓ ' + files[0].name;
+            }
+        });
+
+        document.getElementById('dropZone').addEventListener('click', () => {
+            document.getElementById('pdfFile').click();
+        });
+
+        document.getElementById('pdfFile').addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                state.selectedPdfFile = e.target.files[0];
+                document.getElementById('fileName').textContent = '✓ ' + e.target.files[0].name;
+            }
+        });
+
+        // OCR Upload
+        document.getElementById('ocrDropZone').addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.add('bg-orange-50');
+        });
+
+        document.getElementById('ocrDropZone').addEventListener('dragleave', (e) => {
+            e.currentTarget.classList.remove('bg-orange-50');
+        });
+
+        document.getElementById('ocrDropZone').addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.remove('bg-orange-50');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                state.selectedOcrFile = files[0];
+                document.getElementById('ocrFileName').textContent = '✓ ' + files[0].name;
+            }
+        });
+
+        document.getElementById('ocrDropZone').addEventListener('click', () => {
+            document.getElementById('ocrFile').click();
+        });
+
+        document.getElementById('ocrFile').addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                state.selectedOcrFile = e.target.files[0];
+                document.getElementById('ocrFileName').textContent = '✓ ' + e.target.files[0].name;
+            }
+        });
+
+        // Upload PDF Function
+        async function uploadPdf() {
+            if (!state.selectedPdfFile) {
+                showToast('Vui lòng chọn file PDF!', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', state.selectedPdfFile);
+
+            document.getElementById('loadingSpinner').classList.remove('hidden');
+            document.getElementById('resultTitle').textContent = 'Đang xử lý...';
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.summary) {
+                    document.getElementById('resultContent').textContent = data.summary;
+                    document.getElementById('resultTitle').textContent = '✓ Hoàn tất: ' + state.selectedPdfFile.name;
+                    showToast('Tóm tắt thành công!', 'success');
+                    fetchHistory();
+                } else {
+                    document.getElementById('resultContent').textContent = 'Lỗi: ' + (data.error || 'Không biết lỗi');
+                    showToast('Tóm tắt thất bại!', 'error');
+                }
+            } catch (error) {
+                document.getElementById('resultContent').textContent = 'Lỗi kết nối: ' + error.message;
+                showToast('Lỗi kết nối server!', 'error');
+            } finally {
+                document.getElementById('loadingSpinner').classList.add('hidden');
+            }
+        }
+
+        // Fetch History
+        async function fetchHistory() {
+            try {
+                const response = await fetch('/history');
+                const data = await response.json();
+                
+                const historyHtml = data.map((item, index) => `
+                    <div onclick="viewHistory(${index})" class="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-gray-200 cursor-pointer hover:shadow-md transition-all">
+                        <p class="font-semibold text-sm truncate text-gray-900">${item.filename}</p>
+                        <p class="text-xs text-gray-500">${new Date(item.timestamp).toLocaleString('vi-VN')}</p>
+                    </div>
+                `).join('');
+                
+                document.getElementById('historyList').innerHTML = historyHtml || '<p class="text-center text-gray-400 py-4">Chưa có lịch sử</p>';
+                window._history = data;
+            } catch (error) {
+                console.error('Error fetching history:', error);
+            }
+        }
+
+        // View History Item
+        window.viewHistory = (index) => {
+            const item = window._history[index];
+            document.getElementById('resultContent').textContent = item.summary;
+            document.getElementById('resultTitle').textContent = '📁 ' + item.filename;
+        };
+
+        // Extract OCR
+        async function extractOcr() {
+            if (!state.selectedOcrFile) {
+                showToast('Vui lòng chọn file!', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', state.selectedOcrFile);
+
+            document.getElementById('ocrResult').innerHTML = '<p class="text-center">Đang xử lý...</p>';
+
+            try {
+                const response = await fetch('/ocr/extract-text', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                document.getElementById('ocrResult').textContent = data.text || JSON.stringify(data, null, 2);
+                showToast('Trích xuất thành công!', 'success');
+            } catch (error) {
+                document.getElementById('ocrResult').textContent = 'Lỗi: ' + error.message;
+                showToast('Trích xuất thất bại!', 'error');
+            }
+        }
+
+        // Process OCR Full
+        async function processOcrFull() {
+            if (!state.selectedOcrFile) {
+                showToast('Vui lòng chọn file!', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', state.selectedOcrFile);
+
+            try {
+                const response = await fetch('/ocr/upload-process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                showToast(`Xử lý thành công! ${data.chunks_count} chunks`, 'success');
+            } catch (error) {
+                showToast('Xử lý thất bại!', 'error');
+            }
+        }
+
+        // Search
+        async function performSearch() {
+            const query = document.getElementById('searchQuery').value;
+            const topK = parseInt(document.getElementById('topK').value) || 5;
+
+            if (!query) {
+                showToast('Vui lòng nhập câu hỏi!', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/ocr/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, top_k: topK })
+                });
+
+                const data = await response.json();
+                
+                const resultsHtml = (data.results || []).map((result, index) => `
+                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <p class="font-semibold text-sm text-gray-900">Kết quả ${index + 1}</p>
+                        <p class="text-sm text-gray-700 mt-2">${result.text || result.content || JSON.stringify(result)}</p>
+                        <p class="text-xs text-gray-500 mt-2">Độ tương đồng: ${(result.score || 0).toFixed(2)}</p>
+                    </div>
+                `).join('');
+                
+                document.getElementById('searchResults').innerHTML = resultsHtml || '<p class="text-center text-gray-400 py-8">Không tìm thấy kết quả</p>';
+                showToast('Tìm kiếm thành công!', 'success');
+            } catch (error) {
+                showToast('Tìm kiếm thất bại!', 'error');
+            }
+        }
+
+        // Copy Result
+        function copyResult() {
+            const text = document.getElementById('resultContent').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Đã copy kết quả!', 'success');
+            });
+        }
+
+        // Download Result
+        function downloadResult() {
+            const text = document.getElementById('resultContent').textContent;
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', 'tom_tat_' + new Date().getTime() + '.txt');
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+            showToast('Đã download!', 'success');
+        }
+
+        // Save Settings
+        function saveSettings() {
+            showToast('Cài đặt đã được lưu!', 'success');
+        }
+
+        // Backup Functions
+        async function createBackup() {
+            try {
+                const response = await fetch('/admin/backups/create', { method: 'POST' });
+                const data = await response.json();
+                showToast('Backup thành công!', 'success');
+                listBackups();
+            } catch (error) {
+                showToast('Backup thất bại!', 'error');
+            }
+        }
+
+        async function listBackups() {
+            try {
+                const response = await fetch('/admin/backups');
+                const data = await response.json();
+                
+                const backupsHtml = (data.backups || []).map(backup => `
+                    <div class="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                        <div>
+                            <p class="text-sm font-semibold">${backup.filename}</p>
+                            <p class="text-xs text-gray-500">${backup.created_at}</p>
+                        </div>
+                        <button onclick="restoreBackup('${backup.id}')" class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700">
+                            Restore
+                        </button>
+                    </div>
+                `).join('');
+                
+                document.getElementById('backupList').innerHTML = backupsHtml || '<p class="text-center text-gray-400">Chưa có backup</p>';
+            } catch (error) {
+                showToast('Lỗi khi tải danh sách backup!', 'error');
+            }
+        }
+
+        // Export Logs
+        function exportLogs() {
+            window.location.href = '/admin/logs/export';
+            showToast('Đang tải file...', 'info');
+        }
+
+        // Logout
+        function logout() {
+            if (confirm('Bạn chắc chắn muốn đăng xuất?')) {
+                localStorage.removeItem('token');
+                window.location.href = '/';
+            }
+        }
+
+        // Toast Notification
+        function showToast(message, type = 'info') {
+            const icons = {
+                success: '✓',
+                error: '✕',
+                info: 'ℹ',
+                warning: '⚠'
+            };
+
+            const colors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                info: 'bg-blue-600',
+                warning: 'bg-yellow-600'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `toast-enter ${colors[type] || 'bg-blue-600'} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3`;
+            toast.innerHTML = `<span>${icons[type] || 'ℹ'}</span><span>${message}</span>`;
+            
+            document.getElementById('toastContainer').appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Initialize
+        fetchHistory();
+    </script>
+</body>
+</html>
