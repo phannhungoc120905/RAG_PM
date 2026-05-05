@@ -133,18 +133,23 @@ def read_html_file(filename: str, fallback: str) -> str:
     return fallback
 
 
+@app.get("/login", response_class=HTMLResponse)
+async def login_page() -> str:
+    return read_html_file("admin_login_new.html", "<h1>RAG_PM Login</h1>")
+
+
 @app.get("/", response_class=HTMLResponse)
-async def admin_login_page() -> str:
-    return read_html_file("admin_login.html", "<h1>RAG_PM Admin Login</h1>")
+async def summarizer_page() -> str:
+    return read_html_file("index_main.html", "<h1>AI PDF Summarizer</h1>")
 
 
 @app.get("/admin/dashboard", response_class=HTMLResponse)
 async def admin_dashboard_page() -> str:
-    return read_html_file("admin_dashboard.html", "<h1>RAG_PM Admin Dashboard</h1>")
+    return read_html_file("admin_dashboard_new.html", "<h1>RAG_PM Admin Dashboard</h1>")
 
 
 @app.get("/summarizer", response_class=HTMLResponse)
-async def summarizer_page() -> str:
+async def summarizer_legacy_page() -> str:
     return read_html_file("index.html", "<h1>AI PDF Summarizer</h1>")
 
 

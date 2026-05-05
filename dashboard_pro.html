@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG_PM Pro Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { scrollbar-width: thin; scrollbar-color: #cbd5e0 #f7fafc; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f7fafc; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 4px; }
+        
+        body { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass { 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(10px);
+        }
+        
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        
+        .btn-tab {
+            @apply px-6 py-3 font-semibold rounded-lg transition-all;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .btn-tab.active {
+            @apply bg-blue-600 text-white;
+            border-bottom-color: #fff;
+        }
+        
+        .stat-card {
+            @apply p-6 bg-white rounded-lg shadow-md text-center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+        
+        .stat-number {
+            @apply text-4xl font-bold text-blue-600 mb-2;
+        }
+        
+        .stat-label {
+            @apply text-sm text-gray-600;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <!-- Header Navigation -->
+    <nav class="bg-white/90 backdrop-blur-md shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-robot text-3xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"></i>
+                <div>
+                    <h1 class="text-2xl font-bold">RAG_PM Pro</h1>
+                    <p class="text-xs text-gray-500">AI Document Processing v1.0</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="hidden md:block text-right">
+                    <p class="font-semibold" id="userName">Admin User</p>
+                    <p class="text-xs text-gray-500" id="userEmail">admin@ragpm.local</p>
+                </div>
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                    A
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="max-w-7xl mx-auto px-6 border-t border-gray-200 flex gap-4 overflow-x-auto">
+            <button class="btn-tab active" onclick="switchDashTab('overview')">
+                <i class="fas fa-chart-line mr-2"></i>Tổng quan
+            </button>
+            <button class="btn-tab" onclick="switchDashTab('documents')">
+                <i class="fas fa-file-lines mr-2"></i>Tài liệu
+            </button>
+            <button class="btn-tab" onclick="switchDashTab('analytics')">
+                <i class="fas fa-chart-bar mr-2"></i>Thống kê
+            </button>
+            <button class="btn-tab" onclick="switchDashTab('settings')">
+                <i class="fas fa-cog mr-2"></i>Cài đặt
+            </button>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Overview Tab -->
+        <div id="overview-pane" class="tab-pane active">
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="stat-card">
+                    <div class="stat-number">
+                        <i class="fas fa-file-pdf text-red-500"></i> 42
+                    </div>
+                    <div class="stat-label">Tài liệu xử lý</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">
+                        <i class="fas fa-users text-green-500"></i> 8
+                    </div>
+                    <div class="stat-label">Người dùng hoạt động</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">
+                        <i class="fas fa-clock text-blue-500"></i> 24h
+                    </div>
+                    <div class="stat-label">Hoạt động hệ thống</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">
+                        <i class="fas fa-database text-purple-500"></i> 2.4GB
+                    </div>
+                    <div class="stat-label">Dung lượng sử dụng</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Quick Upload -->
+                <div class="glass rounded-2xl p-8 shadow-xl">
+                    <h3 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                        <i class="fas fa-lightning-bolt text-yellow-500"></i> Quick Upload
+                    </h3>
+
+                    <div class="border-4 border-dashed border-blue-400 rounded-xl p-8 text-center hover:bg-blue-50/50 transition-all cursor-pointer mb-6"
+                         id="quickDropZone">
+                        <input type="file" id="quickFile" class="hidden" accept=".pdf,.jpg,.png">
+                        <i class="fas fa-cloud-upload-alt text-5xl text-blue-500 mb-3 block"></i>
+                        <p class="font-bold text-lg mb-2">Kéo file vào đây</p>
+                        <p class="text-sm text-gray-500">PDF, JPG, PNG</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <button onclick="quickProcess()" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-bold hover:shadow-lg transition-all">
+                            <i class="fas fa-bolt mr-2"></i>Xử lý ngay
+                        </button>
+                        <button class="w-full border-2 border-blue-600 text-blue-600 py-2 rounded-lg font-semibold hover:bg-blue-50 transition-all">
+                            <i class="fas fa-cog mr-2"></i>Cấu hình
+                        </button>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-blue-100 rounded-lg">
+                        <p class="text-xs text-blue-900">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Hỗ trợ tóm tắt tự động + OCR
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="glass rounded-2xl p-8 shadow-xl col-span-2">
+                    <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                        <i class="fas fa-clock text-orange-500"></i> Hoạt động gần đây
+                    </h3>
+
+                    <div class="space-y-4 max-h-80 overflow-y-auto">
+                        <div class="p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
+                            <div class="flex justify-between">
+                                <p class="font-semibold text-sm">✓ Tóm tắt thành công</p>
+                                <span class="text-xs text-gray-500">5 phút trước</span>
+                            </div>
+                            <p class="text-xs text-gray-600 mt-1">Tài liệu: QLDA_2026.pdf</p>
+                        </div>
+
+                        <div class="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                            <div class="flex justify-between">
+                                <p class="font-semibold text-sm">🔄 Đang xử lý</p>
+                                <span class="text-xs text-gray-500">10 phút trước</span>
+                            </div>
+                            <p class="text-xs text-gray-600 mt-1">OCR: scan_image_001.jpg</p>
+                        </div>
+
+                        <div class="p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
+                            <div class="flex justify-between">
+                                <p class="font-semibold text-sm">⚠️ Cảnh báo</p>
+                                <span class="text-xs text-gray-500">1 giờ trước</span>
+                            </div>
+                            <p class="text-xs text-gray-600 mt-1">Dung lượng sắp đầy (85%)</p>
+                        </div>
+
+                        <div class="p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+                            <div class="flex justify-between">
+                                <p class="font-semibold text-sm">👤 Người dùng mới</p>
+                                <span class="text-xs text-gray-500">3 giờ trước</span>
+                            </div>
+                            <p class="text-xs text-gray-600 mt-1">Đăng ký: user@example.com</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents Tab -->
+        <div id="documents-pane" class="tab-pane">
+            <div class="glass rounded-2xl p-8 shadow-xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold">Danh sách tài liệu</h3>
+                    <input type="text" placeholder="Tìm tài liệu..." 
+                           class="px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none w-64">
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-100 border-b-2 border-gray-300">
+                            <tr>
+                                <th class="px-6 py-3 text-left font-semibold">Tên tài liệu</th>
+                                <th class="px-6 py-3 text-left font-semibold">Loại</th>
+                                <th class="px-6 py-3 text-left font-semibold">Ngày upload</th>
+                                <th class="px-6 py-3 text-left font-semibold">Trạng thái</th>
+                                <th class="px-6 py-3 text-left font-semibold">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="px-6 py-4"><i class="fas fa-file-pdf text-red-500 mr-2"></i> QLDA_2026.pdf</td>
+                                <td class="px-6 py-4"><span class="badge bg-red-100 text-red-700 px-3 py-1 rounded">PDF</span></td>
+                                <td class="px-6 py-4 text-sm">2026-05-05</td>
+                                <td class="px-6 py-4"><span class="badge bg-green-100 text-green-700 px-3 py-1 rounded">✓ Hoàn tất</span></td>
+                                <td class="px-6 py-4 text-sm">
+                                    <button class="text-blue-600 hover:underline">Xem</button> | 
+                                    <button class="text-orange-600 hover:underline">Tóm tắt</button> | 
+                                    <button class="text-red-600 hover:underline">Xóa</button>
+                                </td>
+                            </tr>
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="px-6 py-4"><i class="fas fa-image text-yellow-500 mr-2"></i> scan_001.jpg</td>
+                                <td class="px-6 py-4"><span class="badge bg-yellow-100 text-yellow-700 px-3 py-1 rounded">IMAGE</span></td>
+                                <td class="px-6 py-4 text-sm">2026-05-04</td>
+                                <td class="px-6 py-4"><span class="badge bg-blue-100 text-blue-700 px-3 py-1 rounded">🔄 Xử lý</span></td>
+                                <td class="px-6 py-4 text-sm">
+                                    <button class="text-blue-600 hover:underline">Xem</button> | 
+                                    <button class="text-orange-600 hover:underline">Hủy</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="mt-6 flex justify-between items-center">
+                    <p class="text-sm text-gray-600">Showing 1-10 of 42 documents</p>
+                    <div class="flex gap-2">
+                        <button class="px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-100">← Trước</button>
+                        <button class="px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-100">Tiếp →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics-pane" class="tab-pane">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Processing Chart -->
+                <div class="glass rounded-2xl p-8 shadow-xl">
+                    <h3 class="text-xl font-bold mb-6">Số lượng tài liệu xử lý</h3>
+                    <div class="bg-gray-100 rounded-lg h-64 flex items-center justify-center">
+                        <p class="text-gray-500">📊 Chart placeholder (Chart.js recommended)</p>
+                    </div>
+                </div>
+
+                <!-- Success Rate -->
+                <div class="glass rounded-2xl p-8 shadow-xl">
+                    <h3 class="text-xl font-bold mb-6">Tỷ lệ thành công</h3>
+                    <div class="flex items-center justify-center h-64">
+                        <div class="text-center">
+                            <div class="text-6xl font-bold text-green-600 mb-2">98.5%</div>
+                            <p class="text-gray-600">Tài liệu xử lý thành công</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usage Statistics -->
+            <div class="glass rounded-2xl p-8 shadow-xl mt-8">
+                <h3 class="text-xl font-bold mb-6">Thống kê sử dụng</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                        <p class="text-sm text-gray-600 mb-1">API Calls</p>
+                        <p class="text-2xl font-bold text-blue-600">1,234</p>
+                        <p class="text-xs text-gray-500 mt-1">↑ 12% so với tuần trước</p>
+                    </div>
+                    <div class="p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
+                        <p class="text-sm text-gray-600 mb-1">Avg Response Time</p>
+                        <p class="text-2xl font-bold text-green-600">245ms</p>
+                        <p class="text-xs text-gray-500 mt-1">↓ 8% so với tuần trước</p>
+                    </div>
+                    <div class="p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+                        <p class="text-sm text-gray-600 mb-1">Storage Used</p>
+                        <p class="text-2xl font-bold text-purple-600">2.4 GB</p>
+                        <p class="text-xs text-gray-500 mt-1">↑ 5% so với tuần trước</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings-pane" class="tab-pane">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- General Settings -->
+                <div class="glass rounded-2xl p-8 shadow-xl col-span-2">
+                    <h3 class="text-xl font-bold mb-6">Cài đặt chung</h3>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Tên ứng dụng</label>
+                            <input type="text" value="RAG_PM Pro" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Model AI</label>
+                            <select class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none">
+                                <option>Llama 3.2 (recommended)</option>
+                                <option>Llama 2</option>
+                                <option>Mistral</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Ngôn ngữ OCR</label>
+                            <select class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none">
+                                <option>Tiếng Việt (vie)</option>
+                                <option>English (eng)</option>
+                                <option>Cả hai (vie+eng)</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold mb-2">Chunk Size</label>
+                                <input type="number" value="1000" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold mb-2">Chunk Overlap</label>
+                                <input type="number" value="100" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Max File Size (MB)</label>
+                            <input type="number" value="50" class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none">
+                        </div>
+
+                        <div class="flex gap-3 pt-4">
+                            <button onclick="saveSettings()" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-bold hover:shadow-lg transition-all">
+                                <i class="fas fa-save mr-2"></i>Lưu cài đặt
+                            </button>
+                            <button class="flex-1 border-2 border-gray-300 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-all">
+                                <i class="fas fa-undo mr-2"></i>Đặt lại mặc định
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Backup Panel -->
+                <div class="glass rounded-2xl p-8 shadow-xl">
+                    <h3 class="text-xl font-bold mb-6">Backup & Restore</h3>
+
+                    <div class="space-y-3 mb-6">
+                        <button onclick="createBackup()" class="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-bold hover:shadow-lg transition-all">
+                            <i class="fas fa-download mr-2"></i>Tạo Backup
+                        </button>
+
+                        <button class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-bold hover:shadow-lg transition-all">
+                            <i class="fas fa-upload mr-2"></i>Restore
+                        </button>
+
+                        <button class="w-full border-2 border-red-600 text-red-600 py-2 rounded-lg font-semibold hover:bg-red-50 transition-all">
+                            <i class="fas fa-trash mr-2"></i>Xóa cũ
+                        </button>
+                    </div>
+
+                    <div class="p-3 bg-gray-100 rounded-lg text-xs text-gray-600 space-y-1">
+                        <p><strong>Backup gần nhất:</strong> 2026-05-05 10:30:45</p>
+                        <p><strong>Size:</strong> 1.2 GB</p>
+                        <p><strong>Tự động backup:</strong> Hàng ngày 02:00</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed bottom-8 right-8 space-y-3 z-50"></div>
+
+    <script>
+        // Setup dropzone
+        const quickDropZone = document.getElementById('quickDropZone');
+        const quickFile = document.getElementById('quickFile');
+
+        quickDropZone.addEventListener('click', () => quickFile.click());
+        quickDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            quickDropZone.classList.add('bg-blue-100');
+        });
+        quickDropZone.addEventListener('dragleave', () => {
+            quickDropZone.classList.remove('bg-blue-100');
+        });
+        quickDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            quickDropZone.classList.remove('bg-blue-100');
+            quickFile.files = e.dataTransfer.files;
+            if (quickFile.files.length > 0) {
+                showToast(`✓ File selected: ${quickFile.files[0].name}`, 'success');
+            }
+        });
+
+        // Tab switching
+        function switchDashTab(tabName) {
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+            document.getElementById(tabName + '-pane').classList.add('active');
+
+            document.querySelectorAll('.btn-tab').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.btn-tab').classList.add('active');
+        }
+
+        // Functions
+        function quickProcess() {
+            if (!quickFile.files[0]) {
+                showToast('⚠️ Vui lòng chọn file!', 'warning');
+                return;
+            }
+            showToast('🔄 Đang xử lý...', 'info');
+            setTimeout(() => {
+                showToast('✓ Xử lý thành công!', 'success');
+            }, 2000);
+        }
+
+        function saveSettings() {
+            showToast('✓ Cài đặt đã được lưu!', 'success');
+        }
+
+        function createBackup() {
+            showToast('💾 Đang tạo backup...', 'info');
+            setTimeout(() => {
+                showToast('✓ Backup thành công! Size: 1.2 GB', 'success');
+            }, 3000);
+        }
+
+        // Toast notification
+        function showToast(message, type = 'info') {
+            const colors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                info: 'bg-blue-600',
+                warning: 'bg-yellow-600'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `${colors[type] || 'bg-blue-600'} text-white px-6 py-4 rounded-lg shadow-lg animate-pulse`;
+            toast.textContent = message;
+            
+            document.getElementById('toastContainer').appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
