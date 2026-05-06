@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG_PM AI PDF Summarizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f7fa;
+            color: #1a202c;
+        }
+
+        /* =============== SIDEBAR =============== */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 220px;
+            height: 100vh;
+            background: #f8f9fa;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 700;
+            color: #2563eb;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 20px 8px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: #e2e8f0;
+        }
+
+        .nav-item.active {
+            background: #2563eb;
+            color: white;
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 20px 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 8px;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: #1a202c;
+        }
+
+        .user-email {
+            font-size: 12px;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 10px 12px;
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #fecaca;
+        }
+
+        /* =============== MAIN CONTENT =============== */
+        .main {
+            margin-left: 220px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .status-badge {
+            background: #d1fae5;
+            color: #059669;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .server-status {
+            text-align: right;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .server-status-value {
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        /* =============== CONTENT =============== */
+        .content {
+            flex: 1;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        /* =============== LEFT PANEL =============== */
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .section-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: #dbeafe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2563eb;
+            font-size: 12px;
+        }
+
+        .dropzone {
+            border: 2px dashed #bfdbfe;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            background: #f0f9ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        .dropzone:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .dropzone-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #2563eb;
+        }
+
+        .dropzone-text {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1a202c;
+            margin-bottom: 4px;
+        }
+
+        .dropzone-hint {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 8px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .history-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid #e2e8f0;
+        }
+
+        .history-item:hover {
+            background: #f1f5f9;
+            border-left-color: #2563eb;
+        }
+
+        .history-item-name {
+            font-weight: 600;
+            font-size: 13px;
+            color: #1a202c;
+            margin-bottom: 4px;
+        }
+
+        .history-item-time {
+            font-size: 12px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* =============== RIGHT PANEL =============== */
+        .right-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .result-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .result-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 12px;
+        }
+
+        .result-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        .result-placeholder-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #cbd5e0;
+        }
+
+        .result-placeholder-text {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #64748b;
+        }
+
+        .result-placeholder-hint {
+            font-size: 13px;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .btn-secondary {
+            flex: 1;
+            padding: 10px 12px;
+            background: #f1f5f9;
+            color: #2563eb;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        /* =============== TOAST =============== */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            color: #10b981;
+            border-left: 3px solid #10b981;
+        }
+
+        .toast.error {
+            color: #ef4444;
+            border-left: 3px solid #ef4444;
+        }
+
+        .toast.info {
+            color: #2563eb;
+            border-left: 3px solid #2563eb;
+        }
+
+        /* =============== SCROLLBAR =============== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* =============== RESPONSIVE =============== */
+        @media (max-width: 1200px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+            }
+
+            .main {
+                margin-left: 200px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .content {
+                padding: 16px;
+                gap: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <span>RAG_PM</span>
+            </div>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-item" onclick="navigateTo('dashboard')">
+                <i class="fas fa-th-large"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="nav-item active" onclick="navigateTo('summarizer')">
+                <i class="fas fa-file-pdf"></i>
+                <span>AI Summarizer</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('ocr')">
+                <i class="fas fa-image"></i>
+                <span>OCR Processing</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('search')">
+                <i class="fas fa-search"></i>
+                <span>Hybrid Search</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('users')">
+                <i class="fas fa-users"></i>
+                <span>Users</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('permissions')">
+                <i class="fas fa-lock"></i>
+                <span>Permissions</span>
+            </div>
+            <div class="nav-item" onclick="navigateTo('config')">
+                <i class="fas fa-cog"></i>
+                <span>System Config</span>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">A</div>
+                <div class="user-details">
+                    <div class="user-name">Alex Administrator</div>
+                    <div class="user-email">admin@ragpm.ai</div>
+                </div>
+            </div>
+            <button class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <div class="header-title">
+                    <i class="fas fa-file-pdf" style="color: #ef4444;"></i>
+                    AI PDF Summarizer
+                </div>
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    SYSTEM ACTIVE
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="server-status">
+                    <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Server Status</div>
+                    <div class="server-status-value">Latency: 24ms</div>
+                </div>
+                <i class="fas fa-bell" style="font-size: 18px; color: #cbd5e0; cursor: pointer;"></i>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Left Panel -->
+            <div class="left-panel">
+                <!-- Upload Section -->
+                <div class="upload-section">
+                    <div class="section-header">
+                        <div class="section-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="section-title">AI Summarizer</div>
+                    </div>
+
+                    <div class="dropzone" id="dropzone">
+                        <input type="file" id="fileInput" class="file-input" accept=".pdf,.jpg,.png,.jpeg">
+                        <div class="dropzone-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="dropzone-text">Kéo thả hoặc tóm tắt tài liệu PDF</div>
+                        <div class="dropzone-hint">Hỗ trợ file tới 25MB</div>
+                    </div>
+
+                    <button class="btn-primary" onclick="handleUpload()">
+                        <i class="fas fa-wand-magic-sparkles"></i>
+                        <span>Tóm tắt ngay</span>
+                    </button>
+                </div>
+
+                <!-- History Section -->
+                <div class="history-section">
+                    <div class="history-header">
+                        <div class="section-icon">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <div class="section-title">Lịch sử</div>
+                        <span style="margin-left: auto; font-size: 12px; color: #94a3b8;">3 tài liệu</span>
+                    </div>
+
+                    <div class="history-list" id="historyList">
+                        <div class="history-item" onclick="viewHistory(this)">
+                            <div class="history-item-name">
+                                <i class="fas fa-file-pdf" style="color: #ef4444; margin-right: 6px;"></i>
+                                Bao_cao_Tai_chinh_Q3_2024.pdf
+                            </div>
+                            <div class="history-item-time">
+                                <i class="fas fa-clock"></i>
+                                <span>10 phút trước</span>
+                            </div>
+                        </div>
+
+                        <div class="history-item" onclick="viewHistory(this)">
+                            <div class="history-item-name">
+                                <i class="fas fa-file-pdf" style="color: #ef4444; margin-right: 6px;"></i>
+                                Chien_luoc_AI_Suite_v2.pdf
+                            </div>
+                            <div class="history-item-time">
+                                <i class="fas fa-clock"></i>
+                                <span>2 giờ trước</span>
+                            </div>
+                        </div>
+
+                        <div class="history-item" onclick="viewHistory(this)">
+                            <div class="history-item-name">
+                                <i class="fas fa-file-pdf" style="color: #ef4444; margin-right: 6px;"></i>
+                                Quy_dinh_Nhan_su_Moi.pdf
+                            </div>
+                            <div class="history-item-time">
+                                <i class="fas fa-clock"></i>
+                                <span>Hôm qua</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="right-panel">
+                <div class="result-header">
+                    <div class="result-title">
+                        <i class="fas fa-file-lines" style="color: #10b981;"></i>
+                        Kết quả tóm tắt
+                    </div>
+                    <div class="spinner" id="spinner"></div>
+                </div>
+
+                <div class="result-content" id="resultContent">
+                    <div class="result-placeholder">
+                        <div class="result-placeholder-icon">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="result-placeholder-text">Sản sắng xử lý...</div>
+                        <div class="result-placeholder-hint">
+                            Vui lòng chọn file PDF để bắt đầu<br>
+                            Kết quả tóm tắt thông minh sẽ hiển thị ở đây sau<br>
+                            khi bạn tải lên một tệp.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-actions">
+                    <button class="btn-secondary" onclick="copyResult()">
+                        <i class="fas fa-copy"></i>
+                        Copy
+                    </button>
+                    <button class="btn-secondary" onclick="downloadResult()">
+                        <i class="fas fa-download"></i>
+                        Download
+                    </button>
+                    <button class="btn-secondary" onclick="shareResult()">
+                        <i class="fas fa-share-alt"></i>
+                        Share
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // State
+        const state = {
+            selectedFile: null,
+            currentResult: '',
+            history: [
+                { name: 'Bao_cao_Tai_chinh_Q3_2024.pdf', time: '10 phút trước', summary: 'Báo cáo tài chính Q3 2024 cho thấy lợi nhuận tăng 15% so với cùng kỳ năm ngoái...' },
+                { name: 'Chien_luoc_AI_Suite_v2.pdf', time: '2 giờ trước', summary: 'Chiến lược phát triển AI Suite v2 tập trung vào các tính năng mới...' },
+                { name: 'Quy_dinh_Nhan_su_Moi.pdf', time: 'Hôm qua', summary: 'Quy định nhân sự mới có hiệu lực từ ngày 01/05/2026...' }
+            ]
+        };
+
+        // Dropzone
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.style.borderColor = '#2563eb';
+            dropzone.style.background = '#eff6ff';
+        });
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.style.borderColor = '#bfdbfe';
+            dropzone.style.background = '#f0f9ff';
+        });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.style.borderColor = '#bfdbfe';
+            dropzone.style.background = '#f0f9ff';
+            fileInput.files = e.dataTransfer.files;
+            if (fileInput.files.length > 0) {
+                showToast('File selected: ' + fileInput.files[0].name, 'info');
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                state.selectedFile = e.target.files[0];
+                showToast('File selected: ' + state.selectedFile.name, 'info');
+            }
+        });
+
+        // Handle Upload
+        async function handleUpload() {
+            if (!state.selectedFile) {
+                showToast('Please select a file first!', 'error');
+                return;
+            }
+
+            const spinner = document.getElementById('spinner');
+            const resultContent = document.getElementById('resultContent');
+            
+            spinner.style.display = 'block';
+            resultContent.innerHTML = '<div class="result-placeholder"><div style="font-size: 20px; margin-bottom: 12px;">Processing...</div></div>';
+
+            const formData = new FormData();
+            formData.append('file', state.selectedFile);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.summary) {
+                    state.currentResult = data.summary;
+                    resultContent.innerHTML = `
+                        <div style="white-space: pre-wrap; line-height: 1.6; color: #1a202c;">
+                            ${data.summary}
+                        </div>
+                    `;
+                    showToast('Summarization completed!', 'success');
+                } else {
+                    resultContent.innerHTML = `<div class="result-placeholder"><div class="result-placeholder-text">Error: ${data.error || 'Unknown error'}</div></div>`;
+                    showToast('Summarization failed!', 'error');
+                }
+            } catch (error) {
+                resultContent.innerHTML = `<div class="result-placeholder"><div class="result-placeholder-text">Connection error: ${error.message}</div></div>`;
+                showToast('Connection error!', 'error');
+            } finally {
+                spinner.style.display = 'none';
+            }
+        }
+
+        // View History
+        function viewHistory(element) {
+            const index = Array.from(document.querySelectorAll('.history-item')).indexOf(element);
+            const item = state.history[index];
+            const resultContent = document.getElementById('resultContent');
+            
+            state.currentResult = item.summary;
+            resultContent.innerHTML = `
+                <div>
+                    <div style="font-weight: 600; color: #64748b; margin-bottom: 12px; font-size: 12px;">
+                        ${item.name}
+                    </div>
+                    <div style="white-space: pre-wrap; line-height: 1.6; color: #1a202c;">
+                        ${item.summary}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Copy Result
+        function copyResult() {
+            if (!state.currentResult) {
+                showToast('No result to copy!', 'error');
+                return;
+            }
+            navigator.clipboard.writeText(state.currentResult).then(() => {
+                showToast('Copied to clipboard!', 'success');
+            });
+        }
+
+        // Download Result
+        function downloadResult() {
+            if (!state.currentResult) {
+                showToast('No result to download!', 'error');
+                return;
+            }
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(state.currentResult));
+            element.setAttribute('download', 'summary_' + new Date().getTime() + '.txt');
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+            showToast('Downloaded!', 'success');
+        }
+
+        // Share Result
+        function shareResult() {
+            showToast('Share feature coming soon!', 'info');
+        }
+
+        // Navigation
+        function navigateTo(page) {
+            const routeMap = {
+                dashboard: '/admin/dashboard',
+                summarizer: '/',
+                ocr: '/ocr/ui',
+                search: '/summarizer',
+                users: '/admin/users-ui',
+                permissions: '/admin/permission-groups',
+                config: '/admin/system-config-ui'
+            };
+
+            const target = routeMap[page];
+            if (target) {
+                window.location.href = target;
+                return;
+            }
+
+            showToast('Không tìm thấy trang tương ứng', 'error');
+        }
+
+        // Toast Notification
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Initial message
+        showToast('System ready. Upload a PDF to get started!', 'info');
+    </script>
+</body>
+</html>

@@ -83,6 +83,8 @@ class TestOCR(unittest.TestCase):
         self.assertEqual(chunks[0]["metadata"]["page_number"], 3)
         self.assertEqual(chunks[0]["metadata"]["dieu"], "1")
         self.assertEqual(chunks[1]["metadata"]["khoan"], "2")
+        self.assertEqual(chunks[0]["metadata"]["start_line"], 1)
+        self.assertGreaterEqual(chunks[1]["metadata"]["end_line"], 3)
 
     def test_embed_chunks_uses_fallback_shape(self):
         chunks = [
@@ -99,11 +101,11 @@ class TestOCR(unittest.TestCase):
         chunks = [
             {
                 "content": "Dieu 1. Cong van ve tai chinh",
-                "metadata": {"page_number": 1, "page_label": "(Trang 1)", "dieu": "1"},
+                "metadata": {"page_number": 1, "page_label": "(Trang 1)", "dieu": "1", "document_id": 10},
             },
             {
                 "content": "Dieu 2. Quy dinh nhan su",
-                "metadata": {"page_number": 2, "page_label": "(Trang 2)", "dieu": "2"},
+                "metadata": {"page_number": 2, "page_label": "(Trang 2)", "dieu": "2", "document_id": 20},
             },
         ]
 
@@ -114,6 +116,25 @@ class TestOCR(unittest.TestCase):
         self.assertGreater(len(results), 0)
         self.assertIn("metadata", results[0])
         self.assertIn("page_number", results[0]["metadata"])
+
+    def test_hybrid_search_can_filter_by_document_ids(self):
+        chunks = [
+            {
+                "content": "Dieu 1. Cong van ve tai chinh",
+                "metadata": {"page_number": 1, "page_label": "(Trang 1)", "dieu": "1", "document_id": 10},
+            },
+            {
+                "content": "Dieu 2. Cong van ve tai chinh noi bo",
+                "metadata": {"page_number": 2, "page_label": "(Trang 2)", "dieu": "2", "document_id": 20},
+            },
+        ]
+        embedded = self.ocr_service.embed_chunks(chunks)
+        self.ocr_service.store_embeddings(embedded)
+
+        results = self.ocr_service.hybrid_search("tai chinh", top_k=5, threshold=0.0, document_ids=[20])
+
+        self.assertGreater(len(results), 0)
+        self.assertTrue(all(item["metadata"].get("document_id") == 20 for item in results))
 
     def test_rag_answer_mock(self):
         chunks = [
@@ -151,6 +172,139 @@ class TestOCR(unittest.TestCase):
         self.assertEqual(structure["document_code"], "15/QD-UBND")
         self.assertEqual(structure["article_count"], 1)
         self.assertEqual(structure["clause_count"], 1)
+
+    def test_normalize_text_repairs_common_ocr_vietnamese_errors(self):
+        raw = (
+            "Hệ thống MediFlow AI được xõy dựng theo kiến trực client–server kết hợp với mỵ\n"
+            "hủnh multi-agent, trong đý frontend đýng vai trỹ giao diện người dững.\n"
+            "Hệ thống cũng tũch hợp cỏc cơ chế xử lý giọng nýi."
+        )
+
+        normalized = self.ocr_service.normalize_text(raw)
+
+        self.assertIn("xây dựng theo kiến trúc client–server kết hợp với mô hình multi-agent", normalized)
+        self.assertIn("đóng vai trò giao diện người dùng", normalized)
+        self.assertIn("tích hợp các cơ chế xử lý giọng nói", normalized)
+
+    def test_restore_paragraph_flow_joins_pdf_word_breaks(self):
+        raw = (
+            "Hệ thống\n"
+            "được\n"
+            "xây dựng\n"
+            "theo\n"
+            "kiến trúc\n"
+            "client-server\n"
+            "kết hợp\n"
+            "với\n"
+            "mô hình\n"
+            "multi-agent.\n"
+            "\n"
+            "Backend\n"
+            "đóng\n"
+            "vai trò\n"
+            "trung tâm."
+        )
+
+        normalized = self.ocr_service.normalize_text(raw)
+
+        self.assertIn("Hệ thống được xây dựng theo kiến trúc client-server kết hợp với mô hình multi-agent.", normalized)
+        self.assertIn("Backend đóng vai trò trung tâm.", normalized)
+
+    def test_normalize_text_handles_heavy_pdf_line_breaks_and_ocr_typos(self):
+        raw = (
+            "Hệ thống MediFlow AI được xõy dựng theo kiến trực client–server kết hợp với mỵ\n"
+            "hủnh\n"
+            "multi-agent,\n"
+            "trong\n"
+            "đý\n"
+            "frontend\n"
+            "đýng\n"
+            "vai\n"
+            "trỹ\n"
+            "giao\n"
+            "diện\n"
+            "người\n"
+            "dững\n"
+            "và\n"
+            "backend\n"
+            "đảm\n"
+            "nhiệm\n"
+            "xử\n"
+            "lý\n"
+            "logic\n"
+            "cũng\n"
+            "như\n"
+            "điều\n"
+            "phối\n"
+            "cỏc\n"
+            "AI\n"
+            "Agent.\n"
+            "Ở\n"
+            "phũa\n"
+            "frontend,\n"
+            "hệ\n"
+            "thống\n"
+            "được\n"
+            "phỏt\n"
+            "triển\n"
+            "bằng\n"
+            "React\n"
+            "với\n"
+            "cỏc\n"
+            "thành\n"
+            "phần\n"
+            "như\n"
+            "EMR\n"
+            "Form,\n"
+            "Patient\n"
+            "Queue,\n"
+            "Voice\n"
+            "Recorder\n"
+            "và\n"
+            "QR\n"
+            "Modal,\n"
+            "cững\n"
+            "cỏc\n"
+            "trang\n"
+            "phục\n"
+            "vụ\n"
+            "cho\n"
+            "từng\n"
+            "nhým\n"
+            "người\n"
+            "dững\n"
+            "như\n"
+            "bệnh\n"
+            "nhõn,\n"
+            "bỏc\n"
+            "sĩ\n"
+            "và\n"
+            "quản\n"
+            "lý\n"
+            "bệnh\n"
+            "viện.\n"
+            "Hệ\n"
+            "thống\n"
+            "cũng\n"
+            "tũch\n"
+            "hợp\n"
+            "cỏc\n"
+            "cơ\n"
+            "chế\n"
+            "xử\n"
+            "lý\n"
+            "giọng\n"
+            "nýi\n"
+            "nhằm"
+        )
+
+        normalized = self.ocr_service.normalize_text(raw)
+
+        self.assertIn("xây dựng theo kiến trúc client–server kết hợp với mô hình multi-agent", normalized)
+        self.assertIn("đóng vai trò giao diện người dùng", normalized)
+        self.assertIn("phát triển bằng React với các thành phần như EMR Form, Patient Queue, Voice Recorder và QR Modal", normalized)
+        self.assertIn("nhóm người dùng như bệnh nhân, bác sĩ và quản lý bệnh viện", normalized)
+        self.assertIn("tích hợp các cơ chế xử lý giọng nói", normalized)
 
     def _build_minimal_docx(self, pages: list[list[str]]) -> bytes:
         body_parts = []

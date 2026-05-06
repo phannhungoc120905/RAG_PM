@@ -1,15 +1,24 @@
 import logging
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
-from ocr.service import OCRService
+from ocr.runtime import ocr_service
 
 
 router = APIRouter(prefix="/ocr", tags=["OCR"])
-ocr_service = OCRService()
 logger = logging.getLogger(__name__)
+TEMPLATES_DIR = Path("templates")
+
+
+def read_html_file(filename: str, fallback: str) -> str:
+    path = TEMPLATES_DIR / filename
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return fallback
 
 
 class QueryRequest(BaseModel):
@@ -19,6 +28,11 @@ class QueryRequest(BaseModel):
 
 class TextAnalyzeRequest(BaseModel):
     text: str
+
+
+@router.get("/ui", response_class=HTMLResponse)
+async def ocr_page() -> str:
+    return read_html_file("ocr_processing.html", "<h1>OCR Processing</h1>")
 
 
 @router.get("/supported-formats")
@@ -113,6 +127,7 @@ async def upload_and_process(file: UploadFile = File(...)) -> dict[str, Any]:
             "classification": result["classification"],
             "structure": result["structure"],
             "chunks_count": len(chunks),
+            "text": result["clean_text"],
         }
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))

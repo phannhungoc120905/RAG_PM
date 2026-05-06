@@ -1,7 +1,8 @@
 from datetime import date, datetime
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -66,6 +67,24 @@ from db.database import get_db
 
 
 router = APIRouter()
+TEMPLATES_DIR = Path("templates")
+
+
+def read_html_file(filename: str, fallback: str) -> str:
+    path = TEMPLATES_DIR / filename
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return fallback
+
+
+@router.get("/users-ui", response_class=HTMLResponse)
+async def admin_users_page() -> str:
+    return read_html_file("users_management.html", "<h1>Users Management</h1>")
+
+
+@router.get("/system-config-ui", response_class=HTMLResponse)
+async def admin_system_config_page() -> str:
+    return read_html_file("system_config_ui.html", "<h1>System Config</h1>")
 
 
 class PermissionAssignmentRequest(BaseModel):
