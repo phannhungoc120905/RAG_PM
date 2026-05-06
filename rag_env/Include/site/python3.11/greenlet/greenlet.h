@@ -5,9 +5,6 @@
 #ifndef Py_GREENLETOBJECT_H
 #define Py_GREENLETOBJECT_H
 
-
-#include <Python.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,7 +17,7 @@ extern "C" {
 #endif
 
 typedef struct _greenlet {
-    PyObject_HEAD
+    PyObject_HEAD;
     PyObject* weakreflist;
     PyObject* dict;
     implementation_ptr_t pimpl;

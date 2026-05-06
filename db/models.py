@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -209,7 +209,7 @@ class User(Base):
     permission_group: Mapped[Optional[PermissionGroup]] = relationship("PermissionGroup", back_populates="users")
     department: Mapped[Optional[Department]] = relationship("Department", back_populates="users")
     position: Mapped[Optional[Position]] = relationship("Position", back_populates="users")
-    documents: Mapped[list[Document]] = relationship("Document", back_populates="owner")
+    documents: Mapped[list[Document]] = relationship("Document", back_populates="owner", foreign_keys="Document.owner_id")
     summaries: Mapped[list[SummaryHistory]] = relationship(
         "SummaryHistory",
         back_populates="user",
@@ -242,11 +242,38 @@ class Document(Base):
     file_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     file_size_kb: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="processing", server_default="processing")
+    document_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    document_number: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    document_title: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    document_summary: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
+    issuer_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    issued_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    effective_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    language: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, default="vi", server_default="vi")
+    source_format: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    mime_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    page_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=0, server_default="0")
+    ocr_text: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
+    clean_text: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
+    processing_status: Mapped[str] = mapped_column(String(50), nullable=False, default="uploaded", server_default="uploaded")
+    processing_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    classification_label: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    classification_score: Mapped[Optional[float]] = mapped_column(Numeric(5, 4), nullable=True)
+    structure_json: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
+    page_index_json: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
+    storage_meta_json: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    uploaded_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    processed_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    review_status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending", server_default="pending")
+    reviewed_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
     processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, onupdate=func.now())
 
-    owner: Mapped[User] = relationship("User", back_populates="documents")
+    owner: Mapped[User] = relationship("User", back_populates="documents", foreign_keys=[owner_id])
     chunks: Mapped[list[ChunkMetadata]] = relationship(
         "ChunkMetadata",
         back_populates="document",
@@ -266,10 +293,24 @@ class ChunkMetadata(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     document_id: Mapped[int] = mapped_column(ForeignKey("documents.id"), nullable=False)
     chunk_index: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    chunk_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    section_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    section_code: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    section_title: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     page_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     start_line: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    end_line: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    end_page: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    token_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     faiss_index_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    embedding_status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending", server_default="pending")
+    embedding_model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    bm25_text: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
+    citation_json: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
+    chunk_hash: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    metadata_json: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
     content_preview: Mapped[Optional[str]] = mapped_column(String(400), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
 
     document: Mapped[Document] = relationship("Document", back_populates="chunks")
 
@@ -281,9 +322,22 @@ class SummaryHistory(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     document_id: Mapped[int] = mapped_column(ForeignKey("documents.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    summary_type: Mapped[str] = mapped_column(String(30), nullable=False, default="summary", server_default="summary")
+    version_no: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     summary_text: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
+    prompt_template: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    model_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    source_chunk_ids_json: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
+    groundedness_score: Mapped[Optional[float]] = mapped_column(Numeric(5, 4), nullable=True)
+    hallucination_flag: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     is_reviewed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     reviewed_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    review_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    feedback_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    feedback_comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    exported_formats_json: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
+    is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
@@ -378,6 +432,12 @@ class SystemLog(Base):
     detail: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     ip_address: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     status_code: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    module_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    entity_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    entity_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    log_type: Mapped[str] = mapped_column(String(30), nullable=False, default="system", server_default="system")
+    request_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    username_snapshot: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
 
     user: Mapped[Optional[User]] = relationship("User", back_populates="system_logs")

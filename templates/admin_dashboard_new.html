@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - RAG_PM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f7fa;
+            color: #1a202c;
+        }
+
+        /* =============== SIDEBAR =============== */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 200px;
+            height: 100vh;
+            background: #f8f9fa;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #2563eb;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 8px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 12px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: #e2e8f0;
+        }
+
+        .nav-item.active {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .nav-item i {
+            width: 16px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding: 8px;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 12px;
+            color: #1a202c;
+        }
+
+        .user-email {
+            font-size: 11px;
+            color: #94a3b8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 8px;
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #fecaca;
+        }
+
+        /* =============== MAIN CONTENT =============== */
+        .main {
+            margin-left: 200px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 4px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #d1fae5;
+            color: #059669;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .header-right {
+            text-align: right;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .header-right-title {
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        /* =============== CONTENT =============== */
+        .content {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .content-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 8px;
+        }
+
+        .content-subtitle {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        /* =============== STATS GRID =============== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-icon.blue {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .stat-icon.purple {
+            background: #e9d5ff;
+            color: #9333ea;
+        }
+
+        .stat-icon.green {
+            background: #d1fae5;
+            color: #10b981;
+        }
+
+        .stat-icon.orange {
+            background: #fed7aa;
+            color: #f97316;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .stat-change.positive {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .stat-change.negative {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        /* =============== CHARTS SECTION =============== */
+        .charts-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .chart-subtitle {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        .chart-tabs {
+            display: flex;
+            gap: 12px;
+        }
+
+        .chart-tab {
+            padding: 6px 12px;
+            border: none;
+            background: #f1f5f9;
+            color: #64748b;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .chart-tab.active {
+            background: #2563eb;
+            color: white;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-color {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* =============== STATUS PANEL =============== */
+        .status-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-item-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-item-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #2563eb;
+        }
+
+        .status-item-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #64748b;
+        }
+
+        .status-item-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .status-item-right {
+            text-align: right;
+        }
+
+        .notification-box {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 16px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .notification-icon {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        /* =============== ACTIVITY TABLE =============== */
+        .activity-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .activity-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .view-all {
+            color: #2563eb;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .view-all:hover {
+            gap: 10px;
+        }
+
+        .activity-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .activity-table thead {
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .activity-table th {
+            padding: 12px 0;
+            text-align: left;
+            font-weight: 600;
+            color: #64748b;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .activity-table td {
+            padding: 16px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .activity-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-icon {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .status-icon.success {
+            background: #10b981;
+        }
+
+        .status-icon.error {
+            background: #ef4444;
+        }
+
+        .status-icon.warning {
+            background: #f59e0b;
+        }
+
+        .status-icon.info {
+            background: #2563eb;
+        }
+
+        .activity-label {
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .activity-user {
+            color: #64748b;
+        }
+
+        .activity-time {
+            color: #94a3b8;
+        }
+
+        /* =============== SCROLLBAR =============== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* =============== RESPONSIVE =============== */
+        @media (max-width: 1200px) {
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 180px;
+            }
+
+            .main {
+                margin-left: 180px;
+            }
+
+            .content {
+                padding: 16px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <span>RAG_PM</span>
+            </div>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-item active">
+                <i class="fas fa-chart-pie"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-file-pdf"></i>
+                <span>AI Summarizer</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-image"></i>
+                <span>OCR Processing</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-search"></i>
+                <span>Hybrid Search</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Users</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-lock"></i>
+                <span>Permissions</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>System Config</span>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">A</div>
+                <div class="user-details">
+                    <div class="user-name">Alex Administrator</div>
+                    <div class="user-email">admin@ragpm.ai</div>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1>Admin Dashboard</h1>
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    SYSTEM ACTIVE
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="header-right-title">Server Status</div>
+                <div>Latency: 24ms</div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="content-header">
+                <div>
+                    <h2 class="content-title">Tổng quan hệ thống</h2>
+                    <p class="content-subtitle">Cập nhật lần cuối 10:45 AM, Hôm nay</p>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-label">Tổng người dùng</div>
+                            <div class="stat-value">12,482</div>
+                        </div>
+                        <div class="stat-change positive">+19.8%</div>
+                    </div>
+                    <div class="stat-icon blue">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-label">Tổng tài liệu</div>
+                            <div class="stat-value">456,720</div>
+                        </div>
+                        <div class="stat-change positive">+15.2%</div>
+                    </div>
+                    <div class="stat-icon purple">
+                        <i class="fas fa-folder"></i>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-label">Uptime (50 ngày)</div>
+                            <div class="stat-value">99.98%</div>
+                        </div>
+                        <div class="stat-change negative">-0.02%</div>
+                    </div>
+                    <div class="stat-icon green">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-label">Dung lượng lưu trữ</div>
+                            <div class="stat-value">1.2 TB</div>
+                        </div>
+                        <div class="stat-change negative">+1%</div>
+                    </div>
+                    <div class="stat-icon orange">
+                        <i class="fas fa-database"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-section">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div>
+                            <div class="chart-title">Hoạt động AI thời gian thực</div>
+                            <div class="chart-subtitle">50 lượng việu của các kỳ (PDF, OCR, Search) trong 24h qua</div>
+                        </div>
+                        <div class="chart-tabs">
+                            <button class="chart-tab active">Hôm nay</button>
+                            <button class="chart-tab">7 ngày qua</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="activityChart"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #2563eb;"></div>
+                            <span>AI Requests</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #cbd5e0;"></div>
+                            <span>Độ ỳ thết</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Panel -->
+                <div class="status-panel">
+                    <div class="chart-title" style="margin-bottom: 20px;">Trạng thái hệ thống cảnh báo</div>
+
+                    <div class="status-item">
+                        <div class="status-item-left">
+                            <div class="status-item-icon">
+                                <i class="fas fa-microchip"></i>
+                            </div>
+                            <div>
+                                <div class="status-item-label">CPU Usage</div>
+                            </div>
+                        </div>
+                        <div class="status-item-right">
+                            <div class="status-item-value">42%</div>
+                        </div>
+                    </div>
+
+                    <div class="status-item">
+                        <div class="status-item-left">
+                            <div class="status-item-icon">
+                                <i class="fas fa-memory"></i>
+                            </div>
+                            <div>
+                                <div class="status-item-label">RAM Allocation</div>
+                            </div>
+                        </div>
+                        <div class="status-item-right">
+                            <div class="status-item-value">8.2 / 16 GB</div>
+                        </div>
+                    </div>
+
+                    <div class="status-item">
+                        <div class="status-item-left">
+                            <div class="status-item-icon">
+                                <i class="fas fa-network-wired"></i>
+                            </div>
+                            <div>
+                                <div class="status-item-label">Vector DB Latency</div>
+                            </div>
+                        </div>
+                        <div class="status-item-right">
+                            <div class="status-item-value">12ms</div>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 16px;">
+                        <a href="#" style="color: #2563eb; text-decoration: none; font-size: 12px; font-weight: 600;">
+                            Xem chi tiết tên nguyên →
+                        </a>
+                    </div>
+
+                    <div class="notification-box">
+                        <div class="notification-icon">📊</div>
+                        <div class="notification-title">Bạn sẽ tối ưu...</div>
+                        <div>Hệ thống gợi nghị dễ dàng tính toán Vector Databases để tối ưu tốc độ.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Table -->
+            <div class="activity-section">
+                <div class="activity-header">
+                    <h3 class="activity-title">Hoạt động gần đây</h3>
+                    <a href="#" class="view-all">
+                        <span>Tất cả các ký lệnh</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <table class="activity-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;">Trạng thái</th>
+                            <th style="width: 40%;">Sự kiện</th>
+                            <th style="width: 30%;">Người thực hiện</th>
+                            <th style="width: 25%;">Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="activity-status">
+                                    <div class="status-icon success"></div>
+                                    <span>Thành công</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="activity-label">PDF Summarization complete for "Report_Q3.pdf"</span>
+                            </td>
+                            <td>
+                                <span class="activity-user">Hoàng Nguyễn</span>
+                            </td>
+                            <td>
+                                <span class="activity-time">2 phút trước</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="activity-status">
+                                    <div class="status-icon error"></div>
+                                    <span>Lỗi</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="activity-label">OCR process failed: Invalid image format</span>
+                            </td>
+                            <td>
+                                <span class="activity-user">Admin</span>
+                            </td>
+                            <td>
+                                <span class="activity-time">10 phút trước</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="activity-status">
+                                    <div class="status-icon info"></div>
+                                    <span>Thông tin</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="activity-label">System configuration updated</span>
+                            </td>
+                            <td>
+                                <span class="activity-user">Admin</span>
+                            </td>
+                            <td>
+                                <span class="activity-time">1 giờ trước</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="activity-status">
+                                    <div class="status-icon success"></div>
+                                    <span>Thành công</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="activity-label">New user "Trần Thế" registered</span>
+                            </td>
+                            <td>
+                                <span class="activity-user">System</span>
+                            </td>
+                            <td>
+                                <span class="activity-time">3 giờ trước</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="activity-status">
+                                    <div class="status-icon warning"></div>
+                                    <span>Cảnh báo</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="activity-label">Storage capacity reaching 85%</span>
+                            </td>
+                            <td>
+                                <span class="activity-user">Monitor</span>
+                            </td>
+                            <td>
+                                <span class="activity-time">5 giờ trước</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart
+        const ctx = document.getElementById('activityChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '23:59'],
+                datasets: [
+                    {
+                        label: 'AI Requests',
+                        data: [1200, 2400, 2800, 3200, 4100, 4900, 3800],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#2563eb',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                    },
+                    {
+                        label: 'Độ ỳ thết',
+                        data: [1000, 1200, 1400, 1600, 1800, 1900, 1700],
+                        borderColor: '#cbd5e0',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 6000,
+                        ticks: {
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            color: '#e2e8f0'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                size: 12
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Logout
+        function logout() {
+            if (confirm('Bạn chắc chắn muốn đăng xuất?')) {
+                window.location.href = '/login';
+            }
+        }
+
+        const dashboardNavRoutes = {
+            Dashboard: '/admin/dashboard',
+            'AI Summarizer': '/',
+            'OCR Processing': '/ocr/ui',
+            'Hybrid Search': '/summarizer',
+            Users: '/admin/users-ui',
+            Permissions: '/admin/permission-groups',
+            'System Config': '/admin/system-config-ui'
+        };
+
+        document.querySelectorAll('.nav-item').forEach((item) => {
+            const label = item.textContent.trim().replace(/\s+/g, ' ');
+            const route = dashboardNavRoutes[label];
+            if (route) {
+                item.addEventListener('click', () => {
+                    window.location.href = route;
+                });
+            }
+        });
+    </script>
+</body>
+</html>

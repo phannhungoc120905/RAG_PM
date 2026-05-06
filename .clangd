@@ -1,0 +1,4 @@
+If:
+  PathMatch: (^|.*/)(rag_env|__pycache__|pycompile_[^/]+|ocr/\.tmp_testdata)(/.*)?$
+Diagnostics:
+  Suppress: "*"

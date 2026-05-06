@@ -4,3 +4,7 @@ __pycache__/
 uploads/
 backups/
 faiss_index/
+rag_env/
+ocr/.tmp_testdata/
+pycompile_*/
+.vscode/
