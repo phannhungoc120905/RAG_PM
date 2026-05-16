@@ -277,7 +277,6 @@ class Document(Base):
     chunks: Mapped[list[ChunkMetadata]] = relationship(
         "ChunkMetadata",
         back_populates="document",
-        cascade="all, delete-orphan",
     )
     summaries: Mapped[list[SummaryHistory]] = relationship(
         "SummaryHistory",
@@ -331,20 +330,36 @@ class SummaryHistory(Base):
     source_chunk_ids_json: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
     groundedness_score: Mapped[Optional[float]] = mapped_column(Numeric(5, 4), nullable=True)
     hallucination_flag: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
-    is_reviewed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
-    reviewed_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
     review_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     feedback_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     feedback_comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     exported_formats_json: Mapped[Optional[str]] = mapped_column(LONGTEXT, nullable=True)
     is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    is_reviewed: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="0",
+    )
+    reviewed_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        server_default=func.now(),
+    )
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     document: Mapped[Document] = relationship("Document", back_populates="summaries")
-    user: Mapped[User] = relationship("User", back_populates="summaries", foreign_keys=[user_id])
-    reviewer: Mapped[Optional[User]] = relationship("User", back_populates="reviewed_summaries", foreign_keys=[reviewed_by])
-
+    user: Mapped[User] = relationship(
+        "User",
+        back_populates="summaries",
+        foreign_keys=[user_id],
+    )
+    reviewer: Mapped[Optional[User]] = relationship(
+        "User",
+        back_populates="reviewed_summaries",
+        foreign_keys=[reviewed_by],
+    )
 
 class WorkAssignmentDocument(Base):
     __tablename__ = "work_assignment_documents"
@@ -438,7 +453,11 @@ class SystemLog(Base):
     log_type: Mapped[str] = mapped_column(String(30), nullable=False, default="system", server_default="system")
     request_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     username_snapshot: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        server_default=func.now(),
+    )
 
     user: Mapped[Optional[User]] = relationship("User", back_populates="system_logs")
 
@@ -452,8 +471,12 @@ class APIKey(Base):
     description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     key_hash: Mapped[str] = mapped_column(String(500), nullable=False)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, onupdate=func.now())
-
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="1",
+    )
     creator: Mapped[User] = relationship("User", back_populates="api_keys")

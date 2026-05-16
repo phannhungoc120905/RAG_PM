@@ -503,7 +503,7 @@
                 <form onsubmit="handleLogin(event)">
                     <div class="form-group">
                         <label class="form-label">Tên đăng nhập</label>
-                        <input type="email" class="form-input" placeholder="admin@ragpm.ai" id="email" required>
+                        <input type="text" class="form-input" placeholder="Nhập tên đăng nhập" id="username" required>
                     </div>
 
                     <div class="form-group">
@@ -560,7 +560,7 @@
         async function handleLogin(event) {
             event.preventDefault();
             
-            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const remember = document.getElementById('remember').checked;
 
@@ -576,7 +576,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        username: email,
+                        username: username,
                         password: password
                     })
                 });
@@ -586,13 +586,13 @@
                 if (response.ok && data.access_token) {
                     localStorage.setItem('token', data.access_token);
                     if (remember) {
-                        localStorage.setItem('remember_email', email);
+                        localStorage.setItem('remember_user', username);
                     }
                     
                     showNotification('Đăng nhập thành công!', 'success');
                     
                     setTimeout(() => {
-                        window.location.href = '/';
+                        window.location.href = '/admin/dashboard';
                     }, 1500);
                 } else {
                     showNotification(data.detail || 'Đăng nhập thất bại', 'error');
@@ -662,9 +662,9 @@
 
         // Load remembered email
         window.addEventListener('load', () => {
-            const rememberedEmail = localStorage.getItem('remember_email');
-            if (rememberedEmail) {
-                document.getElementById('email').value = rememberedEmail;
+            const rememberedUser = localStorage.getItem('remember_user');
+            if (rememberedUser) {
+                document.getElementById('username').value = rememberedUser;
                 document.getElementById('remember').checked = true;
             }
         });

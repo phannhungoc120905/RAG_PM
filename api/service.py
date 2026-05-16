@@ -26,6 +26,9 @@ def get_supported_formats() -> list[str]:
 
 
 async def check_ollama_health() -> dict[str, Any]:
+    final_path: Path | None = None
+    embeddings_written = False
+
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(settings.OLLAMA_TAGS_URL, timeout=10.0)
@@ -154,6 +157,7 @@ async def upload_document(
         start_vector_id = int(ocr_service.index.ntotal)
         embedded_chunks = ocr_service.embed_chunks(enriched_chunks)
         ocr_service.store_embeddings(embedded_chunks)
+        embeddings_written = True
 
         for index, chunk in enumerate(enriched_chunks):
             metadata = chunk.get("metadata", {})
@@ -212,14 +216,6 @@ async def upload_document(
         db.commit()
         db.refresh(document)
 
-        summary_record = None
-        if auto_summary:
-            summary_record = await create_summary_for_document(
-                db,
-                document_id=document.id,
-                current_user=current_user,
-            )
-
         _write_system_log(
             db,
             user_id=current_user.id,
@@ -230,14 +226,24 @@ async def upload_document(
             entity_id=document.id,
             log_type="usage",
         )
-        return document, summary_record
-    except Exception as exc:
-        failed_path = _move_upload_file(processing_path, "failed")
-        document.filename = failed_path.name
-        document.file_path = str(failed_path)
-        document.status = "failed"
+    except Exception as e:
+        db.rollback()
+        if embeddings_written:
+            try:
+                _rebuild_vector_storage(db)
+            except Exception:
+                log.exception("upload_vector_rebuild_failed", document_id=document.id)
+        if final_path and final_path.exists():
+            try:
+                failed_path = _move_upload_file(final_path, "failed")
+                document.file_path = str(failed_path)
+                document.filename = failed_path.name
+            except Exception:
+                log.exception("upload_failed_file_move_failed", document_id=document.id, filename=original_filename)
+        log.error("upload_processing_failed", extra={"document_id": document.id, "error": str(e)})
         document.processing_status = "failed"
-        document.processing_error = str(exc)
+        document.status = "failed"
+        document.processing_error = str(e)
         document.updated_at = datetime.now()
         db.add(document)
         db.commit()
@@ -245,9 +251,25 @@ async def upload_document(
             "document_upload_failed",
             document_id=document.id,
             filename=original_filename,
-            error=str(exc) or repr(exc),
+            error=str(e),
         )
-        raise
+        raise HTTPException(status_code=500, detail=f"Lỗi xử lý tài liệu: {str(e)}")
+    summary_record = None
+    if auto_summary:
+        try:
+            summary_record = await create_summary_for_document(
+                db,
+                document_id=document.id,
+                current_user=current_user,
+            )
+        except Exception:
+            log.exception(
+                "document_auto_summary_failed",
+                document_id=document.id,
+                filename=original_filename,
+            )
+
+    return document, summary_record
 
 
 async def create_summary_for_document(
@@ -445,6 +467,7 @@ def export_summary(db: Session, *, summary_id: int, current_user: User, export_f
         )
     elif export_format == "docx":
         try:
+            # pyrefly: ignore [missing-import]
             from docx import Document as WordDocument
         except ImportError as exc:
             raise HTTPException(status_code=501, detail="python-docx is required for DOCX export") from exc
@@ -469,7 +492,11 @@ def delete_document_cascade(db: Session, *, document_id: int, current_user: User
     document = get_document_detail(db, document_id, current_user)
     file_path = Path(document.file_path) if document.file_path else None
     payload = {"document_id": document.id, "filename": document.original_filename}
-    db.delete(document)
+    document.deleted_at = datetime.now()
+    document.updated_at = datetime.now()
+    document.processing_status = "deleted"
+    document.status = "deleted"
+    db.add(document)
     db.commit()
 
     if file_path and file_path.exists():

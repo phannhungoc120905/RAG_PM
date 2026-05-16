@@ -1,0 +1,58 @@
+{
+  "char_confusion_fixes": [
+    ["(?<=[a-zA-ZÀ-ỹ])0(?=[a-zA-ZÀ-ỹ])", "o"],
+    ["(?<=[a-zA-ZÀ-ỹ])1(?=[a-zA-ZÀ-ỹ])", "l"],
+    ["(?<=[a-zA-ZÀ-ỹ])5(?=[a-zA-ZÀ-ỹ])", "s"],
+    ["(?<=\\w)\\s*[|]\\s*(?=\\w)", " "],
+    ["``", "\""],
+    ["''", "\""],
+    ["ủy\\s+ban", "Ủy ban"],
+    ["\\bvà\\b", "và"]
+  ],
+  "syllable_fixes": [
+    ["xõy", "xây"], ["hỵp", "hợp"], ["mỵ", "mô"], ["hủnh", "hình"], ["trủnh", "trình"],
+    ["chuýn", "chuyên"], ["thỵng", "thông"], ["nhõn", "nhân"], ["phõn", "phân"],
+    ["tiùn", "tiên"], ["liùn", "liên"], ["tõm", "tâm"], ["tỏc", "tác"], ["lỳ", "lý"],
+    ["ýu", "yêu"], ["giựp", "giúp"], ["hýa", "hóa"], ["thỏi", "thái"], ["phữ", "phù"],
+    ["cỏc", "các"], ["phũa", "phía"], ["đý", "đó"], ["đýng", "đóng"], ["nýi", "nói"],
+    ["dững", "dùng"], ["cững", "cũng"], ["tỵ", "tư"], ["trỹ", "trò"], ["tỹ", "từ"],
+    ["xực", "xúc"], ["tũch", "tích"], ["phỏt", "phát"], ["nhým", "nhóm"], ["bỏc", "bác"],
+    ["sỉ", "sĩ"], ["nguoi", "người"], ["viec", "việc"], ["duoc", "được"], ["khong", "không"],
+    ["truong", "trường"], ["phuong", "phương"], ["thuong", "thường"], ["quyet", "quyết"],
+    ["dinh", "định"], ["hanh", "hành"], ["chinh", "chính"], ["nghi", "nghị"], ["dong", "đồng"],
+    ["trũnh", "trình"], ["chũnh", "chính"], ["dỹng", "dòng"], ["nợt", "nét"], ["bữn", "bên"],
+    ["tữn", "tên"], ["tiữu", "tiêu"], ["riững", "riêng"], ["thủ", "thì"], ["tỏng", "tổng"],
+    ["khỵng", "không"], ["phỵng", "phông"], ["cý", "có"], ["mý", "mã"], ["trữn", "trên"],
+    ["trỏi", "trái"], ["mợp", "mép"], ["cỏch", "cách"], ["ỵ", "ở"]
+  ],
+  "phrase_fixes": [
+    ["mô hủnh", "mô hình"], ["mô hỉnh", "mô hình"], ["đóng vai trỹ", "đóng vai trò"],
+    ["người dững", "người dùng"], ["giọng nýi", "giọng nói"], ["chũnh", "chính"],
+    ["phũ hợp", "phù hợp"], ["thỏng", "tháng"], ["riùng", "riêng"], ["Tiùu ngữ", "Tiêu ngữ"],
+    ["đỏnh", "đóng"], ["TRỡNH", "TRÌNH"], ["bệnh nhõn", "bệnh nhân"], ["tiếp xực", "tiếp xúc"],
+    ["phân tũch", "phân tích"], ["hành trủnh", "hành trình"], ["kiến trực", "kiến trúc"],
+    ["ủy ban nhân dận", "Ủy ban nhân dân"], ["ủy ban nhân dân", "Ủy ban nhân dân"],
+    ["hội đổng", "Hội đồng"], ["hội đồng nhân dận", "Hội đồng nhân dân"],
+    ["sở giáo đực", "Sở Giáo dục"], ["phỏng giáo dục", "Phòng Giáo dục"],
+    ["căn cữ", "căn cứ"], ["căn cú", "căn cứ"], ["thục hiện", "thực hiện"],
+    ["triển khai", "triển khai"], ["kế hoạch", "kế hoạch"], ["phát triển", "phát triển"],
+    ["nhóm người dùng", "nhóm người dùng"], ["bác sĩ", "bác sĩ"], ["quản lý", "quản lý"],
+    ["xử lý giọng nói", "xử lý giọng nói"], ["Chũnh phủ", "Chính phủ"], ["chũnh phủ", "Chính phủ"],
+    ["Tiữu ngữ", "Tiêu ngữ"], ["tiữu ngữ", "Tiêu ngữ"], ["Tiữu chuẩn", "Tiêu chuẩn"],
+    ["tiữu chuẩn", "Tiêu chuẩn"], ["bộ mý ký tự", "bộ mã ký tự"], ["phỵng chữ", "phông chữ"],
+    ["khỵng được", "không được"], ["dỹng chữ", "dòng chữ"], ["phía trữn", "phía trên"],
+    ["lề trữn", "lề trên"], ["bữn phải", "bên phải"], ["bữn trái", "bên trái"],
+    ["tữn cơ quan", "tên cơ quan"], ["cỏch mợp trữn", "cách mép trên"], ["cỏch mợp dưới", "cách mép dưới"],
+    ["cỏch mợp trỏi", "cách mép trái"], ["cỏch mợp phải", "cách mép phải"], ["mợp trữn", "mép trên"],
+    ["mợp dưới", "mép dưới"], ["mợp trỏi", "mép trái"], ["mợp phải", "mép phải"],
+    ["nợt liền", "nét liền"], ["riững thủ", "riêng thì"], ["phụ lục riững", "phụ lục riêng"],
+    ["ỵ số", "ở số"], ["cý thể", "có thể"], ["HềA XÃ", "HÒA XÃ"], ["CỘNG HềA", "CỘNG HÒA"],
+    ["Hạnh phực", "Hạnh phúc"]
+  ],
+  "abbreviation_fixes": [
+    ["ubnd", "UBND"], ["hđnd", "HĐND"], ["mttq", "MTTQ"], ["bca", "BCA"],
+    ["bộ ca", "Bộ Công an"], ["ttcp", "TTCP"], ["vksnd", "VKSND"], ["tand", "TAND"],
+    ["bhxh", "BHXH"], ["bhyt", "BHYT"], ["gplx", "GPLX"], ["cmnd", "CMND"],
+    ["cccd", "CCCD"], ["q/đ", "QĐ"], ["cv", "CV"]
+  ]
+}
