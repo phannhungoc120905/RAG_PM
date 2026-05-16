@@ -13,6 +13,8 @@ from fastapi import Depends, FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 # Import routers
 from admin.router import router as admin_router
@@ -25,6 +27,10 @@ from api.service import upload_document, get_latest_history_public
 from auth.dependencies import require_active_user
 from auth.middleware import add_middlewares
 from config import settings
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # Khởi tạo CSDL
@@ -83,6 +89,10 @@ async def login_page():
 @app.get("/health")
 async def health():
     return {"status": "ok", "version": "1.0.0"}
+@app.exception_handler(Exception)
 
+async def global_exception_handler(request: Request, exc: Exception):
+    traceback.print_exc()  # in ra terminal
+    return JSONResponse(status_code=500, detail=str(exc))
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=settings.DEBUG)

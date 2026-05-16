@@ -6,6 +6,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from unittest import result
 
 import httpx
 from fastapi import HTTPException, status
@@ -26,8 +27,6 @@ def get_supported_formats() -> list[str]:
 
 
 async def check_ollama_health() -> dict[str, Any]:
-    final_path: Path | None = None
-    embeddings_written = False
 
     try:
         async with httpx.AsyncClient() as client:
@@ -124,9 +123,10 @@ async def upload_document(
     mime_type: str | None = None,
     auto_summary: bool = False,
 ) -> tuple[Document, SummaryHistory | None]:
+    final_path: Path | None = None     
+    embeddings_written = False        
     if not original_filename or "." not in original_filename:
-        raise HTTPException(status_code=400, detail="Filename must include a supported extension")
-
+        raise HTTPException(status_code=400, detail="Invalid filename")    
     extension = original_filename.rsplit(".", 1)[-1].lower()
     if extension not in get_supported_formats():
         raise HTTPException(status_code=400, detail=f"Unsupported file format: {extension}")
@@ -152,6 +152,9 @@ async def upload_document(
 
     try:
         result = ocr_service.process_document(file_bytes, original_filename)
+        print("DEBUG chunks type:", type(result.get("chunks", [])))
+        print("DEBUG chunks sample:", str(result.get("chunks", []))[:300])
+
         final_path = _move_upload_file(processing_path, "done")
         enriched_chunks = _build_enriched_chunks(document.id, result.get("chunks", []))
         start_vector_id = int(ocr_service.index.ntotal)
@@ -560,16 +563,22 @@ def _assert_document_access(document: Document, current_user: User) -> None:
         raise HTTPException(status_code=403, detail="You do not have access to this document")
 
 
-def _build_enriched_chunks(document_id: int, chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _build_enriched_chunks(document_id: int, chunks: list) -> list[dict[str, Any]]:
     enriched_chunks: list[dict[str, Any]] = []
-    for index, chunk in enumerate(chunks):
+    for index, raw_chunk in enumerate(chunks):  # ← đổi tên biến thành raw_chunk
+        if isinstance(raw_chunk, str):
+            chunk = {"content": raw_chunk, "metadata": {}}
+        elif isinstance(raw_chunk, dict):
+            chunk = raw_chunk
+        else:
+            chunk = {"content": str(raw_chunk), "metadata": {}}
+
         metadata = dict(chunk.get("metadata", {}))
         metadata["document_id"] = document_id
         metadata["chunk_index"] = index
         metadata["citation_anchor"] = _build_citation_anchor(metadata)
         enriched_chunks.append({"content": chunk.get("content", ""), "metadata": metadata})
     return enriched_chunks
-
 
 def _build_citation_anchor(metadata: dict[str, Any]) -> str:
     page = metadata.get("page_number")
