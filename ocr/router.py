@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
@@ -19,7 +19,6 @@ def read_html_file(filename: str, fallback: str) -> str:
     if path.exists():
         return path.read_text(encoding="utf-8")
     return fallback
-
 
 class QueryRequest(BaseModel):
     query: str
@@ -43,23 +42,24 @@ async def supported_formats() -> dict[str, list[str]]:
 
 
 @router.post("/extract-text")
-async def extract_text(file: UploadFile = File(...)) -> dict[str, Any]:
+async def extract_text(file: UploadFile = File(...), fix_with_ai: bool = Query(False)):
+    """
+    Endpoint to extract text from images or PDFs.
+    Supports Vietnamese and English.
+    """
     try:
         content = await file.read()
-        result = ocr_service.process_document(content, file.filename)
-        return {
-            "filename": file.filename,
-            "text": result["clean_text"],
-            "page_count": result["page_count"],
-            "page_index": result["page_index"],
-            "classification": result["classification"],
-            "structure": result["structure"],
-        }
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
-        logger.exception("Error extracting text from %s", file.filename)
-        raise HTTPException(status_code=500, detail=f"Internal server error: {exc}")
+        text = ocr_service.process_file(content, file.filename)
+        
+        if fix_with_ai:
+            text = await ocr_service.fix_ocr_errors_with_llm(text)
+            
+        return {"filename": file.filename, "text": text}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error processing file {file.filename}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/analyze")
@@ -100,11 +100,24 @@ async def analyze_text(payload: TextAnalyzeRequest) -> dict[str, Any]:
 
 
 @router.post("/upload-process")
-async def upload_and_process(file: UploadFile = File(...)) -> dict[str, Any]:
+async def upload_and_process(file: UploadFile = File(...), fix_with_ai: bool = Query(False)):
+    """
+    Flow: OCR -> Normalize -> Chunk -> Embedding -> Store
+    """
     try:
         content = await file.read()
         result = ocr_service.process_document(content, file.filename)
-        chunks = result["chunks"]
+        raw_text = ocr_service.process_file(content, file.filename)
+        
+        # 2. Fix with AI if requested
+        if fix_with_ai:
+            raw_text = await ocr_service.fix_ocr_errors_with_llm(raw_text)
+            
+        # 3. Normalize
+        clean_text = ocr_service.normalize_text(raw_text)
+        
+        # 4. Chunk
+        chunks = ocr_service.chunk_text(clean_text)
         if not chunks:
             return {
                 "status": "success",
@@ -134,7 +147,6 @@ async def upload_and_process(file: UploadFile = File(...)) -> dict[str, Any]:
     except Exception as exc:
         logger.exception("Processing error for %s", file.filename)
         raise HTTPException(status_code=500, detail=f"Internal processing error: {exc}")
-
 
 @router.post("/search")
 async def search_chunks(request: QueryRequest) -> dict[str, Any]:
