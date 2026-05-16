@@ -14,9 +14,10 @@ from pyvi import ViTokenizer
 class OCRService:
     def __init__(self, index_path: str = "ocr_vectors.index", metadata_path: str = "ocr_metadata.json"):
         # Tesseract configuration for Vietnamese support
-        # Note: 'vie' must be installed on the system tesseract-ocr
-        self.config = '--oem 3 --psm 6'
-        self.lang = 'vie+eng'
+        # PSM 3: Fully automatic page segmentation, but no OSD. (Better for mixed layouts)
+        # OEM 3: Default, based on what is available.
+        self.config = '--oem 3 --psm 3'
+        self.lang = 'vie' # Focus on Vietnamese to reduce confusion with English tokens
         self._embedding_model = None
         
         # Vector Storage configuration
@@ -350,41 +351,80 @@ TRẢ LỜI:"""
 
     def normalize_text(self, text: str) -> str:
         """
-        Clean and normalize OCR text:
+        Generalized OCR Post-processing pipeline:
         1. Normalize Unicode (NFC)
-        2. Remove non-printable and garbage characters
-        3. Replace multiple spaces with 1 space
-        4. Replace multiple newlines with 1 newline
-        5. Trim whitespace
+        2. Clean garbage and non-printable characters
+        3. Merge broken lines (lines not ending with punctuation)
+        4. Standardize whitespace
         """
         if not text:
             return ""
 
-        # 1. Normalize Unicode (NFC)
+        # Step 0: Fast common header correction
+        common_fixes = {
+            r"CONG HOA XA HOI": "CỘNG HÒA XÃ HỘI",
+            r"CHU NGHIA VIET NAM": "CHỦ NGHĨA VIỆT NAM",
+            r"DOC LAP - TU DO": "ĐỘC LẬP - TỰ DO",
+            r"HANH PHUC": "HẠNH PHÚC",
+            r"QUYET DINH": "QUYẾT ĐỊNH",
+            r"QUYÉT DINH": "QUYẾT ĐỊNH",
+            r"QUYÉT": "QUYẾT",
+            r"NGHI DINH": "NGHỊ ĐỊNH",
+            r"THONG TU": "THÔNG TƯ",
+            r"\bTỔ\b": "Tổ",
+            r"\bTO\b": "Tổ"
+        }
+        for pattern, replacement in common_fixes.items():
+            text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+
+        # Step 1: Normalize Unicode
         text = unicodedata.normalize('NFC', text)
 
-        # 2. Remove non-printable characters and garbage from OCR (like , \x0c)
-        # Keep basic punctuation, alphanumeric, and common symbols
-        # \x0c is common in OCR as form feed (page breaks)
+        # Step 2: Clean garbage and noisy OCR characters
         text = text.replace('\x0c', '')
         
-        # Remove other non-printable chars except space and newline
+        # Xử lý các ký tự gây nhiễu phổ biến từ OCR:
+        # - Thay thế các ký tự so sánh/ngoặc nhọn gây nhiễu bằng khoảng trắng hoặc ký tự phù hợp
+        # - Giữ lại dấu gạch ngang '-' nếu nó nối từ hoặc dùng làm bullet point
+        text = re.sub(r'[><|\\/_~]', ' ', text)
+        
+        # Remove non-printable characters except newline/tab
         text = "".join(ch for ch in text if unicodedata.category(ch)[0] != 'C' or ch in ['\n', '\r', '\t'])
 
-        # 3. Standardize spaces
-        text = re.sub(r'[ \t]+', ' ', text)
+        # Step 3: Generalized line merging
+        # If a line doesn't end with a punctuation mark (. ! ? :), it might be a broken line
+        lines = text.split('\n')
+        merged_lines = []
+        current_line = ""
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                if current_line:
+                    merged_lines.append(current_line)
+                    current_line = ""
+                continue
+            
+            if current_line:
+                # If current_line doesn't end with sentence-ending punctuation, merge with current line
+                if not re.search(r'[.!?:–—−-]$', current_line):
+                    current_line += " " + line
+                else:
+                    merged_lines.append(current_line)
+                    current_line = line
+            else:
+                current_line = line
         
-        # 4. Handle multiple newlines and spaces around them
-        # Replace multiple newlines (with optional spaces/tabs) with 1 newline
-        text = re.sub(r'\s*\n\s*', '\n', text)
+        if current_line:
+            merged_lines.append(current_line)
+        
+        text = "\n".join(merged_lines)
+
+        # Step 4: Standardize whitespace
+        text = re.sub(r'[ \t]+', ' ', text)
         text = re.sub(r'\n+', '\n', text)
-
-        # 5. Trim
-        text = text.strip()
-
-        return text
-
-    def chunk_text(self, text: str) -> list:
+        
+        return text.strip()
         """
         Split normalized text into chunks based on legal structure (Điều, Khoản).
         """
@@ -478,6 +518,52 @@ TRẢ LỜI:"""
             
         return result
 
+    async def fix_ocr_errors_with_llm(self, text: str) -> str:
+        """
+        Generalized LLM Post-processing:
+        Sử dụng AI để sửa lỗi chính tả, khôi phục dấu và chuẩn hóa format hành chính.
+        """
+        if not text or len(text.strip()) < 10:
+            return text
+
+        prompt = f"""BẠN LÀ CHUYÊN GIA BIÊN TẬP VĂN BẢN HÀNH CHÍNH VIỆT NAM.
+Nhiệm vụ: Sửa lỗi chính tả, khôi phục dấu tiếng Việt và chuẩn hóa định dạng văn bản từ kết quả OCR.
+
+YÊU CẦU:
+1. KHÔI PHỤC DẤU: Đặc biệt các tiêu đề viết hoa (CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM, ĐỘC LẬP - TỰ DO - HẠNH PHÚC, QUYẾT ĐỊNH, LUẬT, NGHỊ ĐỊNH...).
+2. SỬA LỖI CHÍNH TẢ: Sửa các từ sai ký tự do OCR nhận diện nhầm (ví dụ: '0' thành 'O', '1' thành 'l', 'vỉ' thành 'vì', 'tập thé' thành 'tập thể').
+3. GIỮ NGUYÊN NỘI DUNG: Không tóm tắt, không thêm thắt thông tin bên ngoài.
+4. CHUẨN HÓA CẤU TRÚC: Đảm bảo các phần Điều, Khoản, Điểm được trình bày rõ ràng.
+
+VĂN BẢN OCR CẦN XỬ LÝ:
+---
+{text}
+---
+
+VĂN BẢN SAU KHI ĐÃ SỬA LỖI VÀ CHUẨN HÓA:"""
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    self.llm_url,
+                    json={
+                        "model": self.llm_model,
+                        "prompt": prompt,
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.1,
+                            "top_p": 0.9
+                        }
+                    },
+                    timeout=90.0
+                )
+                response.raise_for_status()
+                fixed_text = response.json().get("response", "").strip()
+                return fixed_text if fixed_text else text
+        except Exception:
+            # If LLM fails, return original text to avoid blocking
+            return text
+
     def extract_from_image(self, image_bytes: bytes) -> str:
         """
         Extract text from an image.
@@ -495,7 +581,10 @@ TRẢ LỜI:"""
         
         for i, image in enumerate(images):
             text = pytesseract.image_to_string(image, lang=self.lang, config=self.config)
-            full_text.append(f"--- Page {i+1} ---\n{self.normalize_text(text)}")
+            # Normalizing text for each page
+            full_text.append(self.normalize_text(text))
+            
+        return "\n\n".join(full_text)
             
         return "\n\n".join(full_text)
 

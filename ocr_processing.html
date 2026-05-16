@@ -95,10 +95,11 @@
         </div>
         <div class="sidebar-nav" id="navRoot">
             <div class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></div>
-            <div class="nav-item"><i class="fas fa-file-pdf"></i><span>AI Summarizer</span></div>
+    
             <div class="nav-item active"><i class="fas fa-image"></i><span>OCR Processing</span></div>
             <div class="nav-item"><i class="fas fa-search"></i><span>Hybrid Search</span></div>
             <div class="nav-item"><i class="fas fa-users"></i><span>Users</span></div>
+            <div class="nav-item"><i class="fas fa-file-pdf"></i><span>AI Summarizer</span></div>
             <div class="nav-item"><i class="fas fa-lock"></i><span>Permissions</span></div>
             <div class="nav-item"><i class="fas fa-cog"></i><span>System Config</span></div>
         </div>
@@ -295,10 +296,14 @@
 
         extractBtn.addEventListener('click', async () => {
             try {
-                const data = await uploadFile('/ocr/extract-text');
+                // Determine if we should fix with AI based on the selected mode
+                const fixWithAI = state.mode === 'accurate';
+                const endpoint = `/ocr/extract-text?fix_with_ai=${fixWithAI}`;
+                
+                const data = await uploadFile(endpoint);
                 renderText(data?.text || '');
-                confidenceValue.textContent = 'N/A';
-                toast('Đã trích xuất văn bản', 'success');
+                confidenceValue.textContent = fixWithAI ? 'AI Corrected' : 'N/A';
+                toast(fixWithAI ? 'Đã trích xuất và sửa lỗi bằng AI' : 'Đã trích xuất văn bản', 'success');
             } catch (error) {
                 toast(error.message, 'error');
             }
@@ -306,10 +311,16 @@
 
         processBtn.addEventListener('click', async () => {
             try {
-                const data = await uploadFile('/ocr/upload-process');
+                const fixWithAI = state.mode === 'accurate';
+                const endpoint = `/ocr/upload-process?fix_with_ai=${fixWithAI}`;
+                
+                const data = await uploadFile(endpoint);
                 if (data?.status === 'success') {
-                    renderText(`File: ${data.filename}\nChunks: ${data.chunks_count}\n\nTệp đã được xử lý và lưu vào kho vector.`);
-                    confidenceValue.textContent = 'N/A';
+                    const message = fixWithAI 
+                        ? `File: ${data.filename}\nChunks: ${data.chunks_count}\n\nTệp đã được sửa lỗi bằng AI và lưu vào kho vector.`
+                        : `File: ${data.filename}\nChunks: ${data.chunks_count}\n\nTệp đã được xử lý và lưu vào kho vector.`;
+                    renderText(message);
+                    confidenceValue.textContent = fixWithAI ? 'AI Corrected' : 'N/A';
                     toast('Tệp đã được tải lên và xử lý', 'success');
                 }
             } catch (error) {
