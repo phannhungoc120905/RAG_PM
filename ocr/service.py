@@ -10,7 +10,7 @@ Các cải tiến chính so với phiên bản cũ:
 """
 
 from __future__ import annotations
-
+from pathlib import Path
 import io
 import json
 import logging
@@ -572,17 +572,27 @@ class OCRService:
         Trích xuất text từ PDF.
         Ưu tiên text layer (nhanh, chính xác). Fallback sang OCR nếu là PDF scan.
         """
-        # Giả định _extract_pdf_text_pages được định nghĩa hoặc dùng thư viện khác
-        # Ở đây mock tạm thời bằng phương pháp OCR trực tiếp cho PDF scan
-        logger.info("Extracting from PDF scan")
-        images = convert_from_bytes(pdf_bytes, dpi=200)
-        return [
-            {
-                "page_number": i + 1,
-                "text": self.extract_from_image(io.BytesIO(img.tobytes()).getvalue() if hasattr(img, 'tobytes') else b''),
-            }
-            for i, img in enumerate(images)
-        ]
+        pages = self._extract_pdf_text_pages(pdf_bytes)
+
+        # Kiểm tra xem có phải PDF scan không (text layer rỗng/rất ngắn)
+        if not pages:
+            is_scan = True
+        else:
+            total_text_len = sum(len(p.get("text", "").strip()) for p in pages)
+            is_scan = total_text_len < len(pages) * 20  # < 20 chars/page trung bình
+
+        if is_scan:
+            logger.info("pdf_scan_detected, using OCR fallback")
+            images = convert_from_bytes(pdf_bytes, dpi=200)  # dpi=200 tốt hơn default
+            return [
+                {
+                    "page_number": i + 1,
+                    "text": self._ocr_pil_image(img),
+                }
+                for i, img in enumerate(images)
+            ]
+
+        return pages
 
     def _extract_pdf_text_pages(self, pdf_bytes: bytes) -> list[dict[str, Any]]:
         try:
@@ -923,7 +933,7 @@ class OCRService:
         )
         text = re.sub(r"[ \t]+", " ", text)
         text = re.sub(r"\n+", "\n", text).strip()
-        return self._chunk_text_impl(text, page_number=page_number, page_label=page_label)
+
         # - Thay thế các ký tự so sánh/ngoặc nhọn gây nhiễu bằng khoảng trắng hoặc ký tự phù hợp
         # - Giữ lại dấu gạch ngang '-' nếu nó nối từ hoặc dùng làm bullet point
         text = re.sub(r'[><|\\/_~]', ' ', text)
