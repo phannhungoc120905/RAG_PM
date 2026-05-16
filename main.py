@@ -10,6 +10,12 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from ocr.router import router as ocr_router
+
+import uvicorn
+from fastapi import FastAPI, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+
 from admin.router import router as admin_router
 from api.router import router as api_router
 from auth.middleware import add_middlewares
@@ -43,7 +49,6 @@ app = FastAPI(
 )
 
 app.include_router(ocr_router)
-
 app.include_router(auth_router, prefix="/auth", tags=["Auth"])
 app.include_router(admin_router, prefix="/admin", tags=["Admin"])
 app.include_router(api_router, prefix="/api", tags=["AI"])
@@ -96,34 +101,35 @@ def extract_text(file_path: str) -> str:
 
 
 def summarize_with_ollama(text: str) -> str:
-    from langchain.chains import create_retrieval_chain
-    from langchain.chains.combine_documents import create_stuff_documents_chain
-    from langchain_community.vectorstores import FAISS
+    from langchain_ollama import OllamaLLM
     from langchain_core.prompts import ChatPromptTemplate
-    from langchain_ollama import OllamaEmbeddings, OllamaLLM
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=settings.CHUNK_SIZE,
-        chunk_overlap=settings.CHUNK_OVERLAP,
-    )
-    chunks = text_splitter.create_documents([text])
-    embeddings = OllamaEmbeddings(model=settings.MODEL_NAME)
-    vectorstore = FAISS.from_documents(chunks, embeddings)
-    llm = OllamaLLM(model=settings.MODEL_NAME)
+    # Tối ưu: Không dùng RAG (FAISS/Retrieval) cho việc tóm tắt văn bản đơn lẻ để tăng tốc độ
+    # Chỉ sử dụng LLM trực tiếp với prompt tối ưu cho tiếng Việt
+    llm = OllamaLLM(model=settings.MODEL_NAME, temperature=0.3)
+    
     prompt = ChatPromptTemplate.from_template(
         """
-        Ban la mot tro ly tom tat van ban chuyen nghiep.
-        Hay tom tat noi dung sau day thanh 5 y chinh quan trong nhat duoi dang danh sach bullet bang tieng Viet.
-        Noi dung: {context}
-        Tom tat:
+        ### Hệ thống: Bạn là chuyên gia tóm tắt văn bản hành chính Việt Nam.
+        ### Nhiệm vụ: Tóm tắt nội dung dưới đây một cách ngắn gọn, súc tích bằng tiếng Việt.
+        ### Yêu cầu:
+        1. Trình bày dưới dạng danh sách tối đa 5 gạch đầu dòng.
+        2. Giữ nguyên các thông tin quan trọng như: Số hiệu, Ngày tháng, Tên cơ quan, Nội dung chính.
+        3. Sử dụng ngôn ngữ hành chính chuẩn.
+
+        NỘI DUNG VĂN BẢN:
+        ---
+        {context}
+        ---
+        BẢN TÓM TẮT TIẾNG VIỆT:
         """
     )
-    document_chain = create_stuff_documents_chain(llm, prompt)
-    retriever = vectorstore.as_retriever()
-    retrieval_chain = create_retrieval_chain(retriever, document_chain)
-    response = retrieval_chain.invoke({"input": "Hay tom tat van ban nay"})
-    return response["answer"]
+    
+    # Sử dụng chuỗi xử lý trực tiếp để giảm latency
+    chain = prompt | llm
+    response = chain.invoke({"context": text})
+    
+    return response.strip()
 
 
 def read_html_file(filename: str, fallback: str) -> str:
@@ -133,23 +139,18 @@ def read_html_file(filename: str, fallback: str) -> str:
     return fallback
 
 
-@app.get("/login", response_class=HTMLResponse)
-async def login_page() -> str:
-    return read_html_file("admin_login_new.html", "<h1>RAG_PM Login</h1>")
-
-
 @app.get("/", response_class=HTMLResponse)
-async def summarizer_page() -> str:
-    return read_html_file("index_main.html", "<h1>AI PDF Summarizer</h1>")
+async def admin_login_page() -> str:
+    return read_html_file("admin_login.html", "<h1>RAG_PM Admin Login</h1>")
 
 
 @app.get("/admin/dashboard", response_class=HTMLResponse)
 async def admin_dashboard_page() -> str:
-    return read_html_file("admin_dashboard_new.html", "<h1>RAG_PM Admin Dashboard</h1>")
+    return read_html_file("admin_dashboard.html", "<h1>RAG_PM Admin Dashboard</h1>")
 
 
 @app.get("/summarizer", response_class=HTMLResponse)
-async def summarizer_legacy_page() -> str:
+async def summarizer_page() -> str:
     return read_html_file("index.html", "<h1>AI PDF Summarizer</h1>")
 
 
@@ -171,7 +172,7 @@ async def upload(file: UploadFile = File(...)) -> dict:
         save_to_history(file.filename, summary)
         return {"summary": summary}
     except Exception as exc:
-        log.error("legacy_upload_failed", extra={"filename": file.filename, "error": str(exc)})
+        log.error(f"legacy_upload_failed: {file.filename} - Error: {str(exc)}")
         return {"error": str(exc)}
     finally:
         if os.path.exists(temp_path):

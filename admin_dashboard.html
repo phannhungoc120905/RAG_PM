@@ -692,8 +692,6 @@
                     <button class="nav-btn" data-view="users">Users <small>QT-05 admin and user accounts</small></button>
                     <button class="nav-btn" data-view="logs">API Logs <small>QT-06 access traces</small></button>
                     <button class="nav-btn" data-view="usage-logs">Usage Logs <small>QT-07 exportable activity history</small></button>
-<<<<<<< HEAD
-=======
                     <button class="nav-btn" data-view="login-history">Login History <small>KT-02 login and logout journal</small></button>
                     <button class="nav-btn" data-view="issuing-units">Issuing Units <small>KT-03 document authority catalog</small></button>
                     <button class="nav-btn" data-view="departments">Departments <small>KT-04 organization structure</small></button>
@@ -701,7 +699,6 @@
                     <button class="nav-btn" data-view="work-documents">Work Documents <small>KT-05 assignment documents</small></button>
                     <button class="nav-btn" data-view="work-items">Work Items <small>KT-06 task list registry</small></button>
                     <button class="nav-btn" data-view="notice-documents">Notice Documents <small>KT-07 internal notices</small></button>
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
                     <button class="nav-btn" data-view="backups">Backups <small>QT-08 backup and restore</small></button>
                 </div>
                 <div class="sidebar-footer">
@@ -831,8 +828,6 @@
                     <div class="table-wrap"><table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Detail</th><th>Status</th></tr></thead><tbody id="usageLogsTable"></tbody></table></div>
                 </section>
 
-<<<<<<< HEAD
-=======
                 <section id="view-login-history" class="view hidden">
                     <div class="filter-row">
                         <label>Search <input id="loginHistorySearch" placeholder="Username"></label>
@@ -902,7 +897,6 @@
                     <div class="table-wrap"><table><thead><tr><th>Notice</th><th>Origin</th><th>Effective</th><th>Status</th><th>Actions</th></tr></thead><tbody id="noticeDocumentsTable"></tbody></table></div>
                 </section>
 
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
                 <section id="view-backups" class="view hidden">
                     <div class="grid-buttons">
                         <button class="btn-primary" type="button" id="createBackupBtn">Create backup</button>
@@ -942,8 +936,6 @@
             configs: [],
             apiKeys: [],
             users: [],
-<<<<<<< HEAD
-=======
             loginHistory: [],
             issuingUnits: [],
             departments: [],
@@ -951,7 +943,6 @@
             workDocuments: [],
             workItems: [],
             noticeDocuments: [],
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
             backups: [],
         };
 
@@ -980,8 +971,6 @@
             users: ["Users", "Create, edit, suspend, and reset passwords for accounts."],
             logs: ["API Logs", "Inspect raw access events and filter request-level traces."],
             "usage-logs": ["Usage Logs", "Review system activity and export the journal to Excel."],
-<<<<<<< HEAD
-=======
             "login-history": ["Login History", "Track local and SSO sign-in or sign-out activity."],
             "issuing-units": ["Issuing Units", "Manage authorities that issue or publish administrative documents."],
             departments: ["Departments", "Manage internal organization branches and reporting structure."],
@@ -989,7 +978,6 @@
             "work-documents": ["Work Documents", "Register assignment documents between units and departments."],
             "work-items": ["Work Items", "Track actionable tasks extracted from work assignment documents."],
             "notice-documents": ["Notice Documents", "Manage internal notice and announcement documents."],
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
             backups: ["Backups", "Create, inspect, and restore operational snapshots."],
         };
 
@@ -1116,8 +1104,6 @@
                 : '<span class="chip danger">Inactive</span>';
         }
 
-<<<<<<< HEAD
-=======
         function formatDateInput(value) {
             if (!value) return "";
             const date = new Date(value);
@@ -1155,7 +1141,6 @@
             state.workDocuments = docs.items;
         }
 
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
         async function loadOverviewData() {
             if (!state.token) {
                 return;
@@ -1584,11 +1569,8 @@
             state.users = data.items;
             document.getElementById("usersTable").innerHTML = data.items.map(item => `
                 <tr>
-<<<<<<< HEAD
                     <td><strong>${escapeHtml(item.username)}</strong><div class="helper">${escapeHtml(item.email || "--")}</div></td>
-=======
                     <td><strong>${escapeHtml(item.username)}</strong><div class="helper">${escapeHtml(item.email || "--")}</div><div class="helper">${escapeHtml(item.department_name || "--")} / ${escapeHtml(item.position_name || "--")}</div></td>
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
                     <td><span class="chip ${item.role === "admin" ? "warn" : ""}">${escapeHtml(item.role)}</span></td>
                     <td>${escapeHtml(item.permission_group_name || "--")}</td>
                     <td>${statusChip(item.is_active)}</td>
@@ -1607,11 +1589,8 @@
             const groupOptions = ['<option value="">No group</option>'].concat(
                 state.groups.map(group => `<option value="${group.id}" ${item?.permission_group_id === group.id ? "selected" : ""}>${escapeHtml(group.name)}</option>`)
             ).join("");
-<<<<<<< HEAD
-=======
             const departmentOptions = buildOptions(state.departments, item?.department_id, "No department", entry => `${entry.code} - ${entry.name}`);
             const positionOptions = buildOptions(state.positions, item?.position_id, "No position", entry => `${entry.code} - ${entry.name}`);
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
             openDrawer(
                 item ? "Edit User" : "Create User",
                 "QT-05 Account Administration",
@@ -1629,15 +1608,12 @@
                     <label>Permission group
                         <select name="permission_group_id">${groupOptions}</select>
                     </label>
-<<<<<<< HEAD
-=======
                     <label>Department
                         <select name="department_id">${departmentOptions}</select>
                     </label>
                     <label>Position
                         <select name="position_id">${positionOptions}</select>
                     </label>
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
                     <label><input type="checkbox" name="is_active" ${item?.is_active ?? true ? "checked" : ""}> Active</label>
                     <div class="grid-buttons">
                         <button class="btn-primary" type="submit">${item ? "Save changes" : "Create user"}</button>
@@ -1653,11 +1629,8 @@
                     email: form.get("email") || null,
                     role: form.get("role"),
                     permission_group_id: form.get("permission_group_id") ? Number(form.get("permission_group_id")) : null,
-<<<<<<< HEAD
-=======
                     department_id: form.get("department_id") ? Number(form.get("department_id")) : null,
                     position_id: form.get("position_id") ? Number(form.get("position_id")) : null,
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
                     is_active: form.get("is_active") === "on",
                 };
                 if (!item) {
@@ -1734,8 +1707,6 @@
             `).join("") || `<tr><td colspan="5" class="helper">No log rows found.</td></tr>`;
         }
 
-<<<<<<< HEAD
-=======
         async function loadLoginHistory() {
             const params = new URLSearchParams({ page: 1, page_size: 100 });
             const search = document.getElementById("loginHistorySearch").value.trim();
@@ -2221,7 +2192,6 @@
             }
         }
 
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
         async function exportUsageLogs() {
             const userId = document.getElementById("usageUserId").value;
             const action = document.getElementById("usageAction").value.trim();
@@ -2305,24 +2275,18 @@
                     refreshOverview(),
                     loadFunctions(),
                     loadGroups(),
-<<<<<<< HEAD
-=======
                     loadIssuingUnits(),
                     loadDepartments(),
                     loadPositions(),
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
                     loadUsers(),
                     loadConfigs(),
                     loadApiKeys(),
                     loadLogs("logs"),
                     loadLogs("usage-logs"),
-<<<<<<< HEAD
-=======
                     loadLoginHistory(),
                     loadWorkDocuments(),
                     loadWorkItems(),
                     loadNoticeDocuments(),
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
                     loadBackups(),
                 ]);
                 showToast("Dashboard refreshed", "All admin views were updated.", "success");
@@ -2353,8 +2317,6 @@
             },
             resetPassword,
             toggleUser,
-<<<<<<< HEAD
-=======
             editIssuingUnit(id) {
                 issuingUnitForm(state.issuingUnits.find(item => item.id === id));
             },
@@ -2379,7 +2341,6 @@
                 noticeDocumentForm(state.noticeDocuments.find(item => item.id === id));
             },
             deleteNoticeDocument,
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
             restoreBackup,
         };
 
@@ -2405,22 +2366,16 @@
         document.getElementById("newFunctionBtn").addEventListener("click", () => functionForm());
         document.getElementById("loadUsersBtn").addEventListener("click", async () => {
             try {
-<<<<<<< HEAD
                 await Promise.all([loadGroups(), loadUsers()]);
-=======
                 await Promise.all([loadGroups(), loadOrgLookups(), loadUsers()]);
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
             } catch (error) {
                 showToast("Load failed", error.message, "error");
             }
         });
         document.getElementById("newUserBtn").addEventListener("click", async () => {
             try {
-<<<<<<< HEAD
                 await loadGroups();
-=======
                 await Promise.all([loadGroups(), loadOrgLookups()]);
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
                 userForm();
             } catch (error) {
                 showToast("Load failed", error.message, "error");
@@ -2428,8 +2383,6 @@
         });
         document.getElementById("loadLogsBtn").addEventListener("click", () => loadLogs("logs").catch(error => showToast("Load failed", error.message, "error")));
         document.getElementById("loadUsageLogsBtn").addEventListener("click", () => loadLogs("usage-logs").catch(error => showToast("Load failed", error.message, "error")));
-<<<<<<< HEAD
-=======
         document.getElementById("loadLoginHistoryBtn").addEventListener("click", () => loadLoginHistory().catch(error => showToast("Load failed", error.message, "error")));
         document.getElementById("loadIssuingUnitsBtn").addEventListener("click", () => loadIssuingUnits().catch(error => showToast("Load failed", error.message, "error")));
         document.getElementById("newIssuingUnitBtn").addEventListener("click", async () => {
@@ -2485,7 +2438,6 @@
                 showToast("Load failed", error.message, "error");
             }
         });
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
         document.getElementById("exportUsageLogsBtn").addEventListener("click", () => exportUsageLogs().catch(error => showToast("Export failed", error.message, "error")));
         document.getElementById("createBackupBtn").addEventListener("click", createBackup);
         document.getElementById("loadBackupsBtn").addEventListener("click", () => loadBackups().catch(error => showToast("Load failed", error.message, "error")));
@@ -2504,11 +2456,9 @@
                     if (btn.dataset.view === "api-keys") await loadApiKeys();
                     if (btn.dataset.view === "permission-groups") await Promise.all([loadFunctions(), loadGroups()]);
                     if (btn.dataset.view === "system-functions") await loadFunctions();
-<<<<<<< HEAD
                     if (btn.dataset.view === "users") await Promise.all([loadGroups(), loadUsers()]);
                     if (btn.dataset.view === "logs") await loadLogs("logs");
                     if (btn.dataset.view === "usage-logs") await loadLogs("usage-logs");
-=======
                     if (btn.dataset.view === "users") await Promise.all([loadGroups(), loadOrgLookups(), loadUsers()]);
                     if (btn.dataset.view === "logs") await loadLogs("logs");
                     if (btn.dataset.view === "usage-logs") await loadLogs("usage-logs");
@@ -2519,7 +2469,6 @@
                     if (btn.dataset.view === "work-documents") await Promise.all([loadOrgLookups(), loadUsers(), loadWorkDocuments()]);
                     if (btn.dataset.view === "work-items") await Promise.all([loadOrgLookups(), loadUserAndWorkLookups(), loadWorkItems()]);
                     if (btn.dataset.view === "notice-documents") await Promise.all([loadOrgLookups(), loadUsers(), loadNoticeDocuments()]);
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
                     if (btn.dataset.view === "backups") await loadBackups();
                 } catch (error) {
                     showToast("Load failed", error.message, "error");
@@ -2539,11 +2488,8 @@
                 } else if (action === "downloadUsage") {
                     await exportUsageLogs();
                 } else if (action === "openUserForm") {
-<<<<<<< HEAD
                     await loadGroups();
-=======
                     await Promise.all([loadGroups(), loadOrgLookups()]);
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
                     userForm();
                 } else if (action === "openConfigForm") {
                     configForm();

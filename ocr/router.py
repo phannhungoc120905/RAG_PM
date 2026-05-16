@@ -28,7 +28,7 @@ class QueryRequest(BaseModel):
     top_k: int = 5
 
 @router.post("/extract-text")
-async def extract_text(file: UploadFile = File(...)):
+async def extract_text(file: UploadFile = File(...), fix_with_ai: bool = Query(False)):
     """
     Endpoint to extract text from images or PDFs.
     Supports Vietnamese and English.
@@ -36,6 +36,10 @@ async def extract_text(file: UploadFile = File(...)):
     try:
         content = await file.read()
         text = ocr_service.process_file(content, file.filename)
+        
+        if fix_with_ai:
+            text = await ocr_service.fix_ocr_errors_with_llm(text)
+            
         return {"filename": file.filename, "text": text}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -44,7 +48,7 @@ async def extract_text(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/upload-process")
-async def upload_and_process(file: UploadFile = File(...)):
+async def upload_and_process(file: UploadFile = File(...), fix_with_ai: bool = Query(False)):
     """
     Flow: OCR -> Normalize -> Chunk -> Embedding -> Store
     """
@@ -53,10 +57,14 @@ async def upload_and_process(file: UploadFile = File(...)):
         content = await file.read()
         raw_text = ocr_service.process_file(content, file.filename)
         
-        # 2. Normalize
+        # 2. Fix with AI if requested
+        if fix_with_ai:
+            raw_text = await ocr_service.fix_ocr_errors_with_llm(raw_text)
+            
+        # 3. Normalize
         clean_text = ocr_service.normalize_text(raw_text)
         
-        # 3. Chunk
+        # 4. Chunk
         chunks = ocr_service.chunk_text(clean_text)
         if not chunks:
             return {"status": "success", "message": "No text detected to process", "chunks_count": 0}
