@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     DB_PASSWORD: str = ""
 
     # AI model
-    MODEL_NAME: str = "llama3.2"
+    MODEL_NAME: str = "llama3.2:latest"
     MODEL_PATH: str = "/models/llama3.2"
     EMBEDDING_MODEL_NAME: str = "local-hash-384"
     OCR_USE_SENTENCE_TRANSFORMERS: bool = False
@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 100
     OCR_LANG: str = "vie"
+    LLM_MODEL: str = "llama3.2:latest"
+    LLM_URL: str = "http://localhost:11434/api/generate"
 
     # Upload
     UPLOAD_DIR: str = "./uploads"
