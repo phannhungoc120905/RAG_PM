@@ -1,3 +1,4 @@
+import traceback
 from admin.router import TEMPLATES_DIR
 from api.service import log
 from db.database import Base, engine, get_db
@@ -92,7 +93,11 @@ async def health():
 @app.exception_handler(Exception)
 
 async def global_exception_handler(request: Request, exc: Exception):
-    traceback.print_exc()  # in ra terminal
-    return JSONResponse(status_code=500, detail=str(exc))
+    traceback.print_exc()  
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)}
+    )
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=settings.DEBUG)

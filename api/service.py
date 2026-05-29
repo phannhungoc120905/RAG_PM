@@ -235,14 +235,14 @@ async def upload_document(
             try:
                 _rebuild_vector_storage(db)
             except Exception:
-                log.exception("upload_vector_rebuild_failed", document_id=document.id)
+                log.exception("upload_vector_rebuild_failed", extra={"document_id": document.id})
         if final_path and final_path.exists():
             try:
                 failed_path = _move_upload_file(final_path, "failed")
                 document.file_path = str(failed_path)
                 document.filename = failed_path.name
             except Exception:
-                log.exception("upload_failed_file_move_failed", document_id=document.id, filename=original_filename)
+                log.exception("upload_failed_file_move_failed", extra={"document_id": document.id, "filename": original_filename})
         log.error("upload_processing_failed", extra={"document_id": document.id, "error": str(e)})
         document.processing_status = "failed"
         document.status = "failed"
@@ -252,9 +252,11 @@ async def upload_document(
         db.commit()
         log.exception(
             "document_upload_failed",
-            document_id=document.id,
-            filename=original_filename,
-            error=str(e),
+          extra={
+            "document_id": document.id,
+            "filename": original_filename,
+            "error": str(e),
+          }
         )
         raise HTTPException(status_code=500, detail=f"Lỗi xử lý tài liệu: {str(e)}")
     summary_record = None
@@ -268,8 +270,10 @@ async def upload_document(
         except Exception:
             log.exception(
                 "document_auto_summary_failed",
-                document_id=document.id,
-                filename=original_filename,
+                extra ={
+                    "document_id": document.id,
+                    "filename": original_filename,
+                }
             )
 
     return document, summary_record
@@ -470,7 +474,6 @@ def export_summary(db: Session, *, summary_id: int, current_user: User, export_f
         )
     elif export_format == "docx":
         try:
-            # pyrefly: ignore [missing-import]
             from docx import Document as WordDocument
         except ImportError as exc:
             raise HTTPException(status_code=501, detail="python-docx is required for DOCX export") from exc
@@ -565,7 +568,7 @@ def _assert_document_access(document: Document, current_user: User) -> None:
 
 def _build_enriched_chunks(document_id: int, chunks: list) -> list[dict[str, Any]]:
     enriched_chunks: list[dict[str, Any]] = []
-    for index, raw_chunk in enumerate(chunks):  # ← đổi tên biến thành raw_chunk
+    for index, raw_chunk in enumerate(chunks):
         if isinstance(raw_chunk, str):
             chunk = {"content": raw_chunk, "metadata": {}}
         elif isinstance(raw_chunk, dict):
@@ -578,6 +581,7 @@ def _build_enriched_chunks(document_id: int, chunks: list) -> list[dict[str, Any
         metadata["chunk_index"] = index
         metadata["citation_anchor"] = _build_citation_anchor(metadata)
         enriched_chunks.append({"content": chunk.get("content", ""), "metadata": metadata})
+
     return enriched_chunks
 
 def _build_citation_anchor(metadata: dict[str, Any]) -> str:
