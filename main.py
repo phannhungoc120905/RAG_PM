@@ -1,68 +1,58 @@
+import traceback
+from admin.router import TEMPLATES_DIR
+from api.service import log
+from db.database import Base, engine, get_db
+from db.models import User
 import json
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import datetime
 from pathlib import Path
-<<<<<<< HEAD
 
 import uvicorn
-from fastapi import FastAPI, File, UploadFile
+from fastapi import Depends, FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
-from ocr.router import router as ocr_router
-=======
+from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy.orm import Session
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
-import uvicorn
-from fastapi import FastAPI, File, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
-
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
+# Import routers
 from admin.router import router as admin_router
 from api.router import router as api_router
-from auth.middleware import add_middlewares
 from auth.router import router as auth_router
+from ocr.router import router as ocr_router
+
+# Import logic & config
+from api.service import upload_document, get_latest_history_public
+from auth.dependencies import require_active_user
+from auth.middleware import add_middlewares
 from config import settings
-from logger import get_logger
-
-<<<<<<< HEAD
-app = FastAPI()
-app.include_router(ocr_router)
-
-
-=======
-
->>>>>>> 9709d26f9ea0d522d85f3bbb56c87f59687901ec
-log = get_logger("app.main")
-HISTORY_FILE = "history.json"
-
-
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    for path in (
-        Path(settings.UPLOAD_DIR) / "processing",
-        Path(settings.UPLOAD_DIR) / "done",
-        Path(settings.UPLOAD_DIR) / "failed",
-        Path(settings.BACKUP_DIR),
-    ):
-        path.mkdir(parents=True, exist_ok=True)
-
-    log.info("app_started", extra={"env": settings.DEBUG})
+    # Khởi tạo CSDL
+    Base.metadata.create_all(bind=engine)
+    
+    # Khởi tạo thư mục upload
+    for stage in ["processing", "done", "failed"]:
+        (Path(settings.UPLOAD_DIR) / stage).mkdir(parents=True, exist_ok=True)
+    Path(settings.BACKUP_DIR).mkdir(parents=True, exist_ok=True)
+    
+    log.info("app_started", extra={"env": "debug" if settings.DEBUG else "production"})
     yield
-
 
 app = FastAPI(
     title="RAG_PM API",
-    description="He thong AI tom tat van ban hanh chinh",
+    description="Hệ thống AI tóm tắt văn bản hành chính",
     version="1.0.0",
     lifespan=lifespan,
 )
 
-app.include_router(auth_router, prefix="/auth", tags=["Auth"])
-app.include_router(admin_router, prefix="/admin", tags=["Admin"])
-app.include_router(api_router, prefix="/api", tags=["AI"])
-
+# Cấu hình Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -72,126 +62,42 @@ app.add_middleware(
 )
 add_middlewares(app)
 
+# Include Routers
+app.include_router(auth_router, prefix="/auth", tags=["Auth"])
+app.include_router(admin_router, prefix="/admin", tags=["Admin"])
+app.include_router(api_router, prefix="/api", tags=["AI"])
+app.include_router(ocr_router, tags=["OCR"])
 
-def get_history() -> list[dict]:
-    if not os.path.exists(HISTORY_FILE):
-        return []
-    with open(HISTORY_FILE, "r", encoding="utf-8") as file:
-        try:
-            return json.load(file)
-        except json.JSONDecodeError:
-            return []
-
-
-def save_to_history(filename: str, summary: str) -> None:
-    history = get_history()
-    history.insert(
-        0,
-        {
-            "filename": filename,
-            "summary": summary,
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        },
-    )
-    history = history[:20]
-    with open(HISTORY_FILE, "w", encoding="utf-8") as file:
-        json.dump(history, file, ensure_ascii=False, indent=2)
-
-
-def extract_text(file_path: str) -> str:
-    from pypdf import PdfReader
-
-    reader = PdfReader(file_path)
-    text = ""
-    for page in reader.pages:
-        page_text = page.extract_text()
-        if page_text:
-            text += page_text
-    return text
-
-
-def summarize_with_ollama(text: str) -> str:
-    from langchain.chains import create_retrieval_chain
-    from langchain.chains.combine_documents import create_stuff_documents_chain
-    from langchain_community.vectorstores import FAISS
-    from langchain_core.prompts import ChatPromptTemplate
-    from langchain_ollama import OllamaEmbeddings, OllamaLLM
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=settings.CHUNK_SIZE,
-        chunk_overlap=settings.CHUNK_OVERLAP,
-    )
-    chunks = text_splitter.create_documents([text])
-    embeddings = OllamaEmbeddings(model=settings.MODEL_NAME)
-    vectorstore = FAISS.from_documents(chunks, embeddings)
-    llm = OllamaLLM(model=settings.MODEL_NAME)
-    prompt = ChatPromptTemplate.from_template(
-        """
-        Ban la mot tro ly tom tat van ban chuyen nghiep.
-        Hay tom tat noi dung sau day thanh 5 y chinh quan trong nhat duoi dang danh sach bullet bang tieng Viet.
-        Noi dung: {context}
-        Tom tat:
-        """
-    )
-    document_chain = create_stuff_documents_chain(llm, prompt)
-    retriever = vectorstore.as_retriever()
-    retrieval_chain = create_retrieval_chain(retriever, document_chain)
-    response = retrieval_chain.invoke({"input": "Hay tom tat van ban nay"})
-    return response["answer"]
-
-
+# --- UI Routes ---
 def read_html_file(filename: str, fallback: str) -> str:
-    path = Path(filename)
+    path = TEMPLATES_DIR / filename
     if path.exists():
         return path.read_text(encoding="utf-8")
+    # Fallback nếu không tìm thấy trong templates/ thì tìm ở gốc dự án
+    root_path = Path(filename)
+    if root_path.exists():
+        return root_path.read_text(encoding="utf-8")
     return fallback
 
+@app.get("/")
+async def root_redirect():
+    return RedirectResponse(url="/admin/dashboard")
 
-@app.get("/", response_class=HTMLResponse)
-async def admin_login_page() -> str:
-    return read_html_file("admin_login.html", "<h1>RAG_PM Admin Login</h1>")
-
-
-@app.get("/admin/dashboard", response_class=HTMLResponse)
-async def admin_dashboard_page() -> str:
-    return read_html_file("admin_dashboard.html", "<h1>RAG_PM Admin Dashboard</h1>")
-
-
-@app.get("/summarizer", response_class=HTMLResponse)
-async def summarizer_page() -> str:
-    return read_html_file("index.html", "<h1>AI PDF Summarizer</h1>")
-
-
-@app.get("/history")
-async def history() -> list[dict]:
-    return get_history()
-
-
-@app.post("/upload")
-async def upload(file: UploadFile = File(...)) -> dict:
-    temp_path = f"temp_{file.filename}"
-    try:
-        contents = await file.read()
-        with open(temp_path, "wb") as temp_file:
-            temp_file.write(contents)
-
-        text = extract_text(temp_path)
-        summary = summarize_with_ollama(text)
-        save_to_history(file.filename, summary)
-        return {"summary": summary}
-    except Exception as exc:
-        log.error("legacy_upload_failed", extra={"filename": file.filename, "error": str(exc)})
-        return {"error": str(exc)}
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-
+@app.get("/login", response_class=HTMLResponse)
+async def login_page():
+    return read_html_file("admin_login_new.html", "<h1>Login</h1>")
 
 @app.get("/health")
-async def health() -> dict[str, str]:
+async def health():
     return {"status": "ok", "version": "1.0.0"}
+@app.exception_handler(Exception)
 
+async def global_exception_handler(request: Request, exc: Exception):
+    traceback.print_exc()  
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)}
+    )
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=settings.DEBUG)
+    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=settings.DEBUG)

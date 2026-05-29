@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Quản trị - RAG_PM Suite</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            mermaid.initialize({ startOnLoad: false, theme: 'default' });
+        });
+    </script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #dbeafe;
+            --secondary: #64748b;
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --sidebar-w: 240px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        .wrapper {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .sidebar {
+            width: var(--sidebar-w);
+            background: #ffffff;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 20px;
+            color: var(--primary);
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .nav-list {
+            flex: 1;
+            padding: 16px 8px;
+            overflow-y: auto;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            padding: 12px 16px 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .nav-item:hover {
+            background: #f1f5f9;
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .nav-item i {
+            width: 18px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .user-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            border-radius: 12px;
+            background: #f1f5f9;
+            margin-bottom: 12px;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        .user-meta {
+            line-height: 1.2;
+            overflow: hidden;
+        }
+
+        .u-name {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .u-email {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 10px;
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .topbar {
+            height: 64px;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+        }
+
+        .page-info h1 {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .sys-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--success);
+            background: #ecfdf5;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .pulse {
+            width: 6px;
+            height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .content {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+            background: var(--bg-main);
+        }
+
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            margin-bottom: 24px;
+        }
+
+        .grid {
+            display: grid;
+            gap: 24px;
+        }
+
+        .cols-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .cols-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .stat-card {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .blue {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .purple {
+            background: #f3e8ff;
+            color: #9333ea;
+        }
+
+        .green {
+            background: #dcfce7;
+            color: #10b981;
+        }
+
+        .orange {
+            background: #ffedd5;
+            color: #f97316;
+        }
+
+        .stat-info .label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .stat-info .val {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid var(--border);
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        td {
+            padding: 14px 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .b-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .b-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .b-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-p {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-p:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-s {
+            background: white;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-s:hover {
+            background: #f1f5f9;
+        }
+
+        .toast-box {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: grid;
+            gap: 10px;
+        }
+
+        .toast {
+            background: white;
+            border-left: 4px solid var(--primary);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            font-size: 13px;
+            font-weight: 600;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+            }
+
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-close {
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .loader-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 64px;
+            gap: 16px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--primary-light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .split-view {
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 160px);
+        }
+
+        .pdf-panel {
+            flex: 1.2;
+            background: #525659;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pdf-toolbar {
+            background: #323639;
+            color: white;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 13px;
+        }
+
+        .pdf-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            scroll-behavior: smooth;
+        }
+
+        .pdf-page {
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .ai-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow: hidden;
+        }
+
+        .ai-tabs {
+            display: flex;
+            gap: 4px;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .ai-tab {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            color: var(--text-muted);
+            transition: 0.2s;
+        }
+
+        .ai-tab.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .ai-content-wrap {
+            flex: 1;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .ai-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.ai {
+            background: #f1f5f9;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+
+        .message.user {
+            background: var(--primary);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 2px;
+        }
+
+        .chat-input-wrap {
+            padding: 12px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            flex-direction: column;
+        }
+
+        .chat-input {
+            flex: 1;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .page-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(37, 99, 235, 0.9);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            pointer-events: none;
+        }
+
+        .b-admin {
+            background: #185FA5;
+            color: white;
+        }
+
+        .b-manager {
+            background: #534AB7;
+            color: white;
+        }
+
+        .b-staff {
+            background: #F1EFE8;
+            color: #444441;
+        }
+
+        .b-ground-ok {
+            background: #EAF3DE;
+            color: #27500A;
+        }
+
+        .b-ground-warn {
+            background: #FAEEDA;
+            color: #633806;
+        }
+
+        .b-ground-err {
+            background: #FCEBEB;
+            color: #791F1F;
+        }
+
+        .message.ai.out-of-scope {
+            background: #F1EFE8;
+            color: #5F5E5A;
+            border: 1px solid #D3D1C7;
+        }
+
+        .chat-chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chat-chip {
+            font-size: 12px;
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .chat-chip:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .chat-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        @media (max-width: 1279px) {
+            .split-view {
+                flex-direction: column;
+            }
+
+            .pdf-panel,
+            .ai-panel {
+                flex: none;
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon"><i class="fas fa-brain"></i></div>
+                    <span>RAG_PM Admin</span>
+                </div>
+            </div>
+            <nav class="nav-list">
+                <div class="nav-label">Menu User (Cán Bộ)</div>
+                <div class="nav-item active" data-view="dashboard"><i class="fas fa-chart-line"></i><span>Tổng
+                        quan</span></div>
+                <div class="nav-item" data-view="documents"><i class="fas fa-file-lines"></i><span>Danh sách văn
+                        bản</span></div>
+                <div class="nav-item" data-view="summarizer"><i class="fas fa-wand-magic-sparkles"></i><span>AI Tóm tắt
+                        & Q&A</span></div>
+                <div class="nav-item" data-view="search"><i class="fas fa-search"></i><span>Tìm kiếm toàn văn</span>
+                </div>
+                <div class="nav-label">Menu Trưởng Phòng</div>
+                <div class="nav-item" data-view="work"><i class="fas fa-briefcase"></i><span>Văn bản toàn phòng</span>
+                </div>
+                <div class="nav-label">Menu Admin</div>
+                <div class="nav-item" data-view="users"><i class="fas fa-users"></i><span>Quản lý người dùng</span>
+                </div>
+                <div class="nav-item" data-view="security"><i class="fas fa-shield-halved"></i><span>Bảo mật &
+                        Quyền</span></div>
+                <div class="nav-item" data-view="system"><i class="fas fa-sliders"></i><span>Cấu hình hệ thống</span>
+                </div>
+                <div class="nav-item" data-view="logs"><i class="fas fa-terminal"></i><span>Nhật ký & Backup</span>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-box">
+                    <div class="avatar" id="userAvatar">A</div>
+                    <div class="user-meta">
+                        <span class="u-name" id="userName">Admin</span>
+                        <span class="u-email" id="userEmail">admin@ragpm.ai</span>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="app.logout()">
+                    <i class="fas fa-right-from-bracket"></i><span>Đăng xuất</span>
+                </button>
+            </div>
+        </aside>
+
+        <div class="main-container">
+            <header class="topbar">
+                <div class="page-info">
+                    <h1 id="viewTitle">Dashboard</h1>
+                </div>
+                <div class="sys-status"><span class="pulse"></span>SYSTEM ONLINE</div>
+            </header>
+
+            <main class="content" id="mainContent">
+                <!-- Dashboard -->
+                <section id="view-dashboard" class="view-section active">
+                    <div class="grid cols-4" id="dashboardStats">
+                        <div class="card stat-card loader-wrap">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                            <h3 style="margin-bottom:0;">Văn bản mới nhất</h3>
+                            <button class="btn btn-s" onclick="app.loadView('documents')">Xem tất cả</button>
+                        </div>
+                        <div class="table-wrap">
+                            <table id="dashDocsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Tên văn bản</th>
+                                        <th>Số hiệu</th>
+                                        <th>Loại</th>
+                                        <th>Trạng thái</th>
+                                        <th>Ngày tạo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="5" style="text-align:center;">Đang tải...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="grid cols-2">
+                        <div class="card">
+                            <h3 style="margin-bottom:20px;">Hoạt động hệ thống</h3>
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                        <div class="card">
+                            <h3 style="margin-bottom:20px;">Trạng thái tài nguyên</h3>
+                            <div id="resourceStats"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Documents -->
+                <section id="view-documents" class="view-section">
+                    <div class="card">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                            <h3>Danh sách văn bản</h3>
+                            <button class="btn btn-p" onclick="app.loadView('summarizer')"><i class="fas fa-upload"></i>
+                                Tải lên văn bản</button>
+                        </div>
+                        <div style="display:flex;gap:10px;margin-bottom:16px;">
+                            <input type="text" id="docSearch" placeholder="Tìm kiếm theo tên, số hiệu..."
+                                style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;">
+                            <button class="btn btn-s" onclick="documentsMod.load()"><i class="fas fa-search"></i>
+                                Tìm</button>
+                        </div>
+                        <div class="table-wrap">
+                            <table id="docsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Tên văn bản</th>
+                                        <th>Số hiệu</th>
+                                        <th>Loại</th>
+                                        <th>Ngày ban hành</th>
+                                        <th>Đơn vị</th>
+                                        <th>Trạng thái</th>
+                                        <th>Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Summarizer -->
+                <section id="view-summarizer" class="view-section">
+                    <div id="summarizer-init" class="card"
+                        style="max-width:600px;margin:40px auto;text-align:center;padding:60px 40px;">
+                        <div
+                            style="width:80px;height:80px;background:var(--primary-light);color:var(--primary);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 24px;">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <h2 style="margin-bottom:12px;">Trung tâm Phân tích Tài liệu</h2>
+                        <p style="color:var(--text-muted);margin-bottom:32px;">Tải lên văn bản PDF để bắt đầu tóm tắt,
+                            trích xuất thực thể và trò chuyện thông minh với trợ lý AI.</p>
+                        <div style="border:2px dashed var(--border);border-radius:16px;padding:48px;background:#f8fafc;cursor:pointer;transition:0.3s;"
+                            id="dropzone" onmouseover="this.style.borderColor='var(--primary)'"
+                            onmouseout="this.style.borderColor='var(--border)'"
+                            onclick="document.getElementById('summarizerFile').click()">
+                            <i class="fas fa-cloud-upload-alt"
+                                style="font-size:48px;color:var(--primary);margin-bottom:16px;display:block;"></i>
+                            <p style="font-weight:600;font-size:16px;">Kéo thả PDF vào đây</p>
+                            <p style="font-size:13px;color:var(--text-muted);margin-top:8px;">Dung lượng tối đa: 25MB
+                            </p>
+                            <input type="file" id="summarizerFile" style="display:none;" accept=".pdf,.docx,.txt">
+                        </div>
+                        <div style="margin-top:32px;display:flex;justify-content:center;gap:16px;">
+                            <button class="btn btn-p" style="height:48px;padding:0 32px;"
+                                onclick="document.getElementById('summarizerFile').click()">Chọn tệp</button>
+                            <button class="btn btn-s" style="height:48px;" onclick="summarizerMod.showHistory()"><i
+                                    class="fas fa-history"></i> Lịch sử</button>
+                        </div>
+                    </div>
+
+                    <div id="summarizer-split" class="split-view" style="display:none;">
+                        <div class="pdf-panel">
+                            <div class="pdf-toolbar">
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <button onclick="pdfViewer.prevPage()"
+                                        style="color:white;background:none;border:none;cursor:pointer;"><i
+                                            class="fas fa-chevron-left"></i></button>
+                                    <span id="page-num-info">Trang 1 / 1</span>
+                                    <button onclick="pdfViewer.nextPage()"
+                                        style="color:white;background:none;border:none;cursor:pointer;"><i
+                                            class="fas fa-chevron-right"></i></button>
+                                </div>
+                                <div style="flex:1;text-align:center;font-weight:500;font-size:12px;opacity:0.8;"
+                                    id="pdf-filename-display">Tailieu.pdf</div>
+                                <div style="display:flex;gap:12px;">
+                                    <button onclick="pdfViewer.zoomOut()"
+                                        style="color:white;background:none;border:none;cursor:pointer;"><i
+                                            class="fas fa-search-minus"></i></button>
+                                    <button onclick="pdfViewer.zoomIn()"
+                                        style="color:white;background:none;border:none;cursor:pointer;"><i
+                                            class="fas fa-search-plus"></i></button>
+                                    <button onclick="summarizerMod.closeSplit()"
+                                        style="color:white;background:none;border:none;cursor:pointer;"><i
+                                            class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+                            <div id="pdf-container" class="pdf-container">
+                                <div class="loader-wrap">
+                                    <div class="spinner"></div>
+                                    <p>Đang nạp tài liệu...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ai-panel">
+                            <div class="ai-tabs">
+                                <div class="ai-tab active" data-tab="summary"
+                                    onclick="summarizerMod.switchTab('summary')">Tóm tắt AI</div>
+                                <div class="ai-tab" data-tab="entities" onclick="summarizerMod.switchTab('entities')">
+                                    Thực thể</div>
+                                <div class="ai-tab" data-tab="mindmap" onclick="summarizerMod.switchTab('mindmap')">Sơ
+                                    đồ tư duy</div>
+                                <div class="ai-tab" data-tab="chat" onclick="summarizerMod.switchTab('chat')">Hỏi đáp
+                                </div>
+                            </div>
+                            <div class="ai-content-wrap">
+                                <div id="ai-tab-summary" class="ai-scroll-area">
+                                    <div id="summaryResult"
+                                        style="line-height:1.8;color:var(--text-main);font-size:15px;"></div>
+                                    <div
+                                        style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:12px;">
+                                        <button class="btn btn-s" onclick="summarizerMod.copy()"><i
+                                                class="fas fa-copy"></i> Sao chép</button>
+                                        <button class="btn btn-s" onclick="summarizerMod.download()"><i
+                                                class="fas fa-download"></i> Tải Word</button>
+                                    </div>
+                                </div>
+                                <div id="ai-tab-entities" class="ai-scroll-area" style="display:none;">
+                                    <div id="entitiesResult">
+                                        <div style="color:var(--text-muted);text-align:center;margin-top:40px;">Đang
+                                            phân tích thực thể...</div>
+                                    </div>
+                                </div>
+                                <div id="ai-tab-chat" class="chat-container" style="display:none;">
+                                    <div id="chatMessages" class="chat-messages">
+                                        <div class="message ai">Chào bạn! Tôi là trợ lý ảo RAG_PM. Tôi đã đọc tài liệu
+                                            này, bạn có câu hỏi nào cần giải đáp không?</div>
+                                    </div>
+                                    <div class="chat-input-wrap">
+                                        <div class="chat-chips">
+                                            <div class="chat-chip"
+                                                onclick="document.getElementById('chatInput').value=this.textContent;summarizerMod.sendChat()">
+                                                Tóm tắt nhanh</div>
+                                            <div class="chat-chip"
+                                                onclick="document.getElementById('chatInput').value=this.textContent;summarizerMod.sendChat()">
+                                                Hiệu lực từ khi nào?</div>
+                                            <div class="chat-chip"
+                                                onclick="document.getElementById('chatInput').value=this.textContent;summarizerMod.sendChat()">
+                                                Phạm vi áp dụng</div>
+                                        </div>
+                                        <div class="chat-row">
+                                            <input type="text" id="chatInput" class="chat-input"
+                                                placeholder="Nhập câu hỏi về tài liệu này..."
+                                                onkeydown="if(event.key==='Enter') summarizerMod.sendChat()">
+                                            <button class="btn btn-p" onclick="summarizerMod.sendChat()"
+                                                style="width:40px;height:40px;border-radius:50%;padding:0;justify-content:center;">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="ai-tab-mindmap" class="ai-scroll-area"
+                                    style="display:none;background:#fafafa;">
+                                    <div id="mindmapResult" style="text-align:center;padding-top:20px;">
+                                        <button class="btn btn-p" onclick="summarizerMod.generateMindmap()"
+                                            style="margin:0 auto;display:flex;">
+                                            <i class="fas fa-project-diagram"></i> Khởi tạo sơ đồ tư duy AI
+                                        </button>
+                                        <p
+                                            style="font-size:13px;color:var(--text-muted);margin-top:16px;line-height:1.5;">
+                                            Hệ thống sẽ quét cấu trúc tài liệu và tự động tổng hợp ý chính thành dạng
+                                            cây Mindmap trực quan.</p>
+                                    </div>
+                                    <div id="mindmapRenderArea"
+                                        style="margin-top:20px;overflow:auto;display:none;justify-content:center;padding:20px;background:white;border-radius:8px;border:1px solid var(--border);">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Search -->
+                <section id="view-search" class="view-section">
+                    <div class="card">
+                        <h3>Tìm kiếm văn bản (Hybrid Search)</h3>
+                        <div style="margin-top:20px;display:flex;gap:10px;">
+                            <input type="text" id="searchInput" placeholder="Nhập câu hỏi hoặc từ khóa..."
+                                style="flex:1;padding:12px;border:1px solid var(--border);border-radius:8px;"
+                                onkeydown="if(event.key==='Enter') searchMod.start()">
+                            <button class="btn btn-p" onclick="searchMod.start()"><i class="fas fa-search"></i> Tìm
+                                kiếm</button>
+                        </div>
+                        <div id="searchResults" style="margin-top:24px;display:grid;gap:16px;"></div>
+                    </div>
+                </section>
+
+                <!-- Users -->
+                <section id="view-users" class="view-section">
+                    <div class="card">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <h3>Quản lý người dùng</h3>
+                            <button class="btn btn-p" onclick="usersMod.openAddModal()"><i class="fas fa-plus"></i> Thêm
+                                người dùng</button>
+                        </div>
+                        <div class="table-wrap">
+                            <table id="usersTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Người dùng</th>
+                                        <th>Email</th>
+                                        <th>Vai trò</th>
+                                        <th>Trạng thái</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Security -->
+                <section id="view-security" class="view-section">
+                    <div class="grid cols-2">
+                        <div class="card">
+                            <h3>API Keys</h3>
+                            <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Quản lý các khóa truy
+                                cập hệ thống qua API.</p>
+                            <button class="btn btn-p" onclick="securityMod.openApiKeyModal()"><i class="fas fa-key"></i>
+                                Tạo API Key</button>
+                            <div class="table-wrap">
+                                <table id="apiKeysTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Tên</th>
+                                            <th>Trạng thái</th>
+                                            <th>Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3>Nhóm quyền</h3>
+                            <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Phân quyền theo chức
+                                năng cho người dùng.</p>
+                            <button class="btn btn-p" onclick="securityMod.openGroupModal()"><i
+                                    class="fas fa-users-gear"></i> Thêm nhóm</button>
+                            <div class="table-wrap">
+                                <table id="groupsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Tên nhóm</th>
+                                            <th>Code</th>
+                                            <th>Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- System -->
+                <section id="view-system" class="view-section">
+                    <div class="card">
+                        <h3>Cấu hình hệ thống</h3>
+                        <div style="margin-top:20px;" id="systemConfigContent"></div>
+                    </div>
+                </section>
+
+                <!-- Work -->
+                <section id="view-work" class="view-section">
+                    <div class="card">
+                        <h3>Văn bản giao việc</h3>
+                        <div class="table-wrap">
+                            <table id="workDocsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Mã văn bản</th>
+                                        <th>Tiêu đề</th>
+                                        <th>Trạng thái</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Logs -->
+                <section id="view-logs" class="view-section">
+                    <div class="grid cols-2">
+                        <div class="card">
+                            <h3>Nhật ký hệ thống</h3>
+                            <div class="table-wrap" style="max-height:500px;overflow-y:auto;">
+                                <table id="logsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Thời gian</th>
+                                            <th>Hành động</th>
+                                            <th>User</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3>Sao lưu & Phục hồi</h3>
+                            <button class="btn btn-p" onclick="logsMod.createBackup()"><i
+                                    class="fas fa-cloud-arrow-up"></i> Tạo bản sao lưu mới</button>
+                            <div class="table-wrap">
+                                <table id="backupsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Tên bản sao</th>
+                                            <th>Ngày tạo</th>
+                                            <th>Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="genericModal">
+        <div class="modal">
+            <div class="modal-head">
+                <h2 id="modalTitle">Tiêu đề</h2>
+                <span class="modal-close" onclick="ui.closeModal()">&times;</span>
+            </div>
+            <div id="modalBody"></div>
+            <div style="margin-top:24px;display:flex;gap:12px;justify-content:flex-end;">
+                <button class="btn btn-s" onclick="ui.closeModal()">Hủy</button>
+                <button class="btn btn-p" id="modalSubmit">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-box" id="toastBox"></div>
+
+    <script>
+        // ===================== APP CORE =====================
+        const app = {
+            token: localStorage.getItem('token'),
+            user: null,
+
+            init() {
+                if (!this.token) {
+                    window.location.href = '/login';
+                    return;
+                }
+                this.setupNavigation();
+                this.loadProfile().then(() => {
+                    this.loadView('dashboard');
+                });
+            },
+
+            setupNavigation() {
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const view = item.dataset.view;
+                        this.loadView(view);
+                        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                        item.classList.add('active');
+                    });
+                });
+            },
+
+            async loadView(viewName) {
+                document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+                const target = document.getElementById(`view-${viewName}`);
+                if (target) target.classList.add('active');
+
+                const titles = {
+                    dashboard: 'Tổng quan hệ thống',
+                    summarizer: 'AI PDF Summarizer',
+                    search: 'Tìm kiếm thông minh',
+                    users: 'Quản lý người dùng',
+                    security: 'Bảo mật & Phân quyền',
+                    work: 'Quản lý văn bản & Công việc',
+                    system: 'Cấu hình hệ thống',
+                    logs: 'Nhật ký & Sao lưu',
+                    documents: 'Danh sách văn bản'
+                };
+                document.getElementById('viewTitle').textContent = titles[viewName] || 'Admin';
+
+                switch (viewName) {
+                    case 'dashboard': dashMod.load(); break;
+                    case 'documents': documentsMod.load(); break;
+                    case 'summarizer': summarizerMod.init(); break;
+                    case 'search': searchMod.init(); break;
+                    case 'users': usersMod.load(); break;
+                    case 'security': securityMod.load(); break;
+                    case 'system': systemMod.load(); break;
+                    case 'work': workMod.load(); break;
+                    case 'logs': logsMod.load(); break;
+                }
+            },
+
+            // FIX: dùng /admin/users (route tồn tại) để verify token
+            async loadProfile() {
+                try {
+                    const res = await fetch('/admin/users?page_size=1', {
+                        headers: { 'Authorization': `Bearer ${this.token}` }
+                    });
+                    if (res.status === 401) { this.logout(); return; }
+                } catch (e) {
+                    console.warn('loadProfile error:', e.message);
+                }
+            },
+
+            // FIX: api() bây giờ nhận đủ các status, không throw khi 404 từ profile check
+            async api(url, options = {}) {
+                const headers = { ...options.headers };
+                headers['Authorization'] = `Bearer ${this.token}`;
+                if (options.body && !headers['Content-Type']) {
+                    headers['Content-Type'] = 'application/json';
+                }
+                const response = await fetch(url, { ...options, headers });
+                if (response.status === 401) {
+                    this.logout();
+                    throw new Error('Phiên đăng nhập hết hạn');
+                }
+                if (!response.ok) {
+                    let errMsg = 'Lỗi không xác định từ máy chủ';
+                    try {
+                        const data = await response.json();
+                        errMsg = data.detail || data.error || errMsg;
+                    } catch (_) { }
+                    throw new Error(errMsg);
+                }
+                return response;
+            },
+
+            logout() {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            }
+        };
+
+        // ===================== UI UTILS =====================
+        const ui = {
+            toast(msg, type = 'primary') {
+                const box = document.getElementById('toastBox');
+                const t = document.createElement('div');
+                t.className = 'toast';
+                t.style.borderLeftColor = type === 'danger' ? 'var(--danger)' : type === 'success' ? 'var(--success)' : 'var(--primary)';
+                t.textContent = msg;
+                box.appendChild(t);
+                setTimeout(() => t.remove(), 3500);
+            },
+            openModal(title, contentHtml, onConfirm) {
+                document.getElementById('modalTitle').textContent = title;
+                document.getElementById('modalBody').innerHTML = contentHtml;
+                document.getElementById('modalSubmit').onclick = onConfirm;
+                document.getElementById('genericModal').style.display = 'flex';
+            },
+            closeModal() {
+                document.getElementById('genericModal').style.display = 'none';
+            }
+        };
+
+        // ===================== DASHBOARD =====================
+        const dashMod = {
+            async load() {
+                try {
+                    const res = await app.api('/admin/status');  // → /admin/status (system.py)
+                    const data = await res.json();
+                    this.renderStats(data);
+                    this.renderResources(data);
+                    documentsMod.loadDash();
+                } catch (e) {
+                    ui.toast('Lỗi tải dữ liệu Dashboard: ' + e.message, 'danger');
+                    // Hiển thị stats trống để không bị trắng trang
+                    document.getElementById('dashboardStats').innerHTML = `
+                    <div class="card stat-card" style="grid-column:1/-1;text-align:center;color:var(--text-muted);">
+                        Không thể tải dữ liệu thống kê. Kiểm tra kết nối server.
+                    </div>`;
+                }
+            },
+            renderStats(data) {
+                const statsWrap = document.getElementById('dashboardStats');
+                const items = [
+                    { label: 'Người dùng', val: data.db?.users_count ?? '-', icon: 'fa-users', color: 'blue' },
+                    { label: 'Tài liệu', val: data.db?.documents_count ?? '-', icon: 'fa-file-pdf', color: 'purple' },
+                    { label: 'Tóm tắt AI', val: data.db?.summaries_count ?? '-', icon: 'fa-bolt', color: 'green' },
+                    { label: 'Dung lượng (GB)', val: data.disk?.used_gb ?? '-', icon: 'fa-database', color: 'orange' }
+                ];
+                statsWrap.innerHTML = items.map(i => `
+                <div class="card stat-card">
+                    <div class="stat-icon ${i.color}"><i class="fas ${i.icon}"></i></div>
+                    <div class="stat-info">
+                        <div class="label">${i.label}</div>
+                        <div class="val">${i.val}</div>
+                    </div>
+                </div>`).join('');
+            },
+            renderResources(data) {
+                const disk = data.disk || {};
+                const uploads = data.uploads || {};
+                const usedPct = disk.total_gb ? Math.round((disk.used_gb / disk.total_gb) * 100) : 0;
+                document.getElementById('resourceStats').innerHTML = `
+                <div style="margin-top:10px;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                        <span style="font-size:13px;">Dung lượng ổ đĩa (${disk.used_gb ?? 0} / ${disk.total_gb ?? 0} GB)</span>
+                        <span style="font-weight:700;">${usedPct}%</span>
+                    </div>
+                    <div style="height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+                        <div style="width:${usedPct}%;height:100%;background:var(--primary);"></div>
+                    </div>
+                </div>
+                <div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div style="padding:16px;background:#f8fafc;border-radius:12px;border:1px solid var(--border);">
+                        <div style="font-size:11px;color:var(--text-muted);font-weight:700;">XỬ LÝ OCR XONG</div>
+                        <div style="font-size:24px;font-weight:700;color:var(--success);">${uploads.done_count ?? 0}</div>
+                    </div>
+                    <div style="padding:16px;background:#f8fafc;border-radius:12px;border:1px solid var(--border);">
+                        <div style="font-size:11px;color:var(--text-muted);font-weight:700;">XỬ LÝ THẤT BẠI</div>
+                        <div style="font-size:24px;font-weight:700;color:var(--danger);">${uploads.failed_count ?? 0}</div>
+                    </div>
+                </div>`;
+            }
+        };
+
+        // ===================== DOCUMENTS =====================
+        const documentsMod = {
+            async load() {
+                try {
+                    const search = document.getElementById('docSearch')?.value || '';
+                    const res = await app.api('/api/documents?page_size=50&search=' + encodeURIComponent(search));
+                    const data = await res.json();
+                    this.renderTable(data.items || [], '#docsTable tbody', false);
+                } catch (e) {
+                    ui.toast('Lỗi tải danh sách văn bản: ' + e.message, 'danger');
+                }
+            },
+            async loadDash() {
+                try {
+                    const res = await app.api('/api/documents?page_size=5');
+                    const data = await res.json();
+                    this.renderTable(data.items || [], '#dashDocsTable tbody', true);
+                } catch (e) {
+                    const tbody = document.querySelector('#dashDocsTable tbody');
+                    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Không thể tải dữ liệu</td></tr>';
+                }
+            },
+            renderTable(items, selector, isDash = false) {
+                const tbody = document.querySelector(selector);
+                if (!tbody) return;
+                if (!items || items.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="${isDash ? 5 : 7}" style="text-align:center;padding:32px;color:var(--text-muted);">Không có văn bản nào.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = items.map(doc => {
+                    let statusBadge = '';
+                    if (doc.processing_status === 'done') statusBadge = '<span class="badge b-ground-ok">Đã xử lý</span>';
+                    else if (doc.processing_status === 'failed') statusBadge = '<span class="badge b-ground-err">Lỗi</span>';
+                    else statusBadge = '<span class="badge b-ground-warn">Đang xử lý</span>';
+
+                    const title = doc.document_title || doc.original_filename || 'Chưa cập nhật';
+                    const number = doc.document_number || '-';
+                    const type = `<span class="badge b-info">${doc.document_type || 'Khác'}</span>`;
+                    const created = new Date(doc.created_at).toLocaleDateString('vi-VN');
+
+                    if (isDash) return `
+                    <tr>
+                        <td><strong>${title}</strong></td>
+                        <td>${number}</td>
+                        <td>${type}</td>
+                        <td>${statusBadge}</td>
+                        <td>${created}</td>
+                    </tr>`;
+                    const issued = doc.processed_at ? new Date(doc.processed_at).toLocaleDateString('vi-VN') : '-';
+                    return `
+                    <tr>
+                        <td><strong>${title}</strong></td>
+                        <td>${number}</td>
+                        <td>${type}</td>
+                        <td>${issued}</td>
+                        <td>UBND</td>
+                        <td>${statusBadge}</td>
+                        <td><button class="btn btn-s" onclick="app.loadView('summarizer');summarizerMod.loadDoc(${doc.id})">Xem</button></td>
+                    </tr>`;
+                }).join('');
+            }
+        };
+
+        // ===================== USERS =====================
+        const usersMod = {
+            async load() {
+                try {
+                    const res = await app.api('/admin/users?page_size=100');
+                    const data = await res.json();
+                    const tbody = document.querySelector('#usersTable tbody');
+                    tbody.innerHTML = (data.items || []).map(u => `
+                    <tr>
+                        <td>${u.id}</td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div class="avatar" style="width:24px;height:24px;font-size:10px;">${(u.username || '?')[0].toUpperCase()}</div>
+                                <strong>${u.username}</strong>
+                            </div>
+                        </td>
+                        <td>${u.email || '-'}</td>
+                        <td><span class="badge ${u.role === 'admin' ? 'b-admin' : u.role === 'manager' ? 'b-manager' : 'b-staff'}">
+                            ${u.role === 'admin' ? 'Quản trị viên' : u.role === 'manager' ? 'Trưởng phòng' : 'Cán bộ'}
+                        </span></td>
+                        <td><span class="badge ${u.is_active ? 'b-success' : 'b-danger'}">${u.is_active ? 'Active' : 'Locked'}</span></td>
+                        <td><button class="btn btn-s" onclick="usersMod.edit(${u.id})"><i class="fas fa-edit"></i></button></td>
+                    </tr>`).join('');
+                } catch (e) {
+                    ui.toast('Lỗi tải người dùng: ' + e.message, 'danger');
+                }
+            },
+            openAddModal() {
+                ui.openModal('Thêm người dùng mới', `
+                <div class="form-group"><label>Tên đăng nhập</label><input id="new_username" placeholder="vd: nguyenvanan"></div>
+                <div class="form-group"><label>Mật khẩu</label><input type="password" id="new_password"></div>
+                <div class="form-group"><label>Vai trò</label>
+                    <select id="new_role">
+                        <option value="user">Cán bộ</option>
+                        <option value="manager">Trưởng phòng</option>
+                        <option value="admin">Quản trị viên</option>
+                    </select>
+                </div>`, async () => {
+                    ui.toast('Đang xử lý...');
+                    ui.closeModal();
+                });
+            },
+            edit(id) {
+                ui.toast('Chức năng chỉnh sửa người dùng #' + id);
+            }
+        };
+
+        // ===================== SECURITY =====================
+        const securityMod = {
+            async load() {
+                try {
+                    const [keysRes, groupsRes] = await Promise.all([
+                        app.api('/admin/api-keys'),
+                        app.api('/admin/permission-groups')
+                    ]);
+                    const keys = await keysRes.json();
+                    const groups = await groupsRes.json();
+
+                    document.querySelector('#apiKeysTable tbody').innerHTML = (keys.items || []).map(k => `
+                    <tr>
+                        <td>${k.name}</td>
+                        <td><span class="badge ${k.is_active ? 'b-success' : 'b-danger'}">${k.is_active ? 'Active' : 'Off'}</span></td>
+                        <td><button class="btn btn-s" onclick="securityMod.deleteKey(${k.id})"><i class="fas fa-trash"></i></button></td>
+                    </tr>`).join('');
+
+                    document.querySelector('#groupsTable tbody').innerHTML = (groups.items || []).map(g => `
+                    <tr>
+                        <td><strong>${g.name}</strong></td>
+                        <td><code>${g.code}</code></td>
+                        <td><button class="btn btn-s"><i class="fas fa-pencil"></i></button></td>
+                    </tr>`).join('');
+                } catch (e) {
+                    ui.toast('Lỗi tải bảo mật: ' + e.message, 'danger');
+                }
+            },
+            openApiKeyModal() { ui.toast('Tính năng tạo API Key đang cập nhật'); },
+            openGroupModal() { ui.toast('Tính năng thêm nhóm đang cập nhật'); },
+            deleteKey(id) { ui.toast('Xóa key #' + id); }
+        };
+
+        // ===================== SYSTEM =====================
+        const systemMod = {
+            async load() {
+                try {
+                    const res = await app.api('/admin/app-config');
+                    const data = await res.json();
+                    document.getElementById('systemConfigContent').innerHTML = `
+                    <div class="grid cols-2">
+                        <div class="form-group"><label>Model Name</label><input value="${data.model_name || ''}" id="cfg_model"></div>
+                        <div class="form-group"><label>Chunk Size</label><input type="number" value="${data.chunk_size || ''}" id="cfg_chunk"></div>
+                    </div>
+                    <button class="btn btn-p" onclick="systemMod.save()">Lưu cấu hình</button>`;
+                } catch (e) {
+                    ui.toast('Lỗi tải cấu hình: ' + e.message, 'danger');
+                }
+            },
+            async save() {
+                try {
+                    const payload = {
+                        model_name: document.getElementById('cfg_model').value,
+                        chunk_size: Number(document.getElementById('cfg_chunk').value)
+                    };
+                    await app.api('/admin/app-config', { method: 'PUT', body: JSON.stringify(payload) });
+                    ui.toast('Đã cập nhật cấu hình hệ thống', 'success');
+                } catch (e) {
+                    ui.toast('Lỗi lưu cấu hình: ' + e.message, 'danger');
+                }
+            }
+        };
+
+        // ===================== WORK =====================
+        const workMod = {
+            async load() {
+                try {
+                    const res = await app.api('/admin/work-documents');
+                    const data = await res.json();
+                    document.querySelector('#workDocsTable tbody').innerHTML = (data.items || []).map(d => `
+                    <tr>
+                        <td><code>${d.document_code}</code></td>
+                        <td>${d.title}</td>
+                        <td><span class="badge b-info">${d.status}</span></td>
+                        <td><button class="btn btn-s"><i class="fas fa-eye"></i></button></td>
+                    </tr>`).join('');
+                } catch (e) {
+                    ui.toast('Lỗi tải văn bản: ' + e.message, 'danger');
+                }
+            }
+        };
+
+        // ===================== LOGS =====================
+        const logsMod = {
+            async load() {
+                try {
+                    const [logsRes, backupsRes] = await Promise.all([
+                        app.api('/admin/logs?page_size=20'),
+                        app.api('/admin/backups')
+                    ]);
+                    const logs = await logsRes.json();
+                    const backups = await backupsRes.json();
+
+                    document.querySelector('#logsTable tbody').innerHTML = (logs.items || []).map(l => `
+                    <tr>
+                        <td style="font-size:11px;">${new Date(l.created_at).toLocaleString()}</td>
+                        <td>${l.action}</td>
+                        <td>${l.user_id || 'System'}</td>
+                    </tr>`).join('');
+
+                    document.querySelector('#backupsTable tbody').innerHTML = (backups || []).map(b => `
+                    <tr>
+                        <td>${b.backup_name}</td>
+                        <td style="font-size:11px;">${new Date(b.created_at).toLocaleString()}</td>
+                        <td><button class="btn btn-s" onclick="logsMod.restore('${b.backup_name}')"><i class="fas fa-rotate-left"></i> Restore</button></td>
+                    </tr>`).join('');
+                } catch (e) {
+                    ui.toast('Lỗi tải nhật ký: ' + e.message, 'danger');
+                }
+            },
+            async createBackup() {
+                try {
+                    await app.api('/admin/backups', { method: 'POST' });
+                    ui.toast('Đang tạo bản sao lưu...', 'success');
+                    this.load();
+                } catch (e) {
+                    ui.toast('Lỗi tạo backup: ' + e.message, 'danger');
+                }
+            },
+            restore(name) { ui.toast('Đang phục hồi: ' + name); }
+        };
+
+        // ===================== PDF VIEWER =====================
+        const pdfViewer = {
+            pdfDoc: null,
+            scale: 1.5,
+
+            async load(url) {
+                const container = document.getElementById('pdf-container');
+                container.innerHTML = '<div class="loader-wrap"><div class="spinner"></div><p>Đang nạp tài liệu...</p></div>';
+                try {
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+                    this.pdfDoc = await pdfjsLib.getDocument(url).promise;
+                    this.renderAllPages();
+                } catch (e) {
+                    container.innerHTML = `<div style="color:white;padding:40px;">Lỗi nạp PDF: ${e.message}</div>`;
+                }
+            },
+
+            async renderAllPages() {
+                const container = document.getElementById('pdf-container');
+                container.innerHTML = '';
+                for (let i = 1; i <= this.pdfDoc.numPages; i++) {
+                    const page = await this.pdfDoc.getPage(i);
+                    const viewport = page.getViewport({ scale: this.scale });
+                    const canvas = document.createElement('canvas');
+                    canvas.className = 'pdf-page';
+                    canvas.id = `pdf-page-${i}`;
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    const tag = document.createElement('div');
+                    tag.className = 'page-tag';
+                    tag.textContent = `Trang ${i}`;
+
+                    const wrapper = document.createElement('div');
+                    wrapper.style.position = 'relative';
+                    wrapper.appendChild(canvas);
+                    wrapper.appendChild(tag);
+                    container.appendChild(wrapper);
+
+                    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+                }
+                document.getElementById('page-num-info').textContent = `Tổng cộng ${this.pdfDoc.numPages} trang`;
+            },
+
+            scrollToPage(num) {
+                const el = document.getElementById(`pdf-page-${num}`);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            },
+            zoomIn() { this.scale = Math.min(3.0, this.scale + 0.2); this.renderAllPages(); },
+            zoomOut() { this.scale = Math.max(0.5, this.scale - 0.2); this.renderAllPages(); },
+            prevPage() { this.scrollToPage(1); },
+            nextPage() { if (this.pdfDoc) this.scrollToPage(this.pdfDoc.numPages); }
+        };
+
+        // ===================== SUMMARIZER =====================
+        const summarizerMod = {
+            selectedFile: null,
+            currentDocId: null,
+            _initialized: false,
+
+            init() {
+                if (this._initialized) return;
+                this._initialized = true;
+
+                const input = document.getElementById('summarizerFile');
+                if (input) {
+                    input.onchange = (e) => {
+                        if (e.target.files && e.target.files[0]) {
+                            this.selectedFile = e.target.files[0];
+                            this.start();
+                        }
+                    };
+                }
+
+                // Drag & drop
+                const dropzone = document.getElementById('dropzone');
+                if (dropzone) {
+                    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.style.borderColor = 'var(--primary)'; });
+                    dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = 'var(--border)'; });
+                    dropzone.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        dropzone.style.borderColor = 'var(--border)';
+                        const file = e.dataTransfer.files[0];
+                        if (file) { this.selectedFile = file; this.start(); }
+                    });
+                }
+            },
+
+            async start() {
+                if (!this.selectedFile) return;
+
+                document.getElementById('summarizer-init').style.display = 'none';
+                document.getElementById('summarizer-split').style.display = 'flex';
+
+                const resultArea = document.getElementById('summaryResult');
+                resultArea.innerHTML = '<div class="loader-wrap"><div class="spinner"></div><p>AI đang phân tích và tóm tắt...</p></div>';
+
+                // Hiển thị PDF ngay
+                pdfViewer.load(URL.createObjectURL(this.selectedFile));
+                document.getElementById('pdf-filename-display').textContent = this.selectedFile.name;
+
+                const fd = new FormData();
+                fd.append('file', this.selectedFile);
+                fd.append('auto_summary', 'true');
+
+                try {
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + app.token },
+                        body: fd
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.detail || 'Lỗi xử lý');
+
+                    this.currentDocId = data.document?.id || null;
+                    this.renderSummary(data.summary?.summary_text || data.document?.document_summary || '');
+                    this.renderEntities(data.document || {});
+                    ui.toast('Phân tích tài liệu thành công!', 'success');
+                } catch (e) {
+                    resultArea.innerHTML = `<div class="card" style="background:#fff1f0;border-color:#ffa39e;color:#cf1322;">Lỗi: ${e.message}</div>`;
+                    ui.toast(e.message, 'danger');
+                }
+            },
+
+            async loadDoc(docId) {
+                this.currentDocId = docId;
+                document.getElementById('summarizer-init').style.display = 'none';
+                document.getElementById('summarizer-split').style.display = 'flex';
+                ui.toast('Đang tải tài liệu #' + docId);
+            },
+
+            renderSummary(text) {
+                const area = document.getElementById('summaryResult');
+                const safeText = text || 'Chưa có nội dung tóm tắt.';
+                const formatted = safeText.split('\n').map(line => {
+                    if (line.startsWith('- ') || line.startsWith('* ')) return `<li style="margin-left:16px;">${line.substring(2)}</li>`;
+                    if (line.match(/^\d+\./)) return `<li style="margin-left:16px;">${line}</li>`;
+                    if (line.trim() === '') return '<br>';
+                    return `<p style="margin-bottom:8px;">${line}</p>`;
+                }).join('');
+                area.innerHTML = `<div>${formatted}</div>`;
+            },
+
+            renderEntities(data) {
+                const area = document.getElementById('entitiesResult');
+                area.innerHTML = `
+                <div style="display:flex;flex-direction:column;gap:16px;">
+                    <div class="card" style="padding:16px;background:#f0f7ff;border-left:4px solid var(--primary);">
+                        <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:4px;">PHÂN LOẠI VĂN BẢN</div>
+                        <div style="font-size:16px;font-weight:700;">${data.document_type || 'Chưa xác định'}</div>
+                    </div>
+                    <div class="grid cols-2">
+                        <div class="card" style="padding:12px;">
+                            <div style="font-size:10px;color:var(--text-muted);">SỐ HIỆU</div>
+                            <div style="font-weight:600;">${data.document_number || '-'}</div>
+                        </div>
+                        <div class="card" style="padding:12px;">
+                            <div style="font-size:10px;color:var(--text-muted);">SỐ TRANG</div>
+                            <div style="font-weight:600;">${data.page_count || '-'}</div>
+                        </div>
+                    </div>
+                    <div class="card" style="padding:12px;">
+                        <div style="font-size:10px;color:var(--text-muted);">TRÍCH YẾU</div>
+                        <div style="font-size:13px;">${data.document_title || '-'}</div>
+                    </div>
+                </div>`;
+            },
+
+            async sendChat() {
+                const input = document.getElementById('chatInput');
+                const query = input.value.trim();
+                if (!query) return;
+
+                const msgWrap = document.getElementById('chatMessages');
+                msgWrap.innerHTML += `<div class="message user">${query}</div>`;
+                input.value = '';
+                msgWrap.scrollTop = msgWrap.scrollHeight;
+
+                const aiMsg = document.createElement('div');
+                aiMsg.className = 'message ai';
+                aiMsg.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Đang suy nghĩ...';
+                msgWrap.appendChild(aiMsg);
+                msgWrap.scrollTop = msgWrap.scrollHeight;
+
+                try {
+                    const res = await app.api('/api/summarize', {
+                        method: 'POST',
+                        body: JSON.stringify({ query, document_ids: [this.currentDocId] })
+                    });
+                    const data = await res.json();
+                    let answer = data.answer || 'Không có câu trả lời.';
+                    if (data.source_chunks && data.source_chunks.length > 0) {
+                        answer += '<div style="margin-top:10px;font-size:11px;color:var(--primary);font-weight:600;">Trích dẫn:</div>';
+                        data.source_chunks.forEach(c => {
+                            const p = c.metadata?.page_number;
+                            if (p) answer += `<span class="badge b-info" style="cursor:pointer;margin-right:4px;" onclick="pdfViewer.scrollToPage(${p})">Trang ${p}</span>`;
+                        });
+                    }
+                    aiMsg.innerHTML = answer;
+                } catch (e) {
+                    aiMsg.innerHTML = `<span style="color:var(--danger)">Lỗi: ${e.message}</span>`;
+                }
+                msgWrap.scrollTop = msgWrap.scrollHeight;
+            },
+
+            async generateMindmap() {
+                const area = document.getElementById('mindmapResult');
+                const renderArea = document.getElementById('mindmapRenderArea');
+
+                area.innerHTML = '<div class="loader-wrap" style="padding:20px;"><div class="spinner"></div><p>AI đang phác thảo sơ đồ...</p></div>';
+                renderArea.style.display = 'none';
+                renderArea.innerHTML = '';
+
+                try {
+                    const query = "Phân tích tài liệu này và tạo một Sơ đồ tư duy (Mindmap). YÊU CẦU: Chỉ trả về MÃ MERMAID.JS hợp lệ (bắt đầu bằng 'mindmap'). Không thêm giải thích.";
+                    const res = await app.api('/api/summarize', {
+                        method: 'POST',
+                        body: JSON.stringify({ query, document_ids: [this.currentDocId] })
+                    });
+                    const data = await res.json();
+                    let answer = (data.answer || '').replace(/```mermaid/gi, '').replace(/```/gi, '').trim();
+
+                    if (!answer.startsWith('mindmap')) {
+                        answer = "mindmap\n  root((Tài liệu))\n    Không thể trích xuất cấu trúc\n      Vui lòng thử lại";
+                    }
+
+                    area.innerHTML = '<button class="btn btn-s" onclick="summarizerMod.generateMindmap()" style="margin:0 auto;display:flex;"><i class="fas fa-sync"></i> Tạo lại</button>';
+                    renderArea.style.display = 'flex';
+                    renderArea.innerHTML = `<pre class="mermaid">${answer}</pre>`;
+                    mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+                } catch (e) {
+                    area.innerHTML = `
+                    <div class="card" style="background:#fff1f0;border-color:#ffa39e;color:#cf1322;">Lỗi: ${e.message}</div>
+                    <button class="btn btn-p" onclick="summarizerMod.generateMindmap()" style="margin:16px auto 0;display:flex;"><i class="fas fa-sync"></i> Thử lại</button>`;
+                }
+            },
+
+            switchTab(tab) {
+                document.querySelectorAll('.ai-tab').forEach(t => t.classList.remove('active'));
+                document.querySelector(`.ai-tab[data-tab="${tab}"]`)?.classList.add('active');
+                document.getElementById('ai-tab-summary').style.display = tab === 'summary' ? 'block' : 'none';
+                document.getElementById('ai-tab-entities').style.display = tab === 'entities' ? 'block' : 'none';
+                document.getElementById('ai-tab-chat').style.display = tab === 'chat' ? 'flex' : 'none';
+                document.getElementById('ai-tab-mindmap').style.display = tab === 'mindmap' ? 'block' : 'none';
+            },
+
+            closeSplit() {
+                document.getElementById('summarizer-split').style.display = 'none';
+                document.getElementById('summarizer-init').style.display = 'block';
+                this.selectedFile = null;
+                this.currentDocId = null;
+            },
+
+            showHistory() { ui.toast('Tính năng lịch sử đang cập nhật'); },
+
+            copy() {
+                const text = document.getElementById('summaryResult').innerText;
+                navigator.clipboard.writeText(text).then(() => ui.toast('Đã sao chép tóm tắt'));
+            },
+
+            download() { ui.toast('Tính năng tải Word đang cập nhật'); }
+        };
+
+        // ===================== SEARCH =====================
+        const searchMod = {
+            init() { },
+            async start() {
+                const query = document.getElementById('searchInput').value.trim();
+                if (!query) return;
+                try {
+                    const res = await app.api('/api/search', { method: 'POST', body: JSON.stringify({ query, top_k: 5 }) });
+                    const data = await res.json();
+                    const wrap = document.getElementById('searchResults');
+                    const results = data.results || [];
+                    if (results.length === 0) {
+                        wrap.innerHTML = '<div class="card" style="text-align:center;color:var(--text-muted);">Không tìm thấy kết quả nào.</div>';
+                        return;
+                    }
+                    wrap.innerHTML = results.map(r => `
+                    <div class="card" style="padding:16px;margin-bottom:0;">
+                        <div style="font-size:12px;color:var(--primary);font-weight:700;margin-bottom:8px;">
+                            Độ tương đồng: ${Math.round((r.final_score || 0) * 100)}% | Trang ${r.metadata?.page_number || '-'}
+                        </div>
+                        <div style="font-size:14px;">${r.content || ''}</div>
+                    </div>`).join('');
+                } catch (e) {
+                    ui.toast(e.message, 'danger');
+                }
+            }
+        };
+
+        // ===================== START =====================
+        app.init();
+    </script>
+</body>
+
+</html>

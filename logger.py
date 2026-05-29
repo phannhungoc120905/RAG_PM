@@ -62,7 +62,11 @@ class JsonLogger(logging.Logger):
     ) -> dict[str, Any] | None:
         merged = dict(extra or {})
         merged.update(kwargs)
-        return merged or None
+        safe_merged = {
+            key if key not in _RESERVED_FIELDS else f"extra_{key}": value
+            for key, value in merged.items()
+        }
+        return safe_merged or None
 
     def debug(self, msg: Any, *args: Any, extra: dict[str, Any] | None = None, **kwargs: Any) -> None:
         super().debug(msg, *args, extra=self._merge_extra(extra, **kwargs))
