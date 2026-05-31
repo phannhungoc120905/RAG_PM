@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 from unittest import result
 
 import httpx
+import time
 from fastapi import HTTPException, status
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -20,6 +22,23 @@ from ocr.runtime import ocr_service
 
 
 log = get_logger("api.service")
+
+
+def _clean_mindmap_node(text: str) -> str:
+    cleaned = re.sub(r"\s+", " ", text or "").strip()
+    if not cleaned:
+        return ""
+    cleaned = cleaned.replace("[", "(").replace("]", ")")
+    if len(cleaned) > 80:
+        cleaned = cleaned[:77].rstrip() + "..."
+    return cleaned
+
+
+def _build_mermaid_mindmap(root_label: str, nodes: list[str]) -> str:
+    lines = ["mindmap", f"  root(({root_label}))"]
+    for node in nodes:
+        lines.append(f"    {node}")
+    return "\n".join(lines)
 
 
 def get_supported_formats() -> list[str]:
@@ -49,6 +68,62 @@ async def check_ollama_health() -> dict[str, Any]:
         }
 
 
+async def generate_mindmap_for_document(
+    db: Session,
+    *,
+    current_user: User,
+    document_id: int,
+    use_llm: bool = True,
+    max_nodes: int = 12,
+) -> dict[str, Any]:
+    document = get_document_detail(db, document_id=document_id, current_user=current_user)
+    root_label = document.document_title or document.original_filename or f"Van ban #{document.id}"
+
+    if use_llm:
+        query = (
+            "Phan tich tai lieu nay va tao So do tu duy (Mindmap). "
+            "YEU CAU: Chi tra ve MA MERMAID.JS hop le (bat dau bang 'mindmap'). "
+            "Khong them giai thich."
+        )
+        result = await ocr_service.get_rag_answer(
+            query,
+            top_k=8,
+            document_ids=[document.id],
+        )
+        answer = (result.get("answer") or "").replace("```mermaid", "").replace("```", "").strip()
+        if answer.startswith("mindmap"):
+            return {"mode": "llm", "mermaid": answer, "source": "llm"}
+
+    chunks = db.scalars(
+        select(ChunkMetadata)
+        .where(ChunkMetadata.document_id == document.id)
+        .order_by(
+            (ChunkMetadata.page_number.is_(None)).asc(),
+            ChunkMetadata.page_number.asc(),
+            (ChunkMetadata.chunk_index.is_(None)).asc(),
+            ChunkMetadata.chunk_index.asc(),
+        )
+    ).all()
+
+    nodes: list[str] = []
+    seen: set[str] = set()
+    for chunk in chunks:
+        candidate = chunk.section_title or chunk.section_code or chunk.content_preview or ""
+        cleaned = _clean_mindmap_node(candidate)
+        if not cleaned or cleaned in seen:
+            continue
+        seen.add(cleaned)
+        nodes.append(cleaned)
+        if len(nodes) >= max_nodes:
+            break
+
+    if not nodes:
+        nodes = ["Khong the trich xuat cau truc", "Vui long thu lai"]
+
+    mermaid = _build_mermaid_mindmap(root_label, nodes)
+    return {"mode": "fallback", "mermaid": mermaid, "source": "chunks"}
+
+
 def list_documents(
     db: Session,
     *,
@@ -66,7 +141,7 @@ def list_documents(
     ).where(Document.deleted_at.is_(None))
     count_statement = select(func.count()).select_from(Document).where(Document.deleted_at.is_(None))
 
-    if current_user.role != "admin":
+    if current_user.role != "admin" and _get_permission_group_code(current_user) != "AGENCY_LEADER":
         statement = statement.where(Document.owner_id == current_user.id)
         count_statement = count_statement.where(Document.owner_id == current_user.id)
 
@@ -151,15 +226,51 @@ async def upload_document(
     db.refresh(document)
 
     try:
+        started_at = time.perf_counter()
         result = ocr_service.process_document(file_bytes, original_filename)
+        ocr_elapsed = time.perf_counter() - started_at
+        log.info(
+            "upload_ocr_completed",
+            extra={"document_id": document.id, "filename": original_filename, "seconds": round(ocr_elapsed, 3)},
+        )
+        file_size_mb = len(file_bytes) / (1024 * 1024) if file_bytes else 0
+        should_fix_with_llm = settings.OCR_FIX_WITH_LLM and file_size_mb <= settings.OCR_FIX_WITH_LLM_MAX_FILE_MB
+        if should_fix_with_llm:
+            fix_started_at = time.perf_counter()
+            result = await ocr_service.fix_processed_result_with_llm(result)
+            log.info(
+                "upload_ocr_fixed_with_llm",
+                extra={
+                    "document_id": document.id,
+                    "filename": original_filename,
+                    "seconds": round(time.perf_counter() - fix_started_at, 3),
+                    "file_size_mb": round(file_size_mb, 2),
+                },
+            )
+        else:
+            log.info(
+                "upload_ocr_skip_llm",
+                extra={
+                    "document_id": document.id,
+                    "filename": original_filename,
+                    "file_size_mb": round(file_size_mb, 2),
+                    "threshold_mb": settings.OCR_FIX_WITH_LLM_MAX_FILE_MB,
+                    "enabled": settings.OCR_FIX_WITH_LLM,
+                },
+            )
         print("DEBUG chunks type:", type(result.get("chunks", [])))
         print("DEBUG chunks sample:", str(result.get("chunks", []))[:300])
 
+        embed_started_at = time.perf_counter()
         final_path = _move_upload_file(processing_path, "done")
         enriched_chunks = _build_enriched_chunks(document.id, result.get("chunks", []))
         start_vector_id = int(ocr_service.index.ntotal)
         embedded_chunks = ocr_service.embed_chunks(enriched_chunks)
         ocr_service.store_embeddings(embedded_chunks)
+        log.info(
+            "upload_embedding_completed",
+            extra={"document_id": document.id, "filename": original_filename, "seconds": round(time.perf_counter() - embed_started_at, 3)},
+        )
         embeddings_written = True
 
         for index, chunk in enumerate(enriched_chunks):
@@ -218,6 +329,14 @@ async def upload_document(
         db.add(document)
         db.commit()
         db.refresh(document)
+        log.info(
+            "upload_document_completed",
+            extra={
+                "document_id": document.id,
+                "filename": original_filename,
+                "total_seconds": round(time.perf_counter() - started_at, 3),
+            },
+        )
 
         _write_system_log(
             db,
@@ -296,6 +415,11 @@ async def create_summary_for_document(
     summary_text = await _generate_llm_text(prompt)
     if not summary_text:
         raise HTTPException(status_code=502, detail="Model did not return a summary")
+    
+    # Enforce quality on raw LLM output: remove prompt leakage, headings, hallucinations.
+    summary_text = _postprocess_summary(summary_text)
+    if _looks_like_refusal(summary_text):
+        summary_text = _fallback_summary_from_source(document.clean_text or "")
 
     version_no = (db.scalar(select(func.max(SummaryHistory.version_no)).where(SummaryHistory.document_id == document.id)) or 0) + 1
     summary = SummaryHistory(
@@ -372,7 +496,11 @@ def list_history(
     ).where(SummaryHistory.is_deleted.is_(False))
     count_statement = select(func.count()).select_from(SummaryHistory).where(SummaryHistory.is_deleted.is_(False))
 
-    if current_user and current_user.role != "admin":
+    if (
+        current_user
+        and current_user.role != "admin"
+        and _get_permission_group_code(current_user) != "AGENCY_LEADER"
+    ):
         statement = statement.join(Document, SummaryHistory.document_id == Document.id).where(Document.owner_id == current_user.id)
         count_statement = count_statement.join(Document, SummaryHistory.document_id == Document.id).where(Document.owner_id == current_user.id)
     if document_id is not None:
@@ -409,8 +537,8 @@ def review_summary(
     approved: bool,
     note: str | None,
 ) -> SummaryHistory:
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required for review")
+    if current_user.role != "admin" and _get_permission_group_code(current_user) != "AGENCY_LEADER":
+        raise HTTPException(status_code=403, detail="Agency leader or admin access required for review")
 
     summary = get_summary_detail(db, summary_id, current_user)
     summary.is_reviewed = approved
@@ -420,6 +548,31 @@ def review_summary(
     summary.document.review_status = "approved" if approved else "needs_revision"
     summary.document.reviewed_by = current_user.id
     summary.document.reviewed_at = datetime.now()
+    summary.document.updated_at = datetime.now()
+    db.add(summary)
+    db.add(summary.document)
+    db.commit()
+    db.refresh(summary)
+    return summary
+
+
+def update_summary_text(
+    db: Session,
+    *,
+    summary_id: int,
+    current_user: User,
+    summary_text: str,
+    title: str | None = None,
+    note: str | None = None,
+) -> SummaryHistory:
+    summary = get_summary_detail(db, summary_id, current_user)
+    summary.summary_text = summary_text
+    if title is not None:
+        summary.title = title
+    if note is not None:
+        summary.review_note = note
+    summary.updated_at = datetime.now()
+    summary.document.document_summary = summary_text
     summary.document.updated_at = datetime.now()
     db.add(summary)
     db.add(summary.document)
@@ -544,7 +697,7 @@ def get_latest_history_public(db: Session, limit: int = 20) -> list[dict[str, An
 
 
 def _resolve_allowed_document_ids(db: Session, current_user: User, document_ids: list[int] | None) -> list[int] | None:
-    if current_user.role == "admin":
+    if current_user.role == "admin" or _get_permission_group_code(current_user) == "AGENCY_LEADER":
         return document_ids
 
     requested_ids = set(document_ids or [])
@@ -560,10 +713,16 @@ def _resolve_allowed_document_ids(db: Session, current_user: User, document_ids:
 
 
 def _assert_document_access(document: Document, current_user: User) -> None:
-    if current_user.role == "admin":
+    if current_user.role == "admin" or _get_permission_group_code(current_user) == "AGENCY_LEADER":
         return
     if document.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="You do not have access to this document")
+
+
+def _get_permission_group_code(current_user: User) -> str | None:
+    if current_user.permission_group:
+        return current_user.permission_group.code
+    return None
 
 
 def _build_enriched_chunks(document_id: int, chunks: list) -> list[dict[str, Any]]:
@@ -691,6 +850,9 @@ async def _generate_llm_text(prompt: str) -> str:
                 "model": settings.MODEL_NAME,
                 "prompt": prompt,
                 "stream": False,
+                "options": {
+                    "num_ctx": settings.OLLAMA_NUM_CTX,
+                },
             },
             timeout=httpx.Timeout(settings.OLLAMA_TIMEOUT_SECONDS, connect=10.0),
         )
@@ -699,20 +861,228 @@ async def _generate_llm_text(prompt: str) -> str:
 
 
 def _build_summary_prompt(document: Document) -> str:
-    document_number = document.document_number or "Khong ro so hieu"
-    document_type = document.document_type or "van_ban"
-    title = document.document_title or document.original_filename or "tai lieu"
+    source_text = _prepare_summary_source_text(document.clean_text or "")
+
     return (
-        "Ban la tro ly tong hop van ban hanh chinh cho khoi nha nuoc.\n"
-        "Hay tao ban tom tat bang tieng Viet ro rang, ngan gon, co cau truc.\n"
-        "Tra ve 5 muc: 1) Thong tin chung 2) Muc tieu 3) Noi dung chinh 4) Don vi/thoi han 5) Luu y.\n"
-        "Khong tu bo sung thong tin khong co trong tai lieu.\n\n"
-        f"So hieu: {document_number}\n"
-        f"Loai van ban: {document_type}\n"
-        f"Tieu de: {title}\n\n"
-        f"NOI DUNG:\n{document.clean_text or ''}\n\n"
-        "BAN TOM TAT:"
+        "NHIEM VU: CHI TOM TAT NOI DUNG TAI LIEU, KHONG DUOC TRA LOI KIU HOI DAP.\n\n"
+
+        "QUY TAC BAT BUOC:\n"
+        "- Chi duoc phep su dung thong tin co trong tai lieu.\n"
+        "- Cam bo sung, suy dien hoac dua ra loi khuyen.\n"
+        "- Cam xin loi, cam noi rang khong du thong tin, cam nhac den cau tra loi truoc do.\n"
+        "- Cam viet loi mo dau va loi ket.\n"
+        "- Cam xung ho toi, ban, chung toi.\n"
+        "- Cam dong vai tac gia, chuyen gia hoac nguoi lap bao cao.\n"
+        "- Cam tao cac muc De xuat, Nhan xet, Kien nghi.\n"
+        "- Hay rut gon tai lieu thanh toi da 150 tu.\n"
+        "- Chi giu lai cac thong tin quan trong nhat.\n"
+        "- Neu mot thong tin khong anh huong den viec hieu tong quan tai lieu thi loai bo.\n"
+        "- Khong mo ta chi tiet.\n"
+        "- Khong dien giai.\n"
+        "- Khong viet lai tung muc.\n"
+        "- Khong liet ke.\n"
+        "- Khong tao tieu de moi.\n"
+        "- Khong danh gia thanh cong, that bai neu tai lieu khong ket luan nhu vay.\n"
+        "- Khong mo dau bang viec ke lai boi canh (vi du: Trong nam..., Du an..., Muc tieu...).\n"
+        "- Neu tai lieu co so lieu thi phai giu lai so lieu quan trong.\n"
+        "- Neu thong tin khong co trong tai lieu thi bo qua.\n\n"
+
+        "DINH DANG DAU RA:\n"
+        "- Mot doan van duy nhat.\n"
+        "- 5-7 cau.\n"
+        "- 120-180 tu.\n"
+        "- Phai ket thuc tron ven, khong ngat ngang giua y.\n"
+        "- Khong markdown.\n"
+        "- Khong tieu de.\n"
+        "- Khong bullet.\n\n"
+
+        "NEU NOI DUNG NGUON NGAN, VAN PHAI VIET MOT DOAN TOM TAT NGAN TU CAC THONG TIN HIEN CO, KHONG DUOC TU CHOI.\n\n"
+
+        f"TAI LIEU:\n{source_text}\n\n"
+
+        "TOM TAT NGAN GON (120-150 TU), VIET THANH MOT DOAN DUY NHAT:"
     )
+
+
+def _prepare_summary_source_text(text: str) -> str:
+    if not text:
+        return ""
+
+    # Preflight cleanup: normalize Unicode and reuse OCR normalization pipeline
+    # to reduce mojibake / OCR artifacts before sending text to the LLM.
+    normalized = unicodedata.normalize("NFC", text)
+    try:
+        normalized = ocr_service.normalize_text(normalized)
+    except Exception:
+        # If OCR service cleanup is unavailable, continue with local cleanup.
+        pass
+
+    normalized = _repair_common_ocr_typos(normalized)
+
+    lines: list[str] = []
+    for raw_line in normalized.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if re.fullmatch(r"(?:---\s*Page\s*\d+\s*---|Trang\s*\d+(?:\s*[-:–—].*)?)", line, flags=re.IGNORECASE):
+            continue
+        if re.fullmatch(r"\[[^\]]+\]", line):
+            continue
+        if re.fullmatch(r"[A-ZÀ-Ỵ0-9\s.,:;()/%+-]{6,}", line) and len(line) <= 80:
+            # Drop short all-caps headings that commonly come from page banners.
+            continue
+        lines.append(line)
+    collapsed = re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+    return collapsed[:12000]
+
+
+def _repair_common_ocr_typos(text: str) -> str:
+    replacements = {
+        "TỦNH HÌNH": "TÌNH HÌNH",
+        "TỦNH HINH": "TÌNH HÌNH",
+        "ban Tom Tat Dieu Hạnh": "ban tom tat dieu hanh",
+        "Tom Tat Dieu Hạnh": "Tom Tat Dieu Hanh",
+    }
+    fixed = text
+    for wrong, right in replacements.items():
+        fixed = fixed.replace(wrong, right)
+    return fixed
+
+
+def _postprocess_summary(text: str) -> str:
+    """
+    Enforce strict quality on LLM output:
+    1. Remove prompt leakage (lines that match system instructions).
+    2. Remove hallucinated headings/recommendations not in source.
+    3. Collapse into single paragraph (no line breaks between sentences).
+    4. Keep only substantive content from source document.
+    """
+    if not text:
+        log.warning("Summary postprocess: Empty input text")
+        return ""
+
+    # Strip leading/trailing whitespace
+    text = text.strip()
+    log.debug(f"Summary postprocess: Raw LLM output ({len(text)} chars):\n{text[:500]}")
+
+    # Remove lines that are prompt echoes or system instruction leakage
+    prompt_leakage_patterns = [
+        r"^\s*Ban\s+la\s+chuyen\s+gia",  # "Ban la chuyen gia..."
+        r"^\s*Toi\s+xin\s+bao\s+cao",  # "Toi xin bao cao..."
+        r"^\s*Nhiem\s+vu\s+cua\s+ban",  # "Nhiem vu cua ban..."
+        r"^\s*Quy\s+tac",  # "Quy tac..."
+        r"^\s*Dau\s+ra\s+mong\s+muon",  # "Dau ra mong muon..."
+    ]
+
+    lines = []
+    filtered_lines = {"leakage": [], "heading": [], "hallucination": []}
+    
+    for raw_line in text.split("\n"):
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        # Check if line matches any prompt leakage pattern
+        is_leakage = any(re.search(pat, line, re.IGNORECASE) for pat in prompt_leakage_patterns)
+        if is_leakage:
+            filtered_lines["leakage"].append(line[:80])
+            continue
+
+        # Remove ONLY pure all-caps short headings (very strict: must be ONLY caps/numbers/spaces, 4-50 chars)
+        if re.fullmatch(r"[A-ZÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴ0-9\s—–-]{4,50}", line) and len(line) <= 50:
+            filtered_lines["heading"].append(line)
+            continue
+
+        # Remove ONLY very specific hallucinated recommendation starts (not generic content)
+        hallucination_patterns = [
+            r"^\s*(Lời khuyên|De xuat|Kien nghi|Nhan xet|Khuyên tăng|Khuyên giảm|Nên tăng|Nên giảm|Tăng cường quản lý|Giảm chi phí|Khuyến khích)\s*[:\-]?",
+        ]
+        is_hallucination = any(re.search(pat, line, re.IGNORECASE) for pat in hallucination_patterns)
+        if is_hallucination:
+            filtered_lines["hallucination"].append(line[:80])
+            continue
+
+        # Remove title-like lines that restate document headers
+        if re.search(r"^(Bao cao|Tong ket|De an|Du an)\b", line, re.IGNORECASE) and len(line.split()) <= 12:
+            filtered_lines["heading"].append(line)
+            continue
+
+        lines.append(line)
+
+    # Collapse into single paragraph with sentence-space separation
+    result = " ".join(lines)
+
+    # Clean up excessive spacing
+    result = re.sub(r"  +", " ", result).strip()
+
+    # Soft trim to sentence boundary if still too long
+    words = result.split()
+    if len(words) > 180:
+        sentences = re.split(r"(?<=[.!?])\s+", result)
+        trimmed: list[str] = []
+        word_count = 0
+        for sentence in sentences:
+            sentence_words = sentence.split()
+            if not sentence_words:
+                continue
+            next_count = word_count + len(sentence_words)
+            if next_count > 180:
+                break
+            trimmed.append(sentence)
+            word_count = next_count
+            if word_count >= 120:
+                # Stop once we have a complete short summary
+                break
+        if trimmed:
+            result = " ".join(trimmed).strip()
+            log.debug(f"Summary postprocess: Soft-trimmed to {word_count} words")
+
+    if filtered_lines["leakage"]:
+        log.debug(f"Filtered prompt leakage: {filtered_lines['leakage']}")
+    if filtered_lines["heading"]:
+        log.debug(f"Filtered headings: {filtered_lines['heading']}")
+    if filtered_lines["hallucination"]:
+        log.debug(f"Filtered hallucinations: {filtered_lines['hallucination']}")
+    
+    log.debug(f"Summary postprocess: After filtering ({len(result)} chars):\n{result[:500]}")
+
+    # Ensure output is not empty
+    if not result:
+        log.warning(f"Summary postprocess: All content filtered. Leakage lines: {len(filtered_lines['leakage'])}, Headings: {len(filtered_lines['heading'])}, Hallucinations: {len(filtered_lines['hallucination'])}")
+        return "(No substantive content extracted from source document)"
+
+    if _looks_like_refusal(result):
+        return result
+
+    return result
+
+
+def _looks_like_refusal(text: str) -> bool:
+    lowered = (text or "").lower()
+    return any(
+        signal in lowered
+        for signal in (
+            "xin lỗi",
+            "không đủ",
+            "không thể",
+            "câu trả lời trước",
+            "không có đủ thông tin",
+            "không đủ để",
+        )
+    )
+
+
+def _fallback_summary_from_source(text: str, max_chars: int = 900) -> str:
+    cleaned = re.sub(r"\s+", " ", (text or "")).strip()
+    if not cleaned:
+        return "Không có đủ nội dung để tóm tắt."
+    if len(cleaned) <= max_chars:
+        return cleaned
+    cut = cleaned[:max_chars]
+    sentence_end = max(cut.rfind("."), cut.rfind("!"), cut.rfind("?"))
+    if sentence_end > 300:
+        cut = cut[: sentence_end + 1]
+    return cut.strip()
 
 
 def _rebuild_vector_storage(db: Session) -> None:

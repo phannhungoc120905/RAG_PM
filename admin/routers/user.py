@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from db.database import get_db
-from auth.dependencies import require_admin
+from auth.dependencies import require_active_user
+from db.models import User
 from admin.service import (
     create_user,
     list_users,
@@ -23,6 +24,15 @@ from admin.schemas import (
 )
 
 router = APIRouter(prefix="/users", tags=["User Management"])
+
+def _require_agency_leader(user: User) -> None:
+    if user.role == "admin":
+        return
+    if not user.permission_group or user.permission_group.code not in {"ADMIN", "AGENCY_LEADER"}:
+        raise HTTPException(
+            status_code=403,
+            detail="Only admin or agency leader can manage business users",
+        )
 
 def _serialize_user(item) -> UserItem:
     return UserItem(
@@ -48,10 +58,10 @@ async def get_users(
     page_size: int = Query(default=20, ge=1, le=100),
     search: str | None = None,
     role: str | None = None,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_active_user),
     db: Session = Depends(get_db),
 ) -> UsersResponse:
-    del admin_user
+    _require_agency_leader(current_user)
     items, total = list_users(db, page, page_size, search, role)
     return UsersResponse(
         items=[_serialize_user(item) for item in items],
@@ -63,10 +73,10 @@ async def get_users(
 @router.post("", response_model=UserItem)
 async def add_user(
     payload: UserCreateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_active_user),
     db: Session = Depends(get_db),
 ) -> UserItem:
-    del admin_user
+    _require_agency_leader(current_user)
     item = create_user(db, payload.model_dump())
     return _serialize_user(item)
 
@@ -74,10 +84,10 @@ async def add_user(
 async def edit_user(
     user_id: int,
     payload: UserUpdateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_active_user),
     db: Session = Depends(get_db),
 ) -> UserItem:
-    del admin_user
+    _require_agency_leader(current_user)
     item = update_user(db, user_id, payload.model_dump(exclude_none=True))
     return _serialize_user(item)
 
@@ -85,20 +95,20 @@ async def edit_user(
 async def reset_password(
     user_id: int,
     payload: PasswordResetRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_active_user),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
-    del admin_user
+    _require_agency_leader(current_user)
     reset_user_password(db, user_id, payload.new_password)
     return MessageResponse(message="Password reset successfully")
 
 @router.post("/{user_id}/toggle-active", response_model=ToggleActiveResponse)
 async def toggle_active(
     user_id: int,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_active_user),
     db: Session = Depends(get_db),
 ) -> ToggleActiveResponse:
-    del admin_user
+    _require_agency_leader(current_user)
     is_active = toggle_user_active(db, user_id)
     return ToggleActiveResponse(
         id=user_id,
@@ -114,10 +124,10 @@ async def get_login_history(
     user_id: int | None = None,
     login_type: str | None = None,
     status_value: str | None = None,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_active_user),
     db: Session = Depends(get_db),
 ) -> LoginHistoryResponse:
-    del admin_user
+    _require_agency_leader(current_user)
     items, total = list_login_history(
         db,
         page=page,

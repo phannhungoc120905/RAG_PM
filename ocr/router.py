@@ -2,11 +2,14 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
+from auth.dependencies import require_action
+from db.models import User
 from ocr.runtime import ocr_service
+from config import settings
 
 
 router = APIRouter(prefix="/ocr", tags=["OCR"])
@@ -35,14 +38,21 @@ async def ocr_page() -> str:
 
 
 @router.get("/supported-formats")
-async def supported_formats() -> dict[str, list[str]]:
+async def supported_formats(
+    current_user: User = Depends(require_action("ocr.supported_formats.view")),
+) -> dict[str, list[str]]:
+    del current_user
     return {
         "formats": ["pdf", "docx", "txt", "jpg", "jpeg", "png", "bmp", "tif", "tiff"],
     }
 
 
 @router.post("/extract-text")
-async def extract_text(file: UploadFile = File(...), fix_with_ai: bool = Query(False)):
+async def extract_text(
+    file: UploadFile = File(...),
+    fix_with_ai: bool = Query(default=False),
+    current_user: User = Depends(require_action("ocr.extract_text.create")),
+):
     """
     Endpoint to extract text from images or PDFs.
     Supports Vietnamese and English.
@@ -63,10 +73,16 @@ async def extract_text(file: UploadFile = File(...), fix_with_ai: bool = Query(F
 
 
 @router.post("/analyze")
-async def analyze_document(file: UploadFile = File(...)) -> dict[str, Any]:
+async def analyze_document(
+    file: UploadFile = File(...),
+    fix_with_ai: bool = Query(default=False),
+    current_user: User = Depends(require_action("ocr.analyze.create")),
+) -> dict[str, Any]:
     try:
         content = await file.read()
         result = ocr_service.process_document(content, file.filename)
+        if fix_with_ai and getattr(ocr_service, "fix_processed_result_with_llm", None):
+            result = await ocr_service.fix_processed_result_with_llm(result)
         return {
             "status": "success",
             "filename": result["filename"],
@@ -87,7 +103,10 @@ async def analyze_document(file: UploadFile = File(...)) -> dict[str, Any]:
 
 
 @router.post("/analyze-text")
-async def analyze_text(payload: TextAnalyzeRequest) -> dict[str, Any]:
+async def analyze_text(
+    payload: TextAnalyzeRequest,
+    current_user: User = Depends(require_action("ocr.analyze_text.create")),
+) -> dict[str, Any]:
     normalized = ocr_service.normalize_text(payload.text)
     chunks = ocr_service.chunk_text(normalized)
     return {
@@ -100,7 +119,11 @@ async def analyze_text(payload: TextAnalyzeRequest) -> dict[str, Any]:
 
 
 @router.post("/upload-process")
-async def upload_and_process(file: UploadFile = File(...), fix_with_ai: bool = Query(False)):
+async def upload_and_process(
+    file: UploadFile = File(...),
+    fix_with_ai: bool = Query(default=False),
+    current_user: User = Depends(require_action("ocr.upload_process.create")),
+):
     """
     Flow: OCR -> Normalize -> Chunk -> Embedding -> Store
     """
@@ -140,7 +163,7 @@ async def upload_and_process(file: UploadFile = File(...), fix_with_ai: bool = Q
             "classification": result["classification"],
             "structure": result["structure"],
             "chunks_count": len(chunks),
-            "text": result["clean_text"],
+            "text": clean_text,
         }
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
@@ -149,7 +172,10 @@ async def upload_and_process(file: UploadFile = File(...), fix_with_ai: bool = Q
         raise HTTPException(status_code=500, detail=f"Internal processing error: {exc}")
 
 @router.post("/search")
-async def search_chunks(request: QueryRequest) -> dict[str, Any]:
+async def search_chunks(
+    request: QueryRequest,
+    current_user: User = Depends(require_action("ocr.search.create")),
+) -> dict[str, Any]:
     try:
         results = ocr_service.hybrid_search(request.query, top_k=request.top_k)
         return {
@@ -162,7 +188,10 @@ async def search_chunks(request: QueryRequest) -> dict[str, Any]:
 
 
 @router.post("/summarize")
-async def summarize_ask(request: QueryRequest) -> dict[str, Any]:
+async def summarize_ask(
+    request: QueryRequest,
+    current_user: User = Depends(require_action("ocr.summarize.create")),
+) -> dict[str, Any]:
     try:
         result = await ocr_service.get_rag_answer(request.query, top_k=request.top_k)
         return result

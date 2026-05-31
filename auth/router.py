@@ -56,12 +56,17 @@ class MeResponse(BaseModel):
     username: str
     email: str | None
     role: str
+    permission_group_id: int | None
+    permission_group_code: str | None
+    permission_group_name: str | None
     is_active: bool
     created_at: datetime
     last_login: datetime | None
     auth_source: str
     department_id: int | None
+    department_name: str | None
     position_id: int | None
+    position_name: str | None
 
 
 def _write_system_log(
@@ -305,10 +310,15 @@ async def me(current_user: User = Depends(require_active_user)) -> MeResponse:
         username=current_user.username,
         email=current_user.email,
         role=current_user.role,
+        permission_group_id=current_user.permission_group_id,
+        permission_group_code=current_user.permission_group.code if current_user.permission_group else None,
+        permission_group_name=current_user.permission_group.name if current_user.permission_group else None,
         is_active=current_user.is_active,
         created_at=current_user.created_at,
         last_login=current_user.last_login,
         auth_source=current_user.auth_source,
         department_id=current_user.department_id,
+        department_name=current_user.department.name if current_user.department else None,
         position_id=current_user.position_id,
+        position_name=current_user.position.name if current_user.position else None,
     )

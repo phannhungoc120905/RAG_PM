@@ -764,6 +764,96 @@
             gap: 8px;
         }
 
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .admin-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .admin-panel-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+            gap: 24px;
+        }
+
+        .module-card {
+            padding: 18px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            display: grid;
+            gap: 10px;
+        }
+
+        .module-card h4 {
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .module-card p {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .subtabs {
+            display: flex;
+            gap: 6px;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 8px;
+            width: fit-content;
+            margin-bottom: 16px;
+        }
+
+        .subtab {
+            border: 0;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .subtab.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+        }
+
+        .compact-input {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            min-width: 220px;
+            font: inherit;
+            font-size: 13px;
+        }
+
+        .muted {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
         @media (max-width: 1279px) {
             .split-view {
                 flex-direction: column;
@@ -773,6 +863,11 @@
             .ai-panel {
                 flex: none;
                 height: 500px;
+            }
+
+            .admin-kpi-grid,
+            .admin-panel-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -788,27 +883,14 @@
                 </div>
             </div>
             <nav class="nav-list">
-                <div class="nav-label">Menu User (Cán Bộ)</div>
-                <div class="nav-item active" data-view="dashboard"><i class="fas fa-chart-line"></i><span>Tổng
-                        quan</span></div>
-                <div class="nav-item" data-view="documents"><i class="fas fa-file-lines"></i><span>Danh sách văn
-                        bản</span></div>
-                <div class="nav-item" data-view="summarizer"><i class="fas fa-wand-magic-sparkles"></i><span>AI Tóm tắt
-                        & Q&A</span></div>
-                <div class="nav-item" data-view="search"><i class="fas fa-search"></i><span>Tìm kiếm toàn văn</span>
-                </div>
-                <div class="nav-label">Menu Trưởng Phòng</div>
-                <div class="nav-item" data-view="work"><i class="fas fa-briefcase"></i><span>Văn bản toàn phòng</span>
-                </div>
-                <div class="nav-label">Menu Admin</div>
-                <div class="nav-item" data-view="users"><i class="fas fa-users"></i><span>Quản lý người dùng</span>
-                </div>
-                <div class="nav-item" data-view="security"><i class="fas fa-shield-halved"></i><span>Bảo mật &
-                        Quyền</span></div>
-                <div class="nav-item" data-view="system"><i class="fas fa-sliders"></i><span>Cấu hình hệ thống</span>
-                </div>
-                <div class="nav-item" data-view="logs"><i class="fas fa-terminal"></i><span>Nhật ký & Backup</span>
-                </div>
+                <div class="nav-label">Admin Console</div>
+                <div class="nav-item active" data-view="dashboard"><i class="fas fa-gauge-high"></i><span>System Dashboard</span></div>
+                <div class="nav-item" data-view="users"><i class="fas fa-user-gear"></i><span>User Management</span></div>
+                <div class="nav-item" data-view="rbac"><i class="fas fa-shield-halved"></i><span>RBAC Management</span></div>
+                <div class="nav-item" data-view="security"><i class="fas fa-key"></i><span>API Keys</span></div>
+                <div class="nav-item" data-view="system"><i class="fas fa-sliders"></i><span>System Settings</span></div>
+                <div class="nav-item" data-view="masterdata"><i class="fas fa-sitemap"></i><span>Master Data</span></div>
+                <div class="nav-item" data-view="logs"><i class="fas fa-clipboard-list"></i><span>Audit & Backup</span></div>
             </nav>
             <div class="sidebar-footer">
                 <div class="user-box">
@@ -835,44 +917,38 @@
             <main class="content" id="mainContent">
                 <!-- Dashboard -->
                 <section id="view-dashboard" class="view-section active">
-                    <div class="grid cols-4" id="dashboardStats">
-                        <div class="card stat-card loader-wrap">
-                            <div class="spinner"></div>
-                        </div>
+                    <div class="admin-kpi-grid" id="dashboardStats">
+                        <div class="card stat-card loader-wrap"><div class="spinner"></div></div>
                     </div>
-                    <div class="card">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                            <h3 style="margin-bottom:0;">Văn bản mới nhất</h3>
-                            <button class="btn btn-s" onclick="app.loadView('documents')">Xem tất cả</button>
+                    <div class="admin-panel-grid" style="margin-top:24px;">
+                        <div class="card">
+                            <div class="toolbar">
+                                <div><h3>System Health</h3><p class="muted">CPU, storage, upload queue and processing status.</p></div>
+                                <button class="btn btn-s" onclick="dashMod.load()"><i class="fas fa-rotate"></i> Refresh</button>
+                            </div>
+                            <div id="resourceStats"></div>
                         </div>
-                        <div class="table-wrap">
-                            <table id="dashDocsTable">
-                                <thead>
-                                    <tr>
-                                        <th>Tên văn bản</th>
-                                        <th>Số hiệu</th>
-                                        <th>Loại</th>
-                                        <th>Trạng thái</th>
-                                        <th>Ngày tạo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td colspan="5" style="text-align:center;">Đang tải...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div class="card">
+                            <div class="toolbar">
+                                <div><h3>Realtime Audit</h3><p class="muted">Latest system actions and API traces.</p></div>
+                                <button class="btn btn-s" onclick="app.loadView('logs')">Open logs</button>
+                            </div>
+                            <div class="table-wrap" style="max-height:360px;overflow-y:auto;">
+                                <table id="dashLogsTable"><thead><tr><th>Time</th><th>Action</th><th>Status</th></tr></thead><tbody><tr><td colspan="3" style="text-align:center;">Loading...</td></tr></tbody></table>
+                            </div>
                         </div>
                     </div>
                     <div class="grid cols-2">
                         <div class="card">
-                            <h3 style="margin-bottom:20px;">Hoạt động hệ thống</h3>
-                            <canvas id="mainChart"></canvas>
+                            <h3 style="margin-bottom:16px;">Admin Function Map</h3>
+                            <div class="grid cols-2">
+                                <div class="module-card"><h4><i class="fas fa-sliders"></i> QT-01 System Configuration</h4><p>AI model, chunk limit, OCR and runtime parameters.</p></div>
+                                <div class="module-card"><h4><i class="fas fa-key"></i> QT-02 API & Integration</h4><p>OpenAI, local model, OCR and external service API keys.</p></div>
+                                <div class="module-card"><h4><i class="fas fa-shield-halved"></i> QT-03 / QT-04 RBAC</h4><p>Permission groups, function catalog and action mapping.</p></div>
+                                <div class="module-card"><h4><i class="fas fa-user-gear"></i> QT-05 User Permissions</h4><p>User provisioning through department and position mapping.</p></div>
+                            </div>
                         </div>
-                        <div class="card">
-                            <h3 style="margin-bottom:20px;">Trạng thái tài nguyên</h3>
-                            <div id="resourceStats"></div>
-                        </div>
+                        <div class="card"><h3 style="margin-bottom:20px;">Request Trend</h3><canvas id="mainChart"></canvas></div>
                     </div>
                 </section>
 
@@ -986,6 +1062,12 @@
                             </div>
                             <div class="ai-content-wrap">
                                 <div id="ai-tab-summary" class="ai-scroll-area">
+                                    <div id="summarizerProgress" style="margin-bottom:12px;display:none;">
+                                        <div style="height:8px;background:#eef2ff;border-radius:6px;overflow:hidden;">
+                                            <div id="summarizerProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg,var(--primary),#60a5fa);transition:width .4s ease;"></div>
+                                        </div>
+                                        <div id="summarizerProgressLabel" style="font-size:12px;color:var(--text-muted);margin-top:6px;">Đang chuẩn bị...</div>
+                                    </div>
                                     <div id="summaryResult"
                                         style="line-height:1.8;color:var(--text-main);font-size:15px;"></div>
                                     <div
@@ -1069,78 +1151,74 @@
                 <!-- Users -->
                 <section id="view-users" class="view-section">
                     <div class="card">
-                        <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <h3>Quản lý người dùng</h3>
-                            <button class="btn btn-p" onclick="usersMod.openAddModal()"><i class="fas fa-plus"></i> Thêm
-                                người dùng</button>
+                        <div class="toolbar">
+                            <div><h3>User Management</h3><p class="muted">Create, lock, reset password and assign department + position. Permission group is resolved from position.</p></div>
+                            <div class="toolbar-actions">
+                                <input class="compact-input" id="userSearch" placeholder="Search username or email" onkeydown="if(event.key==='Enter') usersMod.load()">
+                                <button class="btn btn-s" onclick="usersMod.load()"><i class="fas fa-search"></i> Search</button>
+                                <button class="btn btn-p" onclick="usersMod.openAddModal()"><i class="fas fa-plus"></i> New user</button>
+                            </div>
                         </div>
                         <div class="table-wrap">
                             <table id="usersTable">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Người dùng</th>
-                                        <th>Email</th>
-                                        <th>Vai trò</th>
-                                        <th>Trạng thái</th>
-                                        <th>Hành động</th>
-                                    </tr>
-                                </thead>
+                                <thead><tr><th>ID</th><th>User</th><th>Email</th><th>Department</th><th>Position</th><th>Permission group</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody></tbody>
                             </table>
                         </div>
                     </div>
                 </section>
 
+                <!-- RBAC -->
+                <section id="view-rbac" class="view-section">
+                    <div class="subtabs">
+                        <button class="subtab active" data-rbac-tab="groups" onclick="rbacMod.switchTab('groups')">Permission groups</button>
+                        <button class="subtab" data-rbac-tab="functions" onclick="rbacMod.switchTab('functions')">System functions</button>
+                    </div>
+                    <div class="admin-panel-grid">
+                        <div class="card" id="rbacGroupsPanel">
+                            <div class="toolbar"><div><h3>Permission Groups</h3><p class="muted">QT-03: role-level permission matrix.</p></div><button class="btn btn-p" onclick="rbacMod.openGroupModal()"><i class="fas fa-plus"></i> New group</button></div>
+                            <div class="table-wrap"><table id="groupsTable"><thead><tr><th>Name</th><th>Code</th><th>Functions</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>
+                        </div>
+                        <div class="card" id="rbacFunctionsPanel">
+                            <div class="toolbar"><div><h3>System Functions</h3><p class="muted">QT-04: catalog of screens, APIs and actions.</p></div><button class="btn btn-p" onclick="rbacMod.openFunctionModal()"><i class="fas fa-plus"></i> New function</button></div>
+                            <div class="table-wrap"><table id="functionsTable"><thead><tr><th>Code</th><th>Name</th><th>Module</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Security -->
                 <section id="view-security" class="view-section">
-                    <div class="grid cols-2">
-                        <div class="card">
-                            <h3>API Keys</h3>
-                            <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Quản lý các khóa truy
-                                cập hệ thống qua API.</p>
-                            <button class="btn btn-p" onclick="securityMod.openApiKeyModal()"><i class="fas fa-key"></i>
-                                Tạo API Key</button>
-                            <div class="table-wrap">
-                                <table id="apiKeysTable">
-                                    <thead>
-                                        <tr>
-                                            <th>Tên</th>
-                                            <th>Trạng thái</th>
-                                            <th>Hành động</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <h3>Nhóm quyền</h3>
-                            <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Phân quyền theo chức
-                                năng cho người dùng.</p>
-                            <button class="btn btn-p" onclick="securityMod.openGroupModal()"><i
-                                    class="fas fa-users-gear"></i> Thêm nhóm</button>
-                            <div class="table-wrap">
-                                <table id="groupsTable">
-                                    <thead>
-                                        <tr>
-                                            <th>Tên nhóm</th>
-                                            <th>Code</th>
-                                            <th>Hành động</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
-                            </div>
-                        </div>
+                    <div class="card">
+                        <div class="toolbar"><div><h3>API Keys</h3><p class="muted">QT-02: manage integration keys for model, OCR and external services.</p></div><button class="btn btn-p" onclick="securityMod.openApiKeyModal()"><i class="fas fa-key"></i> Create API Key</button></div>
+                        <div id="newApiKeyBox" style="display:none;margin-bottom:16px;padding:14px;border:1px solid var(--border);border-radius:8px;background:#f8fafc;"></div>
+                        <div class="table-wrap"><table id="apiKeysTable"><thead><tr><th>Name</th><th>Description</th><th>Preview</th><th>Created by</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>
                     </div>
                 </section>
 
                 <!-- System -->
                 <section id="view-system" class="view-section">
-                    <div class="card">
-                        <h3>Cấu hình hệ thống</h3>
-                        <div style="margin-top:20px;" id="systemConfigContent"></div>
+                    <div class="admin-panel-grid">
+                        <div class="card">
+                            <div class="toolbar"><div><h3>Runtime Settings</h3><p class="muted">QT-01: safe runtime parameters exposed by the backend.</p></div><button class="btn btn-p" onclick="systemMod.save()"><i class="fas fa-floppy-disk"></i> Save</button></div>
+                            <div id="systemConfigContent"></div>
+                        </div>
+                        <div class="card">
+                            <div class="toolbar"><div><h3>Config Registry</h3><p class="muted">Prompt templates, limits, retention and archive keys.</p></div><button class="btn btn-p" onclick="systemMod.openConfigModal()"><i class="fas fa-plus"></i> New config</button></div>
+                            <div class="table-wrap"><table id="configsTable"><thead><tr><th>Key</th><th>Category</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Master Data -->
+                <section id="view-masterdata" class="view-section">
+                    <div class="subtabs">
+                        <button class="subtab active" data-master-tab="units" onclick="masterDataMod.switchTab('units')">Issuing units</button>
+                        <button class="subtab" data-master-tab="departments" onclick="masterDataMod.switchTab('departments')">Departments</button>
+                        <button class="subtab" data-master-tab="positions" onclick="masterDataMod.switchTab('positions')">Positions</button>
+                    </div>
+                    <div class="grid cols-2">
+                        <div class="card"><div class="toolbar"><div><h3>Issuing Units</h3><p class="muted">KT-03: UBND, departments, agencies.</p></div><button class="btn btn-p" onclick="masterDataMod.openUnitModal()"><i class="fas fa-plus"></i> New unit</button></div><div class="table-wrap"><table id="unitsTable"><thead><tr><th>Code</th><th>Name</th><th>Short name</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div>
+                        <div class="card"><div class="toolbar"><div><h3>Departments & Positions</h3><p class="muted">KT-04: structure org chart and position mapping.</p></div><div class="toolbar-actions"><button class="btn btn-p" onclick="masterDataMod.openDepartmentModal()"><i class="fas fa-plus"></i> Department</button><button class="btn btn-p" onclick="masterDataMod.openPositionModal()"><i class="fas fa-plus"></i> Position</button></div></div><div class="table-wrap"><table id="orgTable"><thead><tr><th>Type</th><th>Code</th><th>Name</th><th>Department</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div>
                     </div>
                 </section>
 
@@ -1200,6 +1278,15 @@
                             </div>
                         </div>
                     </div>
+                    <div class="card">
+                        <div class="toolbar">
+                            <div>
+                                <h3>Login History</h3>
+                                <p class="muted">KT-02: successful and failed sign-in attempts.</p>
+                            </div>
+                        </div>
+                        <div id="loginHistoryCard"></div>
+                    </div>
                 </section>
             </main>
         </div>
@@ -1256,15 +1343,17 @@
                 if (target) target.classList.add('active');
 
                 const titles = {
-                    dashboard: 'Tổng quan hệ thống',
+                    dashboard: 'System Dashboard',
                     summarizer: 'AI PDF Summarizer',
-                    search: 'Tìm kiếm thông minh',
-                    users: 'Quản lý người dùng',
-                    security: 'Bảo mật & Phân quyền',
-                    work: 'Quản lý văn bản & Công việc',
-                    system: 'Cấu hình hệ thống',
-                    logs: 'Nhật ký & Sao lưu',
-                    documents: 'Danh sách văn bản'
+                    search: 'Smart Search',
+                    users: 'User Management',
+                    rbac: 'RBAC Management',
+                    security: 'API Keys',
+                    work: 'Work Management',
+                    system: 'System Settings',
+                    masterdata: 'Master Data',
+                    logs: 'Audit & Backup',
+                    documents: 'Documents'
                 };
                 document.getElementById('viewTitle').textContent = titles[viewName] || 'Admin';
 
@@ -1274,8 +1363,10 @@
                     case 'summarizer': summarizerMod.init(); break;
                     case 'search': searchMod.init(); break;
                     case 'users': usersMod.load(); break;
+                    case 'rbac': rbacMod.load(); break;
                     case 'security': securityMod.load(); break;
                     case 'system': systemMod.load(); break;
+                    case 'masterdata': masterDataMod.load(); break;
                     case 'work': workMod.load(); break;
                     case 'logs': logsMod.load(); break;
                 }
@@ -1284,10 +1375,23 @@
             // FIX: dùng /admin/users (route tồn tại) để verify token
             async loadProfile() {
                 try {
-                    const res = await fetch('/admin/users?page_size=1', {
+                    const res = await fetch('/auth/me', {
                         headers: { 'Authorization': `Bearer ${this.token}` }
                     });
                     if (res.status === 401) { this.logout(); return; }
+                    if (res.ok) {
+                        this.user = await res.json();
+                        if (this.user.role !== 'admin') {
+                            if (this.user.permission_group_code === 'AGENCY_LEADER') window.location.href = '/agency-leader/dashboard';
+                            else if (this.user.permission_group_code === 'DEPARTMENT_LEADER') window.location.href = '/department-leader/dashboard';
+                            else window.location.href = '/staff/dashboard';
+                            return;
+                        }
+                        const username = this.user.username || 'Admin';
+                        document.getElementById('userName').textContent = username;
+                        document.getElementById('userEmail').textContent = this.user.email || this.user.role || 'admin';
+                        document.getElementById('userAvatar').textContent = username.charAt(0).toUpperCase();
+                    }
                 } catch (e) {
                     console.warn('loadProfile error:', e.message);
                 }
@@ -1344,39 +1448,54 @@
             }
         };
 
+        // ===================== ADMIN HELPERS =====================
+        const adminUtil = {
+            escape(value) {
+                return String(value ?? '').replace(/[&<>'"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[ch]));
+            },
+            badge(active) {
+                return `<span class="badge ${active ? 'b-success' : 'b-danger'}">${active ? 'Active' : 'Off'}</span>`;
+            },
+            date(value) {
+                return value ? new Date(value).toLocaleString('vi-VN') : '-';
+            },
+            empty(selector, cols, text = 'No data') {
+                const tbody = document.querySelector(selector);
+                if (tbody) tbody.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;padding:28px;color:var(--text-muted);">${text}</td></tr>`;
+            }
+        };
+
         // ===================== DASHBOARD =====================
         const dashMod = {
+            chart: null,
             async load() {
                 try {
-                    const res = await app.api('/admin/status');  // → /admin/status (system.py)
-                    const data = await res.json();
-                    this.renderStats(data);
-                    this.renderResources(data);
-                    documentsMod.loadDash();
+                    const [statusRes, logsRes] = await Promise.all([
+                        app.api('/admin/status'),
+                        app.api('/admin/logs?page_size=8')
+                    ]);
+                    const status = await statusRes.json();
+                    const logs = await logsRes.json();
+                    this.renderStats(status);
+                    this.renderResources(status);
+                    this.renderLogs(logs.items || []);
+                    this.renderChart(logs.items || []);
                 } catch (e) {
-                    ui.toast('Lỗi tải dữ liệu Dashboard: ' + e.message, 'danger');
-                    // Hiển thị stats trống để không bị trắng trang
-                    document.getElementById('dashboardStats').innerHTML = `
-                    <div class="card stat-card" style="grid-column:1/-1;text-align:center;color:var(--text-muted);">
-                        Không thể tải dữ liệu thống kê. Kiểm tra kết nối server.
-                    </div>`;
+                    ui.toast('Cannot load admin dashboard: ' + e.message, 'danger');
+                    document.getElementById('dashboardStats').innerHTML = `<div class="card stat-card" style="grid-column:1/-1;color:var(--text-muted);">Admin dashboard data is unavailable.</div>`;
                 }
             },
             renderStats(data) {
-                const statsWrap = document.getElementById('dashboardStats');
                 const items = [
-                    { label: 'Người dùng', val: data.db?.users_count ?? '-', icon: 'fa-users', color: 'blue' },
-                    { label: 'Tài liệu', val: data.db?.documents_count ?? '-', icon: 'fa-file-pdf', color: 'purple' },
-                    { label: 'Tóm tắt AI', val: data.db?.summaries_count ?? '-', icon: 'fa-bolt', color: 'green' },
-                    { label: 'Dung lượng (GB)', val: data.disk?.used_gb ?? '-', icon: 'fa-database', color: 'orange' }
+                    { label: 'Active Users', val: data.db?.users_count ?? '-', icon: 'fa-users', color: 'blue' },
+                    { label: 'Documents', val: data.db?.documents_count ?? '-', icon: 'fa-file-lines', color: 'purple' },
+                    { label: 'AI Summaries', val: data.db?.summaries_count ?? '-', icon: 'fa-bolt', color: 'green' },
+                    { label: 'Error Queue', val: data.uploads?.failed_count ?? 0, icon: 'fa-triangle-exclamation', color: 'orange' }
                 ];
-                statsWrap.innerHTML = items.map(i => `
+                document.getElementById('dashboardStats').innerHTML = items.map(i => `
                 <div class="card stat-card">
                     <div class="stat-icon ${i.color}"><i class="fas ${i.icon}"></i></div>
-                    <div class="stat-info">
-                        <div class="label">${i.label}</div>
-                        <div class="val">${i.val}</div>
-                    </div>
+                    <div class="stat-info"><div class="label">${i.label}</div><div class="val">${i.val}</div></div>
                 </div>`).join('');
             },
             renderResources(data) {
@@ -1384,199 +1503,164 @@
                 const uploads = data.uploads || {};
                 const usedPct = disk.total_gb ? Math.round((disk.used_gb / disk.total_gb) * 100) : 0;
                 document.getElementById('resourceStats').innerHTML = `
-                <div style="margin-top:10px;">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-                        <span style="font-size:13px;">Dung lượng ổ đĩa (${disk.used_gb ?? 0} / ${disk.total_gb ?? 0} GB)</span>
-                        <span style="font-weight:700;">${usedPct}%</span>
+                <div style="display:grid;gap:18px;">
+                    <div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span class="muted">Disk usage (${disk.used_gb ?? 0} / ${disk.total_gb ?? 0} GB)</span><strong>${usedPct}%</strong></div>
+                        <div style="height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;"><div style="width:${usedPct}%;height:100%;background:var(--primary);"></div></div>
                     </div>
-                    <div style="height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
-                        <div style="width:${usedPct}%;height:100%;background:var(--primary);"></div>
-                    </div>
-                </div>
-                <div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                    <div style="padding:16px;background:#f8fafc;border-radius:12px;border:1px solid var(--border);">
-                        <div style="font-size:11px;color:var(--text-muted);font-weight:700;">XỬ LÝ OCR XONG</div>
-                        <div style="font-size:24px;font-weight:700;color:var(--success);">${uploads.done_count ?? 0}</div>
-                    </div>
-                    <div style="padding:16px;background:#f8fafc;border-radius:12px;border:1px solid var(--border);">
-                        <div style="font-size:11px;color:var(--text-muted);font-weight:700;">XỬ LÝ THẤT BẠI</div>
-                        <div style="font-size:24px;font-weight:700;color:var(--danger);">${uploads.failed_count ?? 0}</div>
+                    <div class="grid cols-4" style="gap:12px;">
+                        <div class="module-card"><span class="muted">Processing</span><strong>${uploads.processing_count ?? 0}</strong></div>
+                        <div class="module-card"><span class="muted">Done</span><strong style="color:var(--success);">${uploads.done_count ?? 0}</strong></div>
+                        <div class="module-card"><span class="muted">Failed</span><strong style="color:var(--danger);">${uploads.failed_count ?? 0}</strong></div>
+                        <div class="module-card"><span class="muted">Debug</span><strong>${data.app?.debug ? 'On' : 'Off'}</strong></div>
                     </div>
                 </div>`;
-            }
-        };
-
-        // ===================== DOCUMENTS =====================
-        const documentsMod = {
-            async load() {
-                try {
-                    const search = document.getElementById('docSearch')?.value || '';
-                    const res = await app.api('/api/documents?page_size=50&search=' + encodeURIComponent(search));
-                    const data = await res.json();
-                    this.renderTable(data.items || [], '#docsTable tbody', false);
-                } catch (e) {
-                    ui.toast('Lỗi tải danh sách văn bản: ' + e.message, 'danger');
-                }
             },
-            async loadDash() {
-                try {
-                    const res = await app.api('/api/documents?page_size=5');
-                    const data = await res.json();
-                    this.renderTable(data.items || [], '#dashDocsTable tbody', true);
-                } catch (e) {
-                    const tbody = document.querySelector('#dashDocsTable tbody');
-                    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">Không thể tải dữ liệu</td></tr>';
-                }
+            renderLogs(items) {
+                const tbody = document.querySelector('#dashLogsTable tbody');
+                if (!items.length) return adminUtil.empty('#dashLogsTable tbody', 3);
+                tbody.innerHTML = items.map(l => `<tr><td style="font-size:11px;">${adminUtil.date(l.created_at)}</td><td>${adminUtil.escape(l.action)}</td><td>${l.status_code || '-'}</td></tr>`).join('');
             },
-            renderTable(items, selector, isDash = false) {
-                const tbody = document.querySelector(selector);
-                if (!tbody) return;
-                if (!items || items.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${isDash ? 5 : 7}" style="text-align:center;padding:32px;color:var(--text-muted);">Không có văn bản nào.</td></tr>`;
-                    return;
-                }
-                tbody.innerHTML = items.map(doc => {
-                    let statusBadge = '';
-                    if (doc.processing_status === 'done') statusBadge = '<span class="badge b-ground-ok">Đã xử lý</span>';
-                    else if (doc.processing_status === 'failed') statusBadge = '<span class="badge b-ground-err">Lỗi</span>';
-                    else statusBadge = '<span class="badge b-ground-warn">Đang xử lý</span>';
-
-                    const title = doc.document_title || doc.original_filename || 'Chưa cập nhật';
-                    const number = doc.document_number || '-';
-                    const type = `<span class="badge b-info">${doc.document_type || 'Khác'}</span>`;
-                    const created = new Date(doc.created_at).toLocaleDateString('vi-VN');
-
-                    if (isDash) return `
-                    <tr>
-                        <td><strong>${title}</strong></td>
-                        <td>${number}</td>
-                        <td>${type}</td>
-                        <td>${statusBadge}</td>
-                        <td>${created}</td>
-                    </tr>`;
-                    const issued = doc.processed_at ? new Date(doc.processed_at).toLocaleDateString('vi-VN') : '-';
-                    return `
-                    <tr>
-                        <td><strong>${title}</strong></td>
-                        <td>${number}</td>
-                        <td>${type}</td>
-                        <td>${issued}</td>
-                        <td>UBND</td>
-                        <td>${statusBadge}</td>
-                        <td><button class="btn btn-s" onclick="app.loadView('summarizer');summarizerMod.loadDoc(${doc.id})">Xem</button></td>
-                    </tr>`;
-                }).join('');
+            renderChart(items) {
+                const ctx = document.getElementById('mainChart');
+                if (!ctx || !window.Chart) return;
+                const labels = items.slice().reverse().map(i => new Date(i.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
+                const values = items.slice().reverse().map((_, idx) => idx + 1);
+                if (this.chart) this.chart.destroy();
+                this.chart = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: 'Requests', data: values, tension: .35, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.12)', fill: true }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
             }
         };
 
         // ===================== USERS =====================
         const usersMod = {
+            departments: [],
+            positions: [],
+            async ensureRefs() {
+                if (this.departments.length && this.positions.length) return;
+                const [depsRes, posRes] = await Promise.all([app.api('/admin/departments?page_size=100'), app.api('/admin/positions?page_size=100')]);
+                this.departments = (await depsRes.json()).items || [];
+                this.positions = (await posRes.json()).items || [];
+            },
             async load() {
                 try {
-                    const res = await app.api('/admin/users?page_size=100');
+                    const search = encodeURIComponent(document.getElementById('userSearch')?.value || '');
+                    const res = await app.api('/admin/users?page_size=100&search=' + search);
                     const data = await res.json();
                     const tbody = document.querySelector('#usersTable tbody');
-                    tbody.innerHTML = (data.items || []).map(u => `
+                    if (!(data.items || []).length) return adminUtil.empty('#usersTable tbody', 8);
+                    tbody.innerHTML = data.items.map(u => `
                     <tr>
                         <td>${u.id}</td>
-                        <td>
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <div class="avatar" style="width:24px;height:24px;font-size:10px;">${(u.username || '?')[0].toUpperCase()}</div>
-                                <strong>${u.username}</strong>
-                            </div>
-                        </td>
-                        <td>${u.email || '-'}</td>
-                        <td><span class="badge ${u.role === 'admin' ? 'b-admin' : u.role === 'manager' ? 'b-manager' : 'b-staff'}">
-                            ${u.role === 'admin' ? 'Quản trị viên' : u.role === 'manager' ? 'Trưởng phòng' : 'Cán bộ'}
-                        </span></td>
-                        <td><span class="badge ${u.is_active ? 'b-success' : 'b-danger'}">${u.is_active ? 'Active' : 'Locked'}</span></td>
-                        <td><button class="btn btn-s" onclick="usersMod.edit(${u.id})"><i class="fas fa-edit"></i></button></td>
+                        <td><div style="display:flex;align-items:center;gap:8px;"><div class="avatar" style="width:24px;height:24px;font-size:10px;">${adminUtil.escape((u.username || '?')[0]).toUpperCase()}</div><strong>${adminUtil.escape(u.username)}</strong></div></td>
+                        <td>${adminUtil.escape(u.email || '-')}</td>
+                        <td>${adminUtil.escape(u.department_name || '-')}</td>
+                        <td>${adminUtil.escape(u.position_name || '-')}</td>
+                        <td><span class="badge b-info">${adminUtil.escape(u.permission_group_name || '-')}</span></td>
+                        <td>${adminUtil.badge(u.is_active)}</td>
+                        <td><div class="toolbar-actions"><button class="btn btn-s" onclick="usersMod.openEditModal(${u.id})"><i class="fas fa-pen"></i></button><button class="btn btn-s" onclick="usersMod.openResetModal(${u.id})"><i class="fas fa-lock"></i></button><button class="btn btn-s" onclick="usersMod.toggle(${u.id})"><i class="fas fa-power-off"></i></button></div></td>
                     </tr>`).join('');
-                } catch (e) {
-                    ui.toast('Lỗi tải người dùng: ' + e.message, 'danger');
-                }
+                } catch (e) { ui.toast('Cannot load users: ' + e.message, 'danger'); }
             },
-            openAddModal() {
-                ui.openModal('Thêm người dùng mới', `
-                <div class="form-group"><label>Tên đăng nhập</label><input id="new_username" placeholder="vd: nguyenvanan"></div>
-                <div class="form-group"><label>Mật khẩu</label><input type="password" id="new_password"></div>
-                <div class="form-group"><label>Vai trò</label>
-                    <select id="new_role">
-                        <option value="user">Cán bộ</option>
-                        <option value="manager">Trưởng phòng</option>
-                        <option value="admin">Quản trị viên</option>
-                    </select>
-                </div>`, async () => {
-                    ui.toast('Đang xử lý...');
-                    ui.closeModal();
+            async openAddModal() {
+                await this.ensureRefs();
+                ui.openModal('Create user', this.userForm(), async () => {
+                    try {
+                        await app.api('/admin/users', { method: 'POST', body: JSON.stringify(this.collectUserForm(true)) });
+                        ui.closeModal(); ui.toast('User created', 'success'); this.load();
+                    } catch (e) { ui.toast(e.message, 'danger'); }
                 });
             },
-            edit(id) {
-                ui.toast('Chức năng chỉnh sửa người dùng #' + id);
-            }
+            async openEditModal(id) {
+                await this.ensureRefs();
+                ui.openModal('Edit user #' + id, this.userForm(false), async () => {
+                    try {
+                        await app.api('/admin/users/' + id, { method: 'PUT', body: JSON.stringify(this.collectUserForm(false)) });
+                        ui.closeModal(); ui.toast('User updated', 'success'); this.load();
+                    } catch (e) { ui.toast(e.message, 'danger'); }
+                });
+            },
+            userForm(includePassword = true) {
+                const depOptions = this.departments.map(d => `<option value="${d.id}">${adminUtil.escape(d.name)}</option>`).join('');
+                const posOptions = this.positions.map(p => `<option value="${p.id}">${adminUtil.escape(p.name)} (${adminUtil.escape(p.code)})</option>`).join('');
+                return `<div class="grid cols-2"><div class="form-group"><label>Username</label><input id="user_username"></div><div class="form-group"><label>Email</label><input id="user_email"></div>${includePassword ? '<div class="form-group"><label>Password</label><input id="user_password" type="password" value="Test@123456"></div>' : ''}<div class="form-group"><label>Department</label><select id="user_department_id">${depOptions}</select></div><div class="form-group"><label>Position</label><select id="user_position_id">${posOptions}</select></div><div class="form-group"><label>Status</label><select id="user_is_active"><option value="true">Active</option><option value="false">Inactive</option></select></div></div>`;
+            },
+            collectUserForm(includePassword) {
+                const payload = { username: document.getElementById('user_username').value, email: document.getElementById('user_email').value || null, department_id: Number(document.getElementById('user_department_id').value), position_id: Number(document.getElementById('user_position_id').value), is_active: document.getElementById('user_is_active').value === 'true' };
+                if (includePassword) payload.password = document.getElementById('user_password').value;
+                return payload;
+            },
+            openResetModal(id) {
+                ui.openModal('Reset password', '<div class="form-group"><label>New password</label><input id="reset_password" type="password" value="Test@123456"></div>', async () => {
+                    try { await app.api(`/admin/users/${id}/reset-password`, { method: 'POST', body: JSON.stringify({ new_password: document.getElementById('reset_password').value }) }); ui.closeModal(); ui.toast('Password reset', 'success'); }
+                    catch (e) { ui.toast(e.message, 'danger'); }
+                });
+            },
+            async toggle(id) { try { await app.api(`/admin/users/${id}/toggle-active`, { method: 'POST' }); ui.toast('Account status changed', 'success'); this.load(); } catch (e) { ui.toast(e.message, 'danger'); } }
+        };
+
+        // ===================== RBAC =====================
+        const rbacMod = {
+            async load() { await Promise.all([this.loadGroups(), this.loadFunctions()]); },
+            switchTab(tab) {
+                document.querySelectorAll('[data-rbac-tab]').forEach(b => b.classList.toggle('active', b.dataset.rbacTab === tab));
+                document.getElementById('rbacGroupsPanel').style.display = tab === 'groups' ? 'block' : 'none';
+                document.getElementById('rbacFunctionsPanel').style.display = tab === 'functions' ? 'block' : 'none';
+            },
+            async loadGroups() {
+                try { const data = await (await app.api('/admin/permission-groups?page_size=100')).json(); const rows = data.items || []; if (!rows.length) return adminUtil.empty('#groupsTable tbody', 5); document.querySelector('#groupsTable tbody').innerHTML = rows.map(g => `<tr><td><strong>${adminUtil.escape(g.name)}</strong></td><td><code>${adminUtil.escape(g.code)}</code></td><td>${(g.permissions || []).length}</td><td>${adminUtil.badge(g.is_active)}</td><td><button class="btn btn-s" onclick="rbacMod.viewGroup(${g.id})"><i class="fas fa-eye"></i></button></td></tr>`).join(''); }
+                catch(e) { ui.toast('Cannot load permission groups: ' + e.message, 'danger'); }
+            },
+            async loadFunctions() {
+                try { const data = await (await app.api('/admin/system-functions?page_size=100')).json(); const rows = data.items || []; if (!rows.length) return adminUtil.empty('#functionsTable tbody', 5); document.querySelector('#functionsTable tbody').innerHTML = rows.map(f => `<tr><td><code>${adminUtil.escape(f.code)}</code></td><td>${adminUtil.escape(f.name)}</td><td>${adminUtil.escape(f.module || '-')}</td><td>${adminUtil.badge(f.is_active)}</td><td><button class="btn btn-s" onclick="rbacMod.openFunctionModal(${f.id})"><i class="fas fa-pen"></i></button></td></tr>`).join(''); }
+                catch(e) { ui.toast('Cannot load system functions: ' + e.message, 'danger'); }
+            },
+            viewGroup(id) { ui.toast('Permission matrix detail for group #' + id); },
+            openGroupModal() { ui.toast('Group create/edit uses permission matrix API; add detailed editor when policy is finalized.'); },
+            openFunctionModal() { ui.toast('System function editor is available via API; UI form can be expanded next.'); }
         };
 
         // ===================== SECURITY =====================
         const securityMod = {
             async load() {
-                try {
-                    const [keysRes, groupsRes] = await Promise.all([
-                        app.api('/admin/api-keys'),
-                        app.api('/admin/permission-groups')
-                    ]);
-                    const keys = await keysRes.json();
-                    const groups = await groupsRes.json();
-
-                    document.querySelector('#apiKeysTable tbody').innerHTML = (keys.items || []).map(k => `
-                    <tr>
-                        <td>${k.name}</td>
-                        <td><span class="badge ${k.is_active ? 'b-success' : 'b-danger'}">${k.is_active ? 'Active' : 'Off'}</span></td>
-                        <td><button class="btn btn-s" onclick="securityMod.deleteKey(${k.id})"><i class="fas fa-trash"></i></button></td>
-                    </tr>`).join('');
-
-                    document.querySelector('#groupsTable tbody').innerHTML = (groups.items || []).map(g => `
-                    <tr>
-                        <td><strong>${g.name}</strong></td>
-                        <td><code>${g.code}</code></td>
-                        <td><button class="btn btn-s"><i class="fas fa-pencil"></i></button></td>
-                    </tr>`).join('');
-                } catch (e) {
-                    ui.toast('Lỗi tải bảo mật: ' + e.message, 'danger');
-                }
+                try { const data = await (await app.api('/admin/api-keys?page_size=100')).json(); const rows = data.items || []; if (!rows.length) return adminUtil.empty('#apiKeysTable tbody', 6); document.querySelector('#apiKeysTable tbody').innerHTML = rows.map(k => `<tr><td>${adminUtil.escape(k.name || '-')}</td><td>${adminUtil.escape(k.description || '-')}</td><td><code>${adminUtil.escape(k.key_hash_preview || '-')}</code></td><td>${k.created_by}</td><td>${adminUtil.badge(k.is_active)}</td><td><button class="btn btn-s" onclick="securityMod.deleteKey(${k.id})"><i class="fas fa-trash"></i></button></td></tr>`).join(''); }
+                catch (e) { ui.toast('Cannot load API keys: ' + e.message, 'danger'); }
             },
-            openApiKeyModal() { ui.toast('Tính năng tạo API Key đang cập nhật'); },
-            openGroupModal() { ui.toast('Tính năng thêm nhóm đang cập nhật'); },
-            deleteKey(id) { ui.toast('Xóa key #' + id); }
+            openApiKeyModal() {
+                ui.openModal('Create API Key', '<div class="form-group"><label>Name</label><input id="api_key_name" placeholder="OpenAI production"></div><div class="form-group"><label>Description</label><textarea id="api_key_desc" rows="3"></textarea></div>', async () => {
+                    try { const data = await (await app.api('/admin/api-keys', { method: 'POST', body: JSON.stringify({ name: document.getElementById('api_key_name').value, description: document.getElementById('api_key_desc').value || null }) })).json(); ui.closeModal(); document.getElementById('newApiKeyBox').style.display = 'block'; document.getElementById('newApiKeyBox').innerHTML = `<strong>Copy this key now:</strong><br><code>${adminUtil.escape(data.plain_key)}</code>`; this.load(); }
+                    catch(e) { ui.toast(e.message, 'danger'); }
+                });
+            },
+            async deleteKey(id) { try { await app.api('/admin/api-keys/' + id, { method: 'DELETE' }); ui.toast('API key deleted', 'success'); this.load(); } catch(e) { ui.toast(e.message, 'danger'); } }
         };
 
         // ===================== SYSTEM =====================
         const systemMod = {
-            async load() {
-                try {
-                    const res = await app.api('/admin/app-config');
-                    const data = await res.json();
-                    document.getElementById('systemConfigContent').innerHTML = `
-                    <div class="grid cols-2">
-                        <div class="form-group"><label>Model Name</label><input value="${data.model_name || ''}" id="cfg_model"></div>
-                        <div class="form-group"><label>Chunk Size</label><input type="number" value="${data.chunk_size || ''}" id="cfg_chunk"></div>
-                    </div>
-                    <button class="btn btn-p" onclick="systemMod.save()">Lưu cấu hình</button>`;
-                } catch (e) {
-                    ui.toast('Lỗi tải cấu hình: ' + e.message, 'danger');
-                }
+            async load() { await Promise.all([this.loadRuntime(), this.loadConfigs()]); },
+            async loadRuntime() {
+                try { const data = await (await app.api('/admin/app-config')).json(); document.getElementById('systemConfigContent').innerHTML = `<div class="grid cols-2"><div class="form-group"><label>Model name</label><input value="${adminUtil.escape(data.model_name || '')}" id="cfg_model"></div><div class="form-group"><label>Model path</label><input value="${adminUtil.escape(data.model_path || '')}" disabled></div><div class="form-group"><label>Chunk size</label><input type="number" value="${data.chunk_size || ''}" id="cfg_chunk"></div><div class="form-group"><label>Chunk overlap</label><input type="number" value="${data.chunk_overlap || 0}" id="cfg_overlap"></div><div class="form-group"><label>Vector dim</label><input value="${data.vector_dim || ''}" disabled></div><div class="form-group"><label>OCR language</label><input value="${adminUtil.escape(data.ocr_lang || '')}" disabled></div></div>`; }
+                catch(e) { ui.toast('Cannot load runtime settings: ' + e.message, 'danger'); }
             },
-            async save() {
-                try {
-                    const payload = {
-                        model_name: document.getElementById('cfg_model').value,
-                        chunk_size: Number(document.getElementById('cfg_chunk').value)
-                    };
-                    await app.api('/admin/app-config', { method: 'PUT', body: JSON.stringify(payload) });
-                    ui.toast('Đã cập nhật cấu hình hệ thống', 'success');
-                } catch (e) {
-                    ui.toast('Lỗi lưu cấu hình: ' + e.message, 'danger');
-                }
-            }
+            async loadConfigs() {
+                try { const data = await (await app.api('/admin/configs?page_size=100')).json(); const rows = data.items || []; if (!rows.length) return adminUtil.empty('#configsTable tbody', 5); document.querySelector('#configsTable tbody').innerHTML = rows.map(c => `<tr><td><code>${adminUtil.escape(c.config_key)}</code></td><td>${adminUtil.escape(c.category)}</td><td>${adminUtil.escape(c.data_type)}</td><td>${adminUtil.badge(c.is_active)}</td><td><button class="btn btn-s" onclick="systemMod.deleteConfig(${c.id})"><i class="fas fa-trash"></i></button></td></tr>`).join(''); }
+                catch(e) { adminUtil.empty('#configsTable tbody', 5, e.message); }
+            },
+            async save() { try { await app.api('/admin/app-config', { method: 'PUT', body: JSON.stringify({ model_name: document.getElementById('cfg_model').value, chunk_size: Number(document.getElementById('cfg_chunk').value), chunk_overlap: Number(document.getElementById('cfg_overlap').value) }) }); ui.toast('Runtime settings saved', 'success'); } catch(e) { ui.toast(e.message, 'danger'); } },
+            openConfigModal() { ui.openModal('New system config', '<div class="grid cols-2"><div class="form-group"><label>Key</label><input id="config_key"></div><div class="form-group"><label>Category</label><input id="config_category" value="general"></div><div class="form-group"><label>Data type</label><select id="config_type"><option>string</option><option>number</option><option>boolean</option><option>json</option></select></div><div class="form-group"><label>Value</label><input id="config_value"></div></div><div class="form-group"><label>Description</label><textarea id="config_desc" rows="3"></textarea></div>', async () => { try { await app.api('/admin/configs', { method: 'POST', body: JSON.stringify({ config_key: document.getElementById('config_key').value, config_value: document.getElementById('config_value').value, category: document.getElementById('config_category').value, data_type: document.getElementById('config_type').value, description: document.getElementById('config_desc').value || null }) }); ui.closeModal(); ui.toast('Config created', 'success'); this.loadConfigs(); } catch(e) { ui.toast(e.message, 'danger'); } }); },
+            async deleteConfig(id) { try { await app.api('/admin/configs/' + id, { method: 'DELETE' }); ui.toast('Config deleted', 'success'); this.loadConfigs(); } catch(e) { ui.toast(e.message, 'danger'); } }
+        };
+
+        // ===================== MASTER DATA =====================
+        const masterDataMod = {
+            async load() { await Promise.all([this.loadUnits(), this.loadOrg()]); },
+            switchTab(tab) { document.querySelectorAll('[data-master-tab]').forEach(b => b.classList.toggle('active', b.dataset.masterTab === tab)); },
+            async loadUnits() { try { const data = await (await app.api('/admin/issuing-units?page_size=100')).json(); const rows = data.items || []; if (!rows.length) return adminUtil.empty('#unitsTable tbody', 5); document.querySelector('#unitsTable tbody').innerHTML = rows.map(u => `<tr><td><code>${adminUtil.escape(u.code)}</code></td><td>${adminUtil.escape(u.name)}</td><td>${adminUtil.escape(u.short_name || '-')}</td><td>${adminUtil.badge(u.is_active)}</td><td><button class="btn btn-s" onclick="masterDataMod.deleteUnit(${u.id})"><i class="fas fa-trash"></i></button></td></tr>`).join(''); } catch(e) { adminUtil.empty('#unitsTable tbody', 5, e.message); } },
+            async loadOrg() { try { const [depData, posData] = await Promise.all([(await app.api('/admin/departments?page_size=100')).json(), (await app.api('/admin/positions?page_size=100')).json()]); const rows = [...(depData.items || []).map(d => ({ type:'Department', code:d.code, name:d.name, dept:'-', active:d.is_active, id:d.id, api:'departments' })), ...(posData.items || []).map(p => ({ type:'Position', code:p.code, name:p.name, dept:p.department_name || '-', active:p.is_active, id:p.id, api:'positions' }))]; if (!rows.length) return adminUtil.empty('#orgTable tbody', 6); document.querySelector('#orgTable tbody').innerHTML = rows.map(r => `<tr><td>${r.type}</td><td><code>${adminUtil.escape(r.code)}</code></td><td>${adminUtil.escape(r.name)}</td><td>${adminUtil.escape(r.dept)}</td><td>${adminUtil.badge(r.active)}</td><td><button class="btn btn-s" onclick="masterDataMod.deleteOrg('${r.api}', ${r.id})"><i class="fas fa-trash"></i></button></td></tr>`).join(''); } catch(e) { adminUtil.empty('#orgTable tbody', 6, e.message); } },
+            openUnitModal() { ui.openModal('New issuing unit', '<div class="form-group"><label>Code</label><input id="unit_code"></div><div class="form-group"><label>Name</label><input id="unit_name"></div><div class="form-group"><label>Short name</label><input id="unit_short"></div>', async () => { try { await app.api('/admin/issuing-units', { method:'POST', body: JSON.stringify({ code: document.getElementById('unit_code').value, name: document.getElementById('unit_name').value, short_name: document.getElementById('unit_short').value || null }) }); ui.closeModal(); this.loadUnits(); } catch(e) { ui.toast(e.message, 'danger'); } }); },
+            openDepartmentModal() { ui.openModal('New department', '<div class="form-group"><label>Code</label><input id="dep_code"></div><div class="form-group"><label>Name</label><input id="dep_name"></div><div class="form-group"><label>Description</label><textarea id="dep_desc"></textarea></div>', async () => { try { await app.api('/admin/departments', { method:'POST', body: JSON.stringify({ code: document.getElementById('dep_code').value, name: document.getElementById('dep_name').value, description: document.getElementById('dep_desc').value || null }) }); ui.closeModal(); this.loadOrg(); } catch(e) { ui.toast(e.message, 'danger'); } }); },
+            async openPositionModal() { const deps = await (await app.api('/admin/departments?page_size=100')).json(); const options = (deps.items || []).map(d => `<option value="${d.id}">${adminUtil.escape(d.name)}</option>`).join(''); ui.openModal('New position', `<div class="form-group"><label>Code</label><input id="pos_code"></div><div class="form-group"><label>Name</label><input id="pos_name"></div><div class="form-group"><label>Department</label><select id="pos_dep"><option value="">General</option>${options}</select></div>`, async () => { try { const dep = document.getElementById('pos_dep').value; await app.api('/admin/positions', { method:'POST', body: JSON.stringify({ code: document.getElementById('pos_code').value, name: document.getElementById('pos_name').value, department_id: dep ? Number(dep) : null }) }); ui.closeModal(); this.loadOrg(); } catch(e) { ui.toast(e.message, 'danger'); } }); },
+            async deleteUnit(id) { try { await app.api('/admin/issuing-units/' + id, { method:'DELETE' }); this.loadUnits(); } catch(e) { ui.toast(e.message, 'danger'); } },
+            async deleteOrg(api, id) { try { await app.api(`/admin/${api}/${id}`, { method:'DELETE' }); this.loadOrg(); } catch(e) { ui.toast(e.message, 'danger'); } }
         };
 
         // ===================== WORK =====================
@@ -1585,16 +1669,8 @@
                 try {
                     const res = await app.api('/admin/work-documents');
                     const data = await res.json();
-                    document.querySelector('#workDocsTable tbody').innerHTML = (data.items || []).map(d => `
-                    <tr>
-                        <td><code>${d.document_code}</code></td>
-                        <td>${d.title}</td>
-                        <td><span class="badge b-info">${d.status}</span></td>
-                        <td><button class="btn btn-s"><i class="fas fa-eye"></i></button></td>
-                    </tr>`).join('');
-                } catch (e) {
-                    ui.toast('Lỗi tải văn bản: ' + e.message, 'danger');
-                }
+                    document.querySelector('#workDocsTable tbody').innerHTML = (data.items || []).map(d => `<tr><td><code>${adminUtil.escape(d.document_code)}</code></td><td>${adminUtil.escape(d.title)}</td><td><span class="badge b-info">${adminUtil.escape(d.status)}</span></td><td><button class="btn btn-s"><i class="fas fa-eye"></i></button></td></tr>`).join('');
+                } catch (e) { ui.toast('Cannot load work documents: ' + e.message, 'danger'); }
             }
         };
 
@@ -1602,40 +1678,22 @@
         const logsMod = {
             async load() {
                 try {
-                    const [logsRes, backupsRes] = await Promise.all([
-                        app.api('/admin/logs?page_size=20'),
-                        app.api('/admin/backups')
-                    ]);
+                    const [logsRes, loginRes, backupsRes] = await Promise.all([app.api('/admin/logs?page_size=50'), app.api('/admin/login-history?page_size=20'), app.api('/admin/backups')]);
                     const logs = await logsRes.json();
+                    const login = await loginRes.json();
                     const backups = await backupsRes.json();
-
-                    document.querySelector('#logsTable tbody').innerHTML = (logs.items || []).map(l => `
-                    <tr>
-                        <td style="font-size:11px;">${new Date(l.created_at).toLocaleString()}</td>
-                        <td>${l.action}</td>
-                        <td>${l.user_id || 'System'}</td>
-                    </tr>`).join('');
-
-                    document.querySelector('#backupsTable tbody').innerHTML = (backups || []).map(b => `
-                    <tr>
-                        <td>${b.backup_name}</td>
-                        <td style="font-size:11px;">${new Date(b.created_at).toLocaleString()}</td>
-                        <td><button class="btn btn-s" onclick="logsMod.restore('${b.backup_name}')"><i class="fas fa-rotate-left"></i> Restore</button></td>
-                    </tr>`).join('');
-                } catch (e) {
-                    ui.toast('Lỗi tải nhật ký: ' + e.message, 'danger');
-                }
+                    document.querySelector('#logsTable tbody').innerHTML = (logs.items || []).map(l => `<tr><td style="font-size:11px;">${adminUtil.date(l.created_at)}</td><td>${adminUtil.escape(l.action)}</td><td>${l.user_id || 'System'}</td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;">No logs</td></tr>';
+                    document.querySelector('#backupsTable tbody').innerHTML = (backups || []).map(b => `<tr><td>${adminUtil.escape(b.backup_name)}</td><td style="font-size:11px;">${adminUtil.date(b.created_at)}</td><td><button class="btn btn-s" onclick="logsMod.restore('${adminUtil.escape(b.backup_name)}')"><i class="fas fa-rotate-left"></i> Restore</button></td></tr>`).join('') || '<tr><td colspan="3" style="text-align:center;">No backups</td></tr>';
+                    this.renderLoginHistory(login.items || []);
+                } catch (e) { ui.toast('Cannot load audit data: ' + e.message, 'danger'); }
             },
-            async createBackup() {
-                try {
-                    await app.api('/admin/backups', { method: 'POST' });
-                    ui.toast('Đang tạo bản sao lưu...', 'success');
-                    this.load();
-                } catch (e) {
-                    ui.toast('Lỗi tạo backup: ' + e.message, 'danger');
-                }
+            renderLoginHistory(items) {
+                const card = document.getElementById('loginHistoryCard');
+                if (!card) return;
+                card.innerHTML = items.map(i => `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span>${adminUtil.escape(i.username_snapshot)}</span><span class="badge ${i.status === 'success' ? 'b-success' : 'b-danger'}">${adminUtil.escape(i.status)}</span></div>`).join('');
             },
-            restore(name) { ui.toast('Đang phục hồi: ' + name); }
+            async createBackup() { try { await app.api('/admin/backups', { method: 'POST' }); ui.toast('Backup created', 'success'); this.load(); } catch (e) { ui.toast(e.message, 'danger'); } },
+            restore(name) { ui.toast('Restore requires confirmation workflow: ' + name); }
         };
 
         // ===================== PDF VIEWER =====================
@@ -1732,25 +1790,75 @@
                 document.getElementById('summarizer-init').style.display = 'none';
                 document.getElementById('summarizer-split').style.display = 'flex';
 
+                const progressWrap = document.getElementById('summarizerProgress');
+                const progressBar = document.getElementById('summarizerProgressBar');
+                const progressLabel = document.getElementById('summarizerProgressLabel');
                 const resultArea = document.getElementById('summaryResult');
-                resultArea.innerHTML = '<div class="loader-wrap"><div class="spinner"></div><p>AI đang phân tích và tóm tắt...</p></div>';
+                resultArea.innerHTML = '';
+                // show progress UI
+                progressWrap.style.display = 'block';
+                progressBar.style.width = '6%';
+                progressLabel.textContent = 'Đang tải lên...';
+                let progressInterval = null;
+                const startAnimating = () => {
+                    let pct = 6;
+                    progressInterval = setInterval(() => {
+                        pct = Math.min(92, pct + Math.random() * 6);
+                        progressBar.style.width = pct + '%';
+                    }, 800);
+                };
+                const stopAnimating = () => { if (progressInterval) { clearInterval(progressInterval); progressInterval = null; } };
+                startAnimating();
 
                 // Hiển thị PDF ngay
-                pdfViewer.load(URL.createObjectURL(this.selectedFile));
+                try {
+                    await pdfViewer.load(URL.createObjectURL(this.selectedFile));
+                } catch (e) {
+                    console.warn('pdf preview failed:', e.message);
+                }
                 document.getElementById('pdf-filename-display').textContent = this.selectedFile.name;
 
-                const fd = new FormData();
-                fd.append('file', this.selectedFile);
-                fd.append('auto_summary', 'true');
+                const previewFd = new FormData();
+                previewFd.append('file', this.selectedFile);
+
+                const uploadFd = new FormData();
+                uploadFd.append('file', this.selectedFile);
+                uploadFd.append('auto_summary', 'true');
+
+                const previewPromise = fetch('/ocr/analyze', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + app.token },
+                    body: previewFd
+                })
+                    .then(async (res) => {
+                        if (!res.ok) return null;
+                        return await res.json();
+                    })
+                    .catch(() => null);
 
                 try {
-                    const res = await fetch('/api/upload', {
+                    const uploadPromise = fetch('/api/upload', {
                         method: 'POST',
                         headers: { 'Authorization': 'Bearer ' + app.token },
-                        body: fd
+                        body: uploadFd
                     });
+
+                    const previewData = await previewPromise;
+                    if (previewData && previewData.text) {
+                        this.renderPreview(previewData);
+                        progressBar.style.width = '30%';
+                        progressLabel.textContent = 'Đang nhận diện OCR...';
+                    }
+
+                    const res = await uploadPromise;
                     const data = await res.json();
+                    stopAnimating();
                     if (!res.ok) throw new Error(data.detail || 'Lỗi xử lý');
+
+                    // finalize progress
+                    progressBar.style.width = '100%';
+                    progressLabel.textContent = 'Hoàn tất';
+                    setTimeout(() => { progressWrap.style.display = 'none'; }, 900);
 
                     this.currentDocId = data.document?.id || null;
                     this.renderSummary(data.summary?.summary_text || data.document?.document_summary || '');
@@ -1760,6 +1868,23 @@
                     resultArea.innerHTML = `<div class="card" style="background:#fff1f0;border-color:#ffa39e;color:#cf1322;">Lỗi: ${e.message}</div>`;
                     ui.toast(e.message, 'danger');
                 }
+            },
+
+            renderPreview(data) {
+                const area = document.getElementById('summaryResult');
+                const previewText = (data.text || '').trim() || 'Chưa trích xuất được nội dung OCR.';
+                const excerpt = adminUtil.escape(previewText.slice(0, 1400)).replace(/\n/g, '<br>');
+                const classification = adminUtil.escape(data.classification?.document_type || 'Chưa xác định');
+                const structure = data.structure?.document_code ? adminUtil.escape(data.structure.document_code) : '-';
+                area.innerHTML = `
+                    <div class="card" style="padding:16px;margin-bottom:16px;background:#f8fbff;border-left:4px solid var(--primary);">
+                        <div style="font-size:11px;font-weight:700;color:var(--primary);margin-bottom:6px;">KẾT QUẢ OCR TẠM THỜI</div>
+                        <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+                            <span><strong>Loại:</strong> ${classification}</span>
+                            <span><strong>Số hiệu:</strong> ${structure}</span>
+                        </div>
+                        <div style="white-space:normal;line-height:1.7;font-size:14px;">${excerpt}</div>
+                    </div>`;
             },
 
             async loadDoc(docId) {
@@ -1852,13 +1977,12 @@
                 renderArea.innerHTML = '';
 
                 try {
-                    const query = "Phân tích tài liệu này và tạo một Sơ đồ tư duy (Mindmap). YÊU CẦU: Chỉ trả về MÃ MERMAID.JS hợp lệ (bắt đầu bằng 'mindmap'). Không thêm giải thích.";
-                    const res = await app.api('/api/summarize', {
+                    const res = await app.api('/api/mindmap', {
                         method: 'POST',
-                        body: JSON.stringify({ query, document_ids: [this.currentDocId] })
+                        body: JSON.stringify({ document_id: this.currentDocId, use_llm: true, max_nodes: 12 })
                     });
                     const data = await res.json();
-                    let answer = (data.answer || '').replace(/```mermaid/gi, '').replace(/```/gi, '').trim();
+                    let answer = (data.mermaid || '').replace(/```mermaid/gi, '').replace(/```/gi, '').trim();
 
                     if (!answer.startsWith('mindmap')) {
                         answer = "mindmap\n  root((Tài liệu))\n    Không thể trích xuất cấu trúc\n      Vui lòng thử lại";

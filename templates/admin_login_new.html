@@ -591,9 +591,15 @@
                     
                     showNotification('Đăng nhập thành công!', 'success');
                     
+                    const meResponse = await fetch('/auth/me', {
+                        headers: { 'Authorization': 'Bearer ' + data.access_token }
+                    });
+                    const me = meResponse.ok ? await meResponse.json() : data.user;
+                    const destination = resolveWorkspaceUrl(me);
+
                     setTimeout(() => {
-                        window.location.href = '/admin/dashboard';
-                    }, 1500);
+                        window.location.href = destination;
+                    }, 700);
                 } else {
                     showNotification(data.detail || 'Đăng nhập thất bại', 'error');
                     button.innerHTML = originalText;
@@ -604,6 +610,15 @@
                 button.innerHTML = originalText;
                 button.disabled = false;
             }
+        }
+
+        function resolveWorkspaceUrl(user) {
+            if (user?.role === 'admin') return '/admin/dashboard';
+            const group = user?.permission_group_code || user?.permission_group_name || '';
+            if (group === 'AGENCY_LEADER') return '/agency-leader/dashboard';
+            if (group === 'DEPARTMENT_LEADER') return '/department-leader/dashboard';
+            if (group === 'STAFF') return '/staff/dashboard';
+            return '/staff/dashboard';
         }
 
         // Handle Forgot Password

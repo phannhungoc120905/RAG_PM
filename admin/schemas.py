@@ -111,8 +111,6 @@ class UserCreateRequest(BaseModel):
     username: str
     email: str | None = None
     password: str = Field(min_length=6)
-    role: str = "user"
-    permission_group_id: int | None = None
     department_id: int | None = None
     position_id: int | None = None
     is_active: bool = True
@@ -120,8 +118,6 @@ class UserCreateRequest(BaseModel):
 class UserUpdateRequest(BaseModel):
     username: str | None = None
     email: str | None = None
-    role: str | None = None
-    permission_group_id: int | None = None
     department_id: int | None = None
     position_id: int | None = None
     is_active: bool | None = None

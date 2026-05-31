@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session, selectinload
 from auth.service import hash_password
-from db.models import User
+from db.models import User, PositionPermissionGroup
 from admin.services.common import _get_user_or_404, _get_group_or_404, _get_department_or_404, _get_position_or_404
 
 def list_users(
@@ -41,9 +41,17 @@ def list_users(
 
 def create_user(db: Session, payload: dict[str, Any]) -> User:
     _assert_unique_user(db, payload["username"], payload.get("email"))
+    if "permission_group_id" in payload:
+        raise HTTPException(status_code=400, detail="permission_group_id is assigned by position")
+    if payload.get("role", "user") != "user":
+        raise HTTPException(status_code=400, detail="role is fixed to user")
+    if payload.get("position_id") is None:
+        raise HTTPException(status_code=400, detail="position_id is required")
+
+    permission_group_id = _resolve_permission_group_id(db, payload.get("position_id"))
     _validate_user_relations(
         db,
-        payload.get("permission_group_id"),
+        permission_group_id,
         payload.get("department_id"),
         payload.get("position_id"),
     )
@@ -51,8 +59,8 @@ def create_user(db: Session, payload: dict[str, Any]) -> User:
         username=payload["username"],
         email=payload.get("email"),
         hashed_password=hash_password(payload["password"]),
-        role=payload.get("role", "user"),
-        permission_group_id=payload.get("permission_group_id"),
+        role="user",
+        permission_group_id=permission_group_id,
         department_id=payload.get("department_id"),
         position_id=payload.get("position_id"),
         is_active=payload.get("is_active", True),
@@ -68,6 +76,11 @@ def update_user(db: Session, user_id: int, payload: dict[str, Any]) -> User:
     username = payload.get("username")
     email = payload.get("email")
 
+    if "permission_group_id" in payload:
+        raise HTTPException(status_code=400, detail="permission_group_id is assigned by position")
+    if "role" in payload:
+        raise HTTPException(status_code=400, detail="role is managed by system")
+
     if username and username != user.username:
         if db.scalar(select(User).where(User.username == username)):
             raise HTTPException(status_code=409, detail="Username already exists")
@@ -80,14 +93,21 @@ def update_user(db: Session, user_id: int, payload: dict[str, Any]) -> User:
                 raise HTTPException(status_code=409, detail="Email already exists")
             user.email = email
 
+    effective_position_id = payload.get("position_id", user.position_id)
+    if effective_position_id is None:
+        raise HTTPException(status_code=400, detail="position_id is required")
+    permission_group_id = _resolve_permission_group_id(db, effective_position_id)
     _validate_user_relations(
         db,
-        payload.get("permission_group_id", user.permission_group_id) if "permission_group_id" in payload else user.permission_group_id,
+        permission_group_id,
         payload.get("department_id", user.department_id) if "department_id" in payload else user.department_id,
-        payload.get("position_id", user.position_id) if "position_id" in payload else user.position_id,
+        effective_position_id,
     )
 
-    for field in ("role", "is_active", "permission_group_id", "department_id", "position_id"):
+    if "position_id" in payload or permission_group_id != user.permission_group_id:
+        user.permission_group_id = permission_group_id
+
+    for field in ("role", "is_active", "department_id", "position_id"):
         if field in payload:
             setattr(user, field, payload[field])
 
@@ -130,3 +150,23 @@ def _validate_user_relations(
         position = _get_position_or_404(db, position_id)
         if department_id is not None and position.department_id not in {None, department_id}:
             raise HTTPException(status_code=400, detail="Position does not belong to selected department")
+
+
+def _resolve_permission_group_id(
+    db: Session,
+    position_id: int | None,
+) -> int | None:
+    if position_id is None:
+        return None
+
+    mapping = db.scalar(
+        select(PositionPermissionGroup).where(
+            PositionPermissionGroup.position_id == position_id
+        )
+    )
+    if not mapping:
+        raise HTTPException(
+            status_code=400,
+            detail="No permission group mapping for position",
+        )
+    return mapping.permission_group_id

@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -16,6 +16,7 @@ from api.service import (
     create_summary_for_document,
     delete_document_cascade,
     export_summary,
+    generate_mindmap_for_document,
     get_document_detail,
     get_supported_formats,
     get_summary_detail,
@@ -24,9 +25,10 @@ from api.service import (
     list_history,
     review_summary,
     search_chunks,
+    update_summary_text,
     upload_document,
 )
-from auth.dependencies import require_active_user
+from auth.dependencies import require_action
 from db.database import get_db
 from db.models import Document, SummaryHistory, User
 
@@ -48,6 +50,12 @@ class SummarizeRequest(BaseModel):
     title: str | None = None
 
 
+class MindmapRequest(BaseModel):
+    document_id: int = Field(ge=1)
+    use_llm: bool = True
+    max_nodes: int = Field(default=12, ge=3, le=30)
+
+
 class ReviewRequest(BaseModel):
     approved: bool
     note: str | None = None
@@ -56,6 +64,12 @@ class ReviewRequest(BaseModel):
 class FeedbackRequest(BaseModel):
     score: int | None = Field(default=None, ge=1, le=5)
     comment: str | None = None
+
+
+class SummaryUpdateRequest(BaseModel):
+    summary_text: str = Field(min_length=1)
+    title: str | None = None
+    note: str | None = None
 
 
 class MessageResponse(BaseModel):
@@ -138,12 +152,17 @@ class HistoryResponse(BaseModel):
 
 
 @router.get("/supported-formats")
-async def supported_formats() -> dict[str, list[str]]:
+async def supported_formats(
+    current_user: User = Depends(require_action("api.supported_formats.view")),
+) -> dict[str, list[str]]:
+    del current_user
     return {"formats": get_supported_formats()}
 
 
 @router.get("/health/ollama")
-async def ollama_health(current_user: User = Depends(require_active_user)) -> dict[str, Any]:
+async def ollama_health(
+    current_user: User = Depends(require_action("api.ollama_health.view")),
+) -> dict[str, Any]:
     del current_user
     return await check_ollama_health()
 
@@ -151,8 +170,8 @@ async def ollama_health(current_user: User = Depends(require_active_user)) -> di
 @router.post("/upload")
 async def upload(
     file: UploadFile = File(...),
-    auto_summary: bool = False,
-    current_user: User = Depends(require_active_user),
+    auto_summary: bool = Form(False),
+    current_user: User = Depends(require_action("api.upload.create")),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     file_bytes = await file.read()
@@ -178,7 +197,7 @@ async def get_documents(
     document_type: str | None = None,
     processing_status: str | None = None,
     review_status: str | None = None,
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_action("api.documents.list")),
     db: Session = Depends(get_db),
 ) -> DocumentsResponse:
     items, total = list_documents(
@@ -197,7 +216,7 @@ async def get_documents(
 @router.get("/documents/{document_id}", response_model=DocumentDetailResponse)
 async def get_document(
     document_id: int,
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_action("api.documents.detail")),
     db: Session = Depends(get_db),
 ) -> DocumentDetailResponse:
     return _serialize_document_detail(get_document_detail(db, document_id, current_user))
@@ -206,7 +225,7 @@ async def get_document(
 @router.delete("/documents/{document_id}", response_model=MessageResponse)
 async def delete_document(
     document_id: int,
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_action("api.documents.delete")),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
     payload = delete_document_cascade(db, document_id=document_id, current_user=current_user)
@@ -216,7 +235,7 @@ async def delete_document(
 @router.post("/summarize")
 async def summarize(
     payload: SummarizeRequest,
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_action("api.summaries.create")),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     if payload.document_id is not None:
@@ -239,10 +258,25 @@ async def summarize(
     return {"mode": "noop", "message": "Provide either document_id or query"}
 
 
+@router.post("/mindmap")
+async def mindmap(
+    payload: MindmapRequest,
+    current_user: User = Depends(require_action("api.summaries.create")),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    return await generate_mindmap_for_document(
+        db,
+        current_user=current_user,
+        document_id=payload.document_id,
+        use_llm=payload.use_llm,
+        max_nodes=payload.max_nodes,
+    )
+
+
 @router.post("/search")
 async def search(
     payload: QueryRequest,
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_action("api.search.create")),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     return {
@@ -262,7 +296,7 @@ async def history(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     document_id: int | None = None,
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_action("api.history.list")),
     db: Session = Depends(get_db),
 ) -> HistoryResponse:
     items, total = list_history(
@@ -278,7 +312,7 @@ async def history(
 @router.get("/summaries/{summary_id}")
 async def summary_detail(
     summary_id: int,
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_action("api.summaries.detail")),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
     return {"summary": _serialize_summary(get_summary_detail(db, summary_id, current_user))}
@@ -288,7 +322,7 @@ async def summary_detail(
 async def review(
     summary_id: int,
     payload: ReviewRequest,
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_action("api.summaries.review")),
     db: Session = Depends(get_db),
 ) -> SummaryItem:
     return _serialize_summary(
@@ -302,11 +336,30 @@ async def review(
     )
 
 
+@router.patch("/summaries/{summary_id}", response_model=SummaryItem)
+async def update_summary(
+    summary_id: int,
+    payload: SummaryUpdateRequest,
+    current_user: User = Depends(require_action("api.summaries.review")),
+    db: Session = Depends(get_db),
+) -> SummaryItem:
+    return _serialize_summary(
+        update_summary_text(
+            db,
+            summary_id=summary_id,
+            current_user=current_user,
+            summary_text=payload.summary_text,
+            title=payload.title,
+            note=payload.note,
+        )
+    )
+
+
 @router.post("/summaries/{summary_id}/feedback", response_model=SummaryItem)
 async def feedback(
     summary_id: int,
     payload: FeedbackRequest,
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_action("api.summaries.feedback")),
     db: Session = Depends(get_db),
 ) -> SummaryItem:
     return _serialize_summary(
@@ -324,7 +377,7 @@ async def feedback(
 async def export(
     summary_id: int,
     format: str = Query(default="txt"),
-    current_user: User = Depends(require_active_user),
+    current_user: User = Depends(require_action("api.summaries.export")),
     db: Session = Depends(get_db),
 ) -> FileResponse:
     export_path = export_summary(

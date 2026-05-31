@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from db.database import get_db
-from auth.dependencies import require_admin
+from auth.dependencies import require_action
+from db.models import User
 from admin.service import (
     list_work_documents,
     create_work_document,
@@ -60,11 +61,17 @@ async def get_work_documents(
     page_size: int = Query(default=20, ge=1, le=100),
     search: str | None = None,
     status: str | None = None,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.work.documents.list")),
     db: Session = Depends(get_db),
 ) -> WorkDocumentsResponse:
-    del admin_user
-    items, total = list_work_documents(db, page, page_size, search, status)
+    items, total = list_work_documents(
+        db,
+        page,
+        page_size,
+        search,
+        status,
+        current_user=current_user,
+    )
     return WorkDocumentsResponse(
         items=[_serialize_work_document(item) for item in items],
         total=total,
@@ -75,32 +82,29 @@ async def get_work_documents(
 @router.post("/work-documents", response_model=WorkDocumentItem)
 async def add_work_document(
     payload: WorkDocumentCreateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.work.documents.create")),
     db: Session = Depends(get_db),
 ) -> WorkDocumentItem:
-    del admin_user
-    item = create_work_document(db, payload.model_dump())
+    item = create_work_document(db, payload.model_dump(), current_user=current_user)
     return _serialize_work_document(item)
 
 @router.put("/work-documents/{doc_id}", response_model=WorkDocumentItem)
 async def edit_work_document(
     doc_id: int,
     payload: WorkDocumentUpdateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.work.documents.update")),
     db: Session = Depends(get_db),
 ) -> WorkDocumentItem:
-    del admin_user
-    item = update_work_document(db, doc_id, payload.model_dump(exclude_none=True))
+    item = update_work_document(db, doc_id, payload.model_dump(exclude_none=True), current_user=current_user)
     return _serialize_work_document(item)
 
 @router.delete("/work-documents/{doc_id}", response_model=MessageResponse)
 async def remove_work_document(
     doc_id: int,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.work.documents.delete")),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
-    del admin_user
-    delete_work_document(db, doc_id)
+    delete_work_document(db, doc_id, current_user=current_user)
     return MessageResponse(message="Work document deleted")
 
 # --- Work Items ---
@@ -131,11 +135,20 @@ async def get_work_items(
     search: str | None = None,
     status: str | None = None,
     doc_id: int | None = None,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.work.items.list")),
     db: Session = Depends(get_db),
 ) -> WorkItemsResponse:
-    del admin_user
-    items, total = list_work_items(db, page, page_size, search, status, doc_id)
+    items, total = list_work_items(
+        db,
+        page,
+        page_size,
+        search,
+        status,
+        doc_id,
+        None,
+        None,
+        current_user=current_user,
+    )
     return WorkItemsResponse(
         items=[_serialize_work_item(item) for item in items],
         total=total,
@@ -146,32 +159,29 @@ async def get_work_items(
 @router.post("/work-items", response_model=WorkItemEntry)
 async def add_work_item(
     payload: WorkItemCreateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.work.items.create")),
     db: Session = Depends(get_db),
 ) -> WorkItemEntry:
-    del admin_user
-    item = create_work_item(db, payload.model_dump())
+    item = create_work_item(db, payload.model_dump(), current_user=current_user)
     return _serialize_work_item(item)
 
 @router.put("/work-items/{item_id}", response_model=WorkItemEntry)
 async def edit_work_item(
     item_id: int,
     payload: WorkItemUpdateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.work.items.update")),
     db: Session = Depends(get_db),
 ) -> WorkItemEntry:
-    del admin_user
-    item = update_work_item(db, item_id, payload.model_dump(exclude_none=True))
+    item = update_work_item(db, item_id, payload.model_dump(exclude_none=True), current_user=current_user)
     return _serialize_work_item(item)
 
 @router.delete("/work-items/{item_id}", response_model=MessageResponse)
 async def remove_work_item(
     item_id: int,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.work.items.delete")),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
-    del admin_user
-    delete_work_item(db, item_id)
+    delete_work_item(db, item_id, current_user=current_user)
     return MessageResponse(message="Work item deleted")
 
 # --- Notice Documents ---
@@ -180,10 +190,9 @@ async def get_notice_documents(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     search: str | None = None,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.notice.documents.list")),
     db: Session = Depends(get_db),
 ) -> NoticeDocumentsResponse:
-    del admin_user
     items, total = list_notice_documents(db, page, page_size, search)
     return NoticeDocumentsResponse(
         items=[
@@ -213,11 +222,10 @@ async def get_notice_documents(
 @router.post("/notice-documents", response_model=NoticeDocumentItem)
 async def add_notice_document(
     payload: NoticeDocumentCreateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.notice.documents.create")),
     db: Session = Depends(get_db),
 ) -> NoticeDocumentItem:
-    del admin_user
-    item = create_notice_document(db, int(admin_user["sub"]), payload.model_dump())
+    item = create_notice_document(db, int(current_user.id), payload.model_dump(), current_user=current_user)
     return NoticeDocumentItem(
         id=item.id,
         notice_code=item.notice_code,
@@ -238,9 +246,8 @@ async def add_notice_document(
 @router.delete("/notice-documents/{doc_id}", response_model=MessageResponse)
 async def remove_notice_document(
     doc_id: int,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.notice.documents.delete")),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
-    del admin_user
-    delete_notice_document(db, doc_id)
+    delete_notice_document(db, doc_id, current_user=current_user)
     return MessageResponse(message="Notice document deleted")

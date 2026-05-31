@@ -72,6 +72,20 @@ class PermissionGroupFunction(Base):
     function: Mapped[SystemFunction] = relationship("SystemFunction", back_populates="group_permissions")
 
 
+class ActionFunctionMapping(Base):
+    __tablename__ = "action_function_mappings"
+    __table_args__ = MYSQL_TABLE_ARGS
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    action_key: Mapped[str] = mapped_column(String(150), nullable=False)
+    function_id: Mapped[int] = mapped_column(ForeignKey("system_functions.id"), nullable=False)
+    action_type: Mapped[str] = mapped_column(String(20), nullable=False, default="view", server_default="view")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+
+    function: Mapped[SystemFunction] = relationship("SystemFunction")
+
+
 class IssuingUnit(Base):
     __tablename__ = "issuing_units"
     __table_args__ = MYSQL_TABLE_ARGS
@@ -145,6 +159,21 @@ class Position(Base):
     department: Mapped[Optional[Department]] = relationship("Department", back_populates="positions")
     users: Mapped[list[User]] = relationship("User", back_populates="position")
     work_items: Mapped[list[WorkItem]] = relationship("WorkItem", back_populates="position")
+
+
+class PositionPermissionGroup(Base):
+    __tablename__ = "position_permission_groups"
+    __table_args__ = MYSQL_TABLE_ARGS
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    position_id: Mapped[int] = mapped_column(ForeignKey("positions.id"), nullable=False, unique=True)
+    permission_group_id: Mapped[int] = mapped_column(
+        ForeignKey("permission_groups.id"),
+        nullable=False,
+    )
+
+    position: Mapped[Position] = relationship("Position")
+    permission_group: Mapped[PermissionGroup] = relationship("PermissionGroup")
 
 
 class LoginHistory(Base):
