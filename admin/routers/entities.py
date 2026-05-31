@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from db.database import get_db
-from auth.dependencies import require_admin
+from auth.dependencies import require_action
+from db.models import User
 from admin.service import (
     list_issuing_units,
     create_issuing_unit,
@@ -54,11 +55,11 @@ async def get_issuing_units(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     search: str | None = None,
-    admin_user: dict = Depends(require_admin),
+    is_active: bool | None = None,
+    current_user: User = Depends(require_action("admin.entities.issuing_units.list")),
     db: Session = Depends(get_db),
 ) -> IssuingUnitsResponse:
-    del admin_user
-    items, total = list_issuing_units(db, page, page_size, search)
+    items, total = list_issuing_units(db, page, page_size, search, is_active)
     return IssuingUnitsResponse(
         items=[_serialize_issuing_unit(item) for item in items],
         total=total,
@@ -69,10 +70,9 @@ async def get_issuing_units(
 @router.post("/issuing-units", response_model=IssuingUnitItem)
 async def add_issuing_unit(
     payload: IssuingUnitCreateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.entities.issuing_units.create")),
     db: Session = Depends(get_db),
 ) -> IssuingUnitItem:
-    del admin_user
     item = create_issuing_unit(db, payload.model_dump())
     return _serialize_issuing_unit(item)
 
@@ -80,20 +80,18 @@ async def add_issuing_unit(
 async def edit_issuing_unit(
     unit_id: int,
     payload: IssuingUnitUpdateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.entities.issuing_units.update")),
     db: Session = Depends(get_db),
 ) -> IssuingUnitItem:
-    del admin_user
     item = update_issuing_unit(db, unit_id, payload.model_dump(exclude_none=True))
     return _serialize_issuing_unit(item)
 
 @router.delete("/issuing-units/{unit_id}", response_model=MessageResponse)
 async def remove_issuing_unit(
     unit_id: int,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.entities.issuing_units.delete")),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
-    del admin_user
     delete_issuing_unit(db, unit_id)
     return MessageResponse(message="Issuing unit deleted")
 
@@ -119,11 +117,11 @@ async def get_departments(
     page_size: int = Query(default=20, ge=1, le=100),
     search: str | None = None,
     unit_id: int | None = None,
-    admin_user: dict = Depends(require_admin),
+    is_active: bool | None = None,
+    current_user: User = Depends(require_action("admin.entities.departments.list")),
     db: Session = Depends(get_db),
 ) -> DepartmentsResponse:
-    del admin_user
-    items, total = list_departments(db, page, page_size, search, unit_id)
+    items, total = list_departments(db, page, page_size, search, unit_id, is_active)
     return DepartmentsResponse(
         items=[_serialize_department(item) for item in items],
         total=total,
@@ -134,10 +132,9 @@ async def get_departments(
 @router.post("/departments", response_model=DepartmentItem)
 async def add_department(
     payload: DepartmentCreateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.entities.departments.create")),
     db: Session = Depends(get_db),
 ) -> DepartmentItem:
-    del admin_user
     item = create_department(db, payload.model_dump())
     return _serialize_department(item)
 
@@ -145,20 +142,18 @@ async def add_department(
 async def edit_department(
     dept_id: int,
     payload: DepartmentUpdateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.entities.departments.update")),
     db: Session = Depends(get_db),
 ) -> DepartmentItem:
-    del admin_user
     item = update_department(db, dept_id, payload.model_dump(exclude_none=True))
     return _serialize_department(item)
 
 @router.delete("/departments/{dept_id}", response_model=MessageResponse)
 async def remove_department(
     dept_id: int,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.entities.departments.delete")),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
-    del admin_user
     delete_department(db, dept_id)
     return MessageResponse(message="Department deleted")
 
@@ -182,11 +177,11 @@ async def get_positions(
     page_size: int = Query(default=20, ge=1, le=100),
     search: str | None = None,
     dept_id: int | None = None,
-    admin_user: dict = Depends(require_admin),
+    is_active: bool | None = None,
+    current_user: User = Depends(require_action("admin.entities.positions.list")),
     db: Session = Depends(get_db),
 ) -> PositionsResponse:
-    del admin_user
-    items, total = list_positions(db, page, page_size, search, dept_id)
+    items, total = list_positions(db, page, page_size, search, dept_id, is_active)
     return PositionsResponse(
         items=[_serialize_position(item) for item in items],
         total=total,
@@ -197,10 +192,9 @@ async def get_positions(
 @router.post("/positions", response_model=PositionItem)
 async def add_position(
     payload: PositionCreateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.entities.positions.create")),
     db: Session = Depends(get_db),
 ) -> PositionItem:
-    del admin_user
     item = create_position(db, payload.model_dump())
     return _serialize_position(item)
 
@@ -208,19 +202,17 @@ async def add_position(
 async def edit_position(
     pos_id: int,
     payload: PositionUpdateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.entities.positions.update")),
     db: Session = Depends(get_db),
 ) -> PositionItem:
-    del admin_user
     item = update_position(db, pos_id, payload.model_dump(exclude_none=True))
     return _serialize_position(item)
 
 @router.delete("/positions/{pos_id}", response_model=MessageResponse)
 async def remove_position(
     pos_id: int,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.entities.positions.delete")),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
-    del admin_user
     delete_position(db, pos_id)
     return MessageResponse(message="Position deleted")

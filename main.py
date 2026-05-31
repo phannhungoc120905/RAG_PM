@@ -81,11 +81,35 @@ def read_html_file(filename: str, fallback: str) -> str:
 
 @app.get("/")
 async def root_redirect():
-    return RedirectResponse(url="/admin/dashboard")
+    return RedirectResponse(url="/login")
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page():
     return read_html_file("admin_login_new.html", "<h1>Login</h1>")
+
+@app.get("/agency-leader", response_class=HTMLResponse)
+async def agency_leader_page():
+    return read_html_file("agency_leader.html", "<h1>Agency Leader</h1>")
+
+@app.get("/agency-leader/dashboard", response_class=HTMLResponse)
+async def agency_leader_dashboard_page():
+    return read_html_file("agency_leader.html", "<h1>Agency Leader Dashboard</h1>")
+
+@app.get("/department-leader", response_class=HTMLResponse)
+async def department_leader_page():
+    return read_html_file("department_leader.html", "<h1>Department Leader</h1>")
+
+@app.get("/department-leader/dashboard", response_class=HTMLResponse)
+async def department_leader_dashboard_page():
+    return read_html_file("department_leader.html", "<h1>Department Leader Dashboard</h1>")
+
+@app.get("/staff", response_class=HTMLResponse)
+async def staff_page():
+    return read_html_file("staff.html", "<h1>Staff</h1>")
+
+@app.get("/staff/dashboard", response_class=HTMLResponse)
+async def staff_dashboard_page():
+    return read_html_file("staff.html", "<h1>Staff Dashboard</h1>")
 
 @app.get("/health")
 async def health():

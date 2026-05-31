@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from db.database import get_db
-from auth.dependencies import require_admin
+from auth.dependencies import require_action
+from db.models import User
 from admin.service import (
     list_system_configs,
     create_system_config,
@@ -30,10 +31,9 @@ async def get_system_configs(
     page_size: int = Query(default=20, ge=1, le=100),
     search: str | None = None,
     category: str | None = None,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.system.configs.list")),
     db: Session = Depends(get_db),
 ) -> SystemConfigsResponse:
-    del admin_user
     items, total = list_system_configs(db, page, page_size, search, category)
     return SystemConfigsResponse(
         items=[
@@ -59,10 +59,10 @@ async def get_system_configs(
 @router.post("/configs", response_model=SystemConfigItem)
 async def create_config(
     payload: SystemConfigCreateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.system.configs.create")),
     db: Session = Depends(get_db),
 ) -> SystemConfigItem:
-    item = create_system_config(db, int(admin_user["sub"]), payload.model_dump())
+    item = create_system_config(db, int(current_user.id), payload.model_dump())
     return SystemConfigItem(
         id=item.id,
         config_key=item.config_key,
@@ -80,13 +80,13 @@ async def create_config(
 async def edit_config(
     config_id: int,
     payload: SystemConfigUpdateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.system.configs.update")),
     db: Session = Depends(get_db),
 ) -> SystemConfigItem:
     item = update_system_config(
         db,
         config_id,
-        int(admin_user["sub"]),
+        int(current_user.id),
         payload.model_dump(exclude_none=True),
     )
     return SystemConfigItem(
@@ -105,34 +105,30 @@ async def edit_config(
 @router.delete("/configs/{config_id}", response_model=MessageResponse)
 async def remove_config(
     config_id: int,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.system.configs.delete")),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
-    del admin_user
     delete_system_config(db, config_id)
     return MessageResponse(message="Config deleted")
 
 @router.get("/status", response_model=SystemStatusResponse)
 async def get_status(
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.system.status.view")),
     db: Session = Depends(get_db),
 ) -> SystemStatusResponse:
-    del admin_user
     return get_system_status(db)
 
 @router.get("/app-config", response_model=AdminConfigResponse)
 async def get_app_config(
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.system.app_config.view")),
 ) -> AdminConfigResponse:
-    del admin_user
     config = get_safe_config()
     return AdminConfigResponse(**config)
 
 @router.put("/app-config", response_model=AdminConfigResponse)
 async def update_app_config(
     payload: AdminConfigUpdateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.system.app_config.update")),
 ) -> AdminConfigResponse:
-    del admin_user
     config = update_runtime_config(payload.model_dump(exclude_none=True))
     return AdminConfigResponse(**config)

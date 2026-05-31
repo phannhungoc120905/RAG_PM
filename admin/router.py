@@ -23,6 +23,22 @@ async def admin_root_page() -> str:
 async def admin_dashboard_page() -> str:
     return read_html_file("admin_master.html", "<h1>Admin Dashboard</h1>")
 
+@router.get("/agency-leader", response_class=HTMLResponse, tags=["UI"])
+async def agency_leader_page() -> str:
+    return read_html_file("agency_leader.html", "<h1>Agency Leader</h1>")
+
+@router.get("/agency-leader/dashboard", response_class=HTMLResponse, tags=["UI"])
+async def agency_leader_dashboard_page() -> str:
+    return read_html_file("agency_leader.html", "<h1>Agency Leader Dashboard</h1>")
+
+@router.get("/department-leader/dashboard", response_class=HTMLResponse, tags=["UI"])
+async def department_leader_dashboard_page() -> str:
+    return read_html_file("department_leader.html", "<h1>Department Leader Dashboard</h1>")
+
+@router.get("/staff/dashboard", response_class=HTMLResponse, tags=["UI"])
+async def staff_dashboard_page() -> str:
+    return read_html_file("staff.html", "<h1>Staff Dashboard</h1>")
+
 @router.get("/users-ui", response_class=HTMLResponse, tags=["UI"])
 async def admin_users_page() -> str:
     return read_html_file("admin_master.html", "<h1>Admin Master</h1>")

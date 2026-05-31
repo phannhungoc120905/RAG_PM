@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from db.database import get_db
-from auth.dependencies import require_admin
+from auth.dependencies import require_action
+from db.models import User
 from admin.service import (
     create_api_key,
     list_api_keys,
@@ -42,10 +43,9 @@ async def get_api_keys(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     search: str | None = None,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.security.api_keys.list")),
     db: Session = Depends(get_db),
 ) -> APIKeysResponse:
-    del admin_user
     items, total = list_api_keys(db, page, page_size, search)
     return APIKeysResponse(
         items=[
@@ -69,10 +69,10 @@ async def get_api_keys(
 @router.post("/api-keys", response_model=APIKeyCreateResponse)
 async def add_api_key(
     payload: APIKeyCreateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.security.api_keys.create")),
     db: Session = Depends(get_db),
 ) -> APIKeyCreateResponse:
-    item, plain_key = create_api_key(db, int(admin_user["sub"]), payload.model_dump())
+    item, plain_key = create_api_key(db, int(current_user.id), payload.model_dump())
     return APIKeyCreateResponse(
         id=item.id,
         name=item.name,
@@ -84,10 +84,9 @@ async def add_api_key(
 async def edit_api_key(
     api_key_id: int,
     payload: APIKeyUpdateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.security.api_keys.update")),
     db: Session = Depends(get_db),
 ) -> APIKeyItem:
-    del admin_user
     item = update_api_key(db, api_key_id, payload.model_dump(exclude_none=True))
     return APIKeyItem(
         id=item.id,
@@ -103,10 +102,9 @@ async def edit_api_key(
 @router.delete("/api-keys/{api_key_id}", response_model=MessageResponse)
 async def remove_api_key(
     api_key_id: int,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.security.api_keys.delete")),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
-    del admin_user
     delete_api_key(db, api_key_id)
     return MessageResponse(message="API Key deleted")
 
@@ -139,10 +137,9 @@ async def get_permission_groups(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     search: str | None = None,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.security.permission_groups.list")),
     db: Session = Depends(get_db),
 ) -> PermissionGroupsResponse:
-    del admin_user
     items, total = list_permission_groups(db, page, page_size, search)
     return PermissionGroupsResponse(
         items=[_serialize_permission_group(item) for item in items],
@@ -154,10 +151,9 @@ async def get_permission_groups(
 @router.post("/permission-groups", response_model=PermissionGroupItem)
 async def add_permission_group(
     payload: PermissionGroupCreateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.security.permission_groups.create")),
     db: Session = Depends(get_db),
 ) -> PermissionGroupItem:
-    del admin_user
     item = create_permission_group(db, payload.model_dump())
     return _serialize_permission_group(item)
 
@@ -165,20 +161,18 @@ async def add_permission_group(
 async def edit_permission_group(
     group_id: int,
     payload: PermissionGroupUpdateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.security.permission_groups.update")),
     db: Session = Depends(get_db),
 ) -> PermissionGroupItem:
-    del admin_user
     item = update_permission_group(db, group_id, payload.model_dump(exclude_none=True))
     return _serialize_permission_group(item)
 
 @router.delete("/permission-groups/{group_id}", response_model=MessageResponse)
 async def remove_permission_group(
     group_id: int,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.security.permission_groups.delete")),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
-    del admin_user
     delete_permission_group(db, group_id)
     return MessageResponse(message="Permission group deleted")
 
@@ -188,10 +182,9 @@ async def get_system_functions(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     module: str | None = None,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.security.system_functions.list")),
     db: Session = Depends(get_db),
 ) -> SystemFunctionsResponse:
-    del admin_user
     items, total = list_system_functions(db, page, page_size, module)
     return SystemFunctionsResponse(
         items=[
@@ -215,10 +208,9 @@ async def get_system_functions(
 @router.post("/system-functions", response_model=SystemFunctionItem)
 async def add_system_function(
     payload: SystemFunctionCreateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.security.system_functions.create")),
     db: Session = Depends(get_db),
 ) -> SystemFunctionItem:
-    del admin_user
     item = create_system_function(db, payload.model_dump())
     return SystemFunctionItem(
         id=item.id,
@@ -235,10 +227,9 @@ async def add_system_function(
 async def edit_system_function(
     func_id: int,
     payload: SystemFunctionUpdateRequest,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.security.system_functions.update")),
     db: Session = Depends(get_db),
 ) -> SystemFunctionItem:
-    del admin_user
     item = update_system_function(db, func_id, payload.model_dump(exclude_none=True))
     return SystemFunctionItem(
         id=item.id,
@@ -254,9 +245,8 @@ async def edit_system_function(
 @router.delete("/system-functions/{func_id}", response_model=MessageResponse)
 async def remove_system_function(
     func_id: int,
-    admin_user: dict = Depends(require_admin),
+    current_user: User = Depends(require_action("admin.security.system_functions.delete")),
     db: Session = Depends(get_db),
 ) -> MessageResponse:
-    del admin_user
     delete_system_function(db, func_id)
     return MessageResponse(message="System function deleted")

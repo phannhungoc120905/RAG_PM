@@ -42,11 +42,16 @@ class Settings(BaseSettings):
     OCR_USE_SENTENCE_TRANSFORMERS: bool = False
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_TIMEOUT_SECONDS: int = 180
+    OLLAMA_NUM_CTX: int = 2048
     FAISS_INDEX_PATH: str = "./faiss_index"
     VECTOR_DIM: int = 4096
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 100
-    OCR_LANG: str = "vie"
+    OCR_LANG: str = "vie+eng"
+    OCR_FIX_WITH_LLM: bool = True
+    TESSERACT_CMD: str = "E:/Tesseract-OCR/tesseract.exe"
+    TESSDATA_PREFIX: str = "E:/Tesseract-OCR/tessdata"
+    POPPLER_PATH: str = ""
     LLM_MODEL: str = "llama3.2:latest"
     LLM_URL: str = "http://localhost:11434/api/generate"
 

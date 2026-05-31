@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lãnh đạo cơ quan - RAG_PM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-soft: #dbeafe;
+            --ink: #111827;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --surface: #ffffff;
+            --page: #f8fafc;
+            --success: #0f9f6e;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --sidebar: 268px;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: Inter, sans-serif; color: var(--ink); background: var(--page); overflow: hidden; }
+        button, input, select, textarea { font: inherit; }
+        .shell { display: flex; width: 100vw; height: 100vh; }
+        .sidebar { width: var(--sidebar); background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+        .brand { padding: 22px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: center; }
+        .brand-mark { width: 38px; height: 38px; border-radius: 8px; background: var(--primary); color: #fff; display: grid; place-items: center; font-size: 18px; }
+        .brand h1 { font-size: 16px; line-height: 1.2; margin: 0; }
+        .brand span { color: var(--muted); font-size: 12px; }
+        .nav { padding: 14px 10px; overflow-y: auto; flex: 1; }
+        .nav-label { padding: 14px 12px 8px; color: #94a3b8; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+        .nav-item { width: 100%; border: 0; background: transparent; color: var(--muted); display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 650; text-align: left; }
+        .nav-item i { width: 18px; text-align: center; }
+        .nav-item:hover { background: #f1f5f9; color: var(--ink); }
+        .nav-item.active { background: var(--primary-soft); color: var(--primary); }
+        .profile { padding: 16px; border-top: 1px solid var(--line); }
+        .profile-card { background: #f1f5f9; border-radius: 8px; padding: 12px; display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--primary); color: #fff; display: grid; place-items: center; font-weight: 800; }
+        .profile strong { display: block; font-size: 13px; }
+        .profile small { display: block; color: var(--muted); max-width: 168px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .topbar { height: 64px; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 28px; }
+        .topbar h2 { margin: 0; font-size: 18px; }
+        .status { color: var(--success); background: #ecfdf5; border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 7px; }
+        .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+        .content { padding: 26px; overflow-y: auto; }
+        .view { display: none; }
+        .view.active { display: block; }
+        .grid { display: grid; gap: 18px; }
+        .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px; box-shadow: 0 1px 3px rgba(15, 23, 42, .04); }
+        .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+        .card h3 { margin: 0; font-size: 16px; }
+        .muted { color: var(--muted); font-size: 12px; line-height: 1.5; }
+        .metric { display: flex; gap: 14px; align-items: center; }
+        .metric-icon { width: 44px; height: 44px; border-radius: 8px; display: grid; place-items: center; background: var(--primary-soft); color: var(--primary); font-size: 18px; }
+        .metric-value { font-size: 26px; font-weight: 800; line-height: 1; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+        .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .btn { border: 0; border-radius: 6px; padding: 9px 13px; cursor: pointer; font-size: 13px; font-weight: 750; display: inline-flex; align-items: center; gap: 8px; min-height: 36px; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+        .btn-danger { background: #fee2e2; color: var(--danger); }
+        .input, .select, textarea { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff; min-height: 38px; }
+        .input { min-width: 220px; }
+        textarea { width: 100%; resize: vertical; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; color: var(--muted); font-size: 11px; text-transform: uppercase; padding: 11px; border-bottom: 2px solid var(--line); }
+        td { padding: 12px 11px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+        tr:hover { background: #f8fafc; }
+        .table-wrap { width: 100%; overflow-x: auto; }
+        .badge { display: inline-flex; align-items: center; border-radius: 4px; padding: 4px 9px; font-size: 11px; font-weight: 800; }
+        .b-ok { background: #dcfce7; color: #166534; }
+        .b-info { background: #dbeafe; color: #1e40af; }
+        .b-warn { background: #fef3c7; color: #92400e; }
+        .b-bad { background: #fee2e2; color: #991b1b; }
+        .split { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(380px, .9fr); gap: 18px; min-height: calc(100vh - 142px); }
+        .doc-reader { background: #334155; color: #fff; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; min-height: 520px; }
+        .reader-bar { min-height: 44px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; background: #1f2937; }
+        .reader-body { flex: 1; overflow: auto; padding: 18px; }
+        .paper { background: #fff; color: #111827; max-width: 860px; min-height: 620px; margin: 0 auto; border-radius: 4px; padding: 34px; line-height: 1.75; white-space: pre-wrap; }
+        .ai-stack { display: flex; flex-direction: column; gap: 14px; min-height: 520px; }
+        .summary-editor { min-height: 250px; line-height: 1.7; }
+        .chat { height: 520px; display: flex; flex-direction: column; }
+        .messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+        .message { max-width: 86%; padding: 10px 12px; border-radius: 8px; font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
+        .message.user { align-self: flex-end; background: var(--primary); color: #fff; }
+        .message.ai { align-self: flex-start; background: #f1f5f9; }
+        .chat-form { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+        .modal-overlay { position: fixed; inset: 0; z-index: 10; background: rgba(15, 23, 42, .48); display: none; align-items: center; justify-content: center; padding: 22px; }
+        .modal { width: min(760px, 96vw); max-height: 90vh; overflow-y: auto; background: #fff; border-radius: 10px; padding: 22px; box-shadow: 0 24px 60px rgba(15, 23, 42, .25); }
+        .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+        .modal-head h3 { margin: 0; }
+        .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+        .form-group { display: grid; gap: 6px; }
+        .form-group label { font-size: 12px; font-weight: 800; color: #475569; }
+        .toast-box { position: fixed; top: 18px; right: 18px; display: grid; gap: 8px; z-index: 20; }
+        .toast { background: #fff; border-left: 4px solid var(--primary); box-shadow: 0 12px 30px rgba(15,23,42,.15); padding: 12px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; }
+        .empty { color: var(--muted); text-align: center; padding: 28px; }
+
+        @media (max-width: 1180px) {
+            body { overflow: auto; }
+            .shell { height: auto; min-height: 100vh; }
+            .sidebar { width: 82px; }
+            .brand h1, .brand span, .nav-label, .nav-item span, .profile-card div:not(.avatar), .profile .btn span { display: none; }
+            .cols-4, .cols-3, .cols-2, .split { grid-template-columns: 1fr; }
+            .content { padding: 18px; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark"><i class="fas fa-building-columns"></i></div>
+                <div><h1>Lãnh đạo cơ quan</h1><span>Điều hành văn bản và giao việc</span></div>
+            </div>
+            <nav class="nav">
+                <div class="nav-label">Điều hành</div>
+                <button class="nav-item active" data-view="dashboard"><i class="fas fa-gauge-high"></i><span>Bảng điều hành</span></button>
+                <button class="nav-item" data-view="documents"><i class="fas fa-file-lines"></i><span>Phân tích văn bản</span></button>
+                <button class="nav-item" data-view="tasks"><i class="fas fa-list-check"></i><span>Trung tâm giao việc</span></button>
+                <button class="nav-item" data-view="monitoring"><i class="fas fa-chart-line"></i><span>Giám sát tiến độ</span></button>
+                <div class="nav-label">AI & Nhân sự</div>
+                <button class="nav-item" data-view="assistant"><i class="fas fa-robot"></i><span>Trợ lý AI</span></button>
+                <button class="nav-item" data-view="users"><i class="fas fa-users-gear"></i><span>Quản lý nhân sự</span></button>
+            </nav>
+            <div class="profile">
+                <div class="profile-card"><div class="avatar" id="avatar">A</div><div><strong id="profileName">Lãnh đạo cơ quan</strong><small id="profileMeta">Đang tải...</small></div></div>
+                <button class="btn btn-danger" onclick="app.logout()"><i class="fas fa-right-from-bracket"></i><span>Đăng xuất</span></button>
+            </div>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <h2 id="viewTitle">Bảng điều hành</h2>
+                <div class="status"><span class="dot"></span>HỆ THỐNG ĐANG HOẠT ĐỘNG</div>
+            </header>
+            <div class="content">
+                <section id="view-dashboard" class="view active">
+                    <div class="grid cols-4" id="kpiGrid"></div>
+                    <div class="grid cols-3" style="margin-top:18px;">
+                        <div class="card">
+                            <div class="card-head"><div><h3>Xử lý đầu vào và AI</h3><div class="muted">TX-01, TX-02, TX-03, TX-04, TX-05, TX-06, AI-05, AI-07, AI-08.</div></div><i class="fas fa-brain" style="color:var(--primary)"></i></div>
+                            <div class="muted">Upload PDF/DOCX/TXT, OCR văn bản scan, chuẩn hóa/làm sạch văn bản hành chính, nhận diện Điều/Khoản/căn cứ, phân loại, RAG, tóm tắt tự động và kiểm tra groundedness.</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head"><div><h3>Lớp ra quyết định</h3><div class="muted">TT-01, TT-02, TT-03, TT-05, TT-07.</div></div><i class="fas fa-scale-balanced" style="color:var(--warning)"></i></div>
+                            <div class="muted">Xem văn bản và AI summary song song, đồng bộ nội dung theo trang, trích dẫn nguồn, chỉnh sửa tóm tắt AI và xuất Word/PDF trước khi ban hành.</div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head"><div><h3>Giao việc và giám sát</h3><div class="muted">KT-05, KT-06, BC-02, BC-03, BC-05.</div></div><i class="fas fa-list-check" style="color:var(--success)"></i></div>
+                            <div class="muted">Tạo/giao việc cho phòng ban hoặc nhóm xử lý, theo dõi tiến độ toàn cơ quan, bảng hiệu suất phòng ban, tồn đọng và xuất báo cáo tổng hợp.</div>
+                        </div>
+                    </div>
+                    <div class="grid cols-2" style="margin-top:18px;">
+                        <div class="card">
+                            <div class="card-head"><div><h3>Văn bản cần quyết định</h3><div class="muted">Từ hàng đợi xử lý và tóm tắt AI mới nhất.</div></div><button class="btn btn-ghost" onclick="app.show('documents')"><i class="fas fa-arrow-right"></i>Mở</button></div>
+                            <div class="table-wrap"><table id="decisionDocs"><thead><tr><th>Văn bản</th><th>Trạng thái</th><th>Tóm tắt</th><th></th></tr></thead><tbody></tbody></table></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head"><div><h3>Tiến độ toàn cơ quan</h3><div class="muted">Phân bổ task theo trạng thái.</div></div></div>
+                            <canvas id="statusChart" height="170"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-documents" class="view">
+                    <div class="toolbar">
+                        <div><h3>Phân tích văn bản</h3><div class="muted">Tải lên, tóm tắt AI, chỉnh sửa, duyệt và tạo giao việc từ văn bản.</div></div>
+                        <div class="actions">
+                            <input class="input" id="docSearch" placeholder="Tìm văn bản, số hiệu..." onkeydown="if(event.key==='Enter') docs.load()">
+                            <button class="btn btn-ghost" onclick="docs.load()"><i class="fas fa-search"></i>Tìm</button>
+                            <button class="btn btn-primary" onclick="document.getElementById('uploadFile').click()"><i class="fas fa-upload"></i>Tải lên</button>
+                            <input id="uploadFile" type="file" accept=".pdf,.docx,.txt,.jpg,.jpeg,.png" hidden onchange="docs.upload(this.files[0])">
+                        </div>
+                    </div>
+                    <div id="uploadProgressWrap" style="display:none;margin:0 0 14px 0;">
+                        <div style="height:8px;background:#e5eefc;border-radius:999px;overflow:hidden;">
+                            <div id="uploadProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg,var(--primary),#60a5fa);transition:width .35s ease;"></div>
+                        </div>
+                        <div id="uploadProgressLabel" class="muted" style="margin-top:6px;">Đang chuẩn bị...</div>
+                    </div>
+                    <div class="split">
+                        <div class="doc-reader">
+                            <div class="reader-bar"><strong id="readerTitle">Chưa chọn văn bản</strong><span id="readerMeta">TX-01 / AI-07</span></div>
+                            <div class="reader-body"><div class="paper" id="readerText">Chọn một văn bản trong danh sách để xem nội dung OCR, cấu trúc và tóm tắt AI.</div></div>
+                        </div>
+                        <div class="ai-stack">
+                            <div class="card">
+                                <div class="card-head"><div><h3>Thẻ tóm tắt AI</h3><div class="muted" id="summaryMeta">Độ bám nguồn và trạng thái duyệt.</div></div></div>
+                                <textarea id="summaryEditor" class="summary-editor" placeholder="Tóm tắt AI sẽ hiển thị tại đây"></textarea>
+                                <div class="actions" style="margin-top:12px;">
+                                    <button class="btn btn-primary" onclick="docs.saveSummary()"><i class="fas fa-floppy-disk"></i>Lưu chỉnh sửa</button>
+                                    <button class="btn btn-ghost" onclick="docs.approveSummary(true)"><i class="fas fa-check"></i>Duyệt</button>
+                                    <button class="btn btn-ghost" onclick="docs.exportSummary('docx')"><i class="fas fa-file-word"></i>Word</button>
+                                    <button class="btn btn-ghost" onclick="tasks.openFromDocument()"><i class="fas fa-share-nodes"></i>Tạo nhiệm vụ</button>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-head"><div><h3>Danh sách văn bản</h3><div class="muted">BC-01 / TT-01.</div></div></div>
+                                <div class="table-wrap" style="max-height:330px;overflow:auto;"><table id="docsTable"><thead><tr><th>Tên</th><th>Loại</th><th>Trạng thái</th><th></th></tr></thead><tbody></tbody></table></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-tasks" class="view">
+                    <div class="toolbar">
+                        <div><h3>Trung tâm giao việc</h3><div class="muted">Luồng 2 tầng: tạo hồ sơ giao việc cấp văn bản trước, sau đó chia thành nhiệm vụ chi tiết cho phòng ban hoặc người xử lý.</div></div>
+                        <div class="actions">
+                            <button class="btn btn-primary" onclick="tasks.openWorkDocumentModal()"><i class="fas fa-folder-plus"></i>Tạo hồ sơ cấp văn bản</button>
+                            <button class="btn btn-ghost" onclick="tasks.openWorkItemModal()"><i class="fas fa-user-check"></i>Chia nhiệm vụ con</button>
+                        </div>
+                    </div>
+                    <div class="grid cols-2">
+                        <div class="card">
+                            <div class="card-head"><div><h3>Hồ sơ giao việc cấp văn bản</h3><div class="muted">Cấp cha: một văn bản/chỉ đạo được giao cho phòng chủ trì hoặc phòng nhận.</div></div></div>
+                            <div class="table-wrap"><table id="workDocsTable"><thead><tr><th>Mã hồ sơ</th><th>Văn bản/chỉ đạo</th><th>Phòng nhận</th><th>Nhiệm vụ con</th><th>Trạng thái</th></tr></thead><tbody></tbody></table></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head"><div><h3>Nhiệm vụ chi tiết</h3><div class="muted">Cấp con: việc cụ thể thuộc một hồ sơ giao việc, có người/phòng xử lý và deadline riêng.</div></div></div>
+                            <div class="table-wrap"><table id="workItemsTable"><thead><tr><th>Nhiệm vụ</th><th>Hồ sơ cha</th><th>Người/Phòng</th><th>Trạng thái</th><th>Hạn</th></tr></thead><tbody></tbody></table></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-monitoring" class="view">
+                    <div class="grid cols-3" id="monitorCards"></div>
+                    <div class="card" style="margin-top:18px;">
+                        <div class="card-head"><div><h3>Hiệu suất phòng ban</h3><div class="muted">Tồn đọng và tiến độ theo phòng ban.</div></div><button class="btn btn-ghost" onclick="monitoring.exportReport()"><i class="fas fa-file-export"></i>Xuất báo cáo</button></div>
+                        <div class="table-wrap"><table id="deptProgressTable"><thead><tr><th>Phòng ban</th><th>Tổng việc</th><th>Đang xử lý</th><th>Hoàn thành</th><th>Backlog</th></tr></thead><tbody></tbody></table></div>
+                    </div>
+                </section>
+
+                <section id="view-assistant" class="view">
+                    <div class="grid cols-2">
+                        <div class="card chat">
+                            <div class="card-head"><div><h3>Trợ lý AI</h3><div class="muted">Hỏi nhanh, so sánh văn bản, phân tích điều khoản.</div></div></div>
+                            <div style="margin-bottom:12px;display:grid;gap:6px;">
+                                <label class="muted" style="font-weight:700;color:var(--ink);">Chọn văn bản để hỏi</label>
+                                <select class="select" id="assistantDocSelect" onchange="assistant.onDocumentChange(this.value)">
+                                    <option value="">Toàn bộ kho tri thức</option>
+                                </select>
+                                <div id="assistantDocLabel" class="muted">Chưa chọn văn bản cụ thể.</div>
+                            </div>
+                            <div class="messages" id="chatMessages"><div class="message ai">Chọn văn bản hoặc hỏi trên toàn bộ kho tri thức hiện có.</div></div>
+                            <div class="chat-form"><input class="input" id="chatInput" style="flex:1" placeholder="Nhập câu hỏi..." onkeydown="if(event.key==='Enter') assistant.ask()"><button class="btn btn-primary" onclick="assistant.ask()"><i class="fas fa-paper-plane"></i>Gửi</button></div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head"><div><h3>Truy xuất & trích dẫn</h3><div class="muted">AI-05, TT-03, NC-03, NC-04.</div></div></div>
+                            <div class="actions" style="margin-bottom:12px;">
+                                <button class="btn btn-ghost" onclick="assistant.quick('Tóm tắt các điểm cần lãnh đạo quyết định trong văn bản đã chọn')">Điểm cần quyết định</button>
+                                <button class="btn btn-ghost" onclick="assistant.quick('Liệt kê căn cứ pháp lý và điều khoản quan trọng')">Căn cứ pháp lý</button>
+                                <button class="btn btn-ghost" onclick="assistant.quick('Phân tích tác động điều khoản tới các phòng ban')">Tác động điều khoản</button>
+                                <button class="btn btn-primary" onclick="assistant.generateMindmap()"><i class="fas fa-project-diagram"></i>Sơ đồ tư duy</button>
+                            </div>
+                            <div id="sourcePanel" class="muted">Nguồn trích dẫn sẽ hiển thị sau mỗi câu trả lời.</div>
+                            <div id="assistantMindmapArea" style="margin-top:14px;display:none;">
+                                <div id="assistantMindmapRender" style="overflow:auto;display:flex;justify-content:center;padding:14px;background:#fff;border-radius:8px;border:1px solid var(--line);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-users" class="view">
+                    <div class="toolbar">
+                        <div><h3>Quản lý nhân sự</h3><div class="muted">Tạo chuyên viên/trưởng phòng, gán phòng ban/chức vụ, reset mật khẩu, khóa tài khoản.</div></div>
+                        <div class="actions">
+                            <input class="input" id="userSearch" placeholder="Tìm tên/email..." onkeydown="if(event.key==='Enter') users.load()">
+                            <select class="select" id="deptFilter" onchange="users.load()"><option value="">Tất cả phòng ban</option></select>
+                            <button class="btn btn-ghost" onclick="users.load()"><i class="fas fa-filter"></i>Lọc</button>
+                            <button class="btn btn-primary" onclick="users.openCreate()"><i class="fas fa-user-plus"></i>Tạo tài khoản mới</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="table-wrap"><table id="usersTable"><thead><tr><th>Nhân sự</th><th>Email</th><th>Phòng ban</th><th>Chức vụ</th><th>Nhóm quyền</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody></tbody></table></div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-head"><h3 id="modalTitle">Modal</h3><button class="btn btn-ghost" onclick="ui.closeModal()"><i class="fas fa-xmark"></i></button></div>
+            <div id="modalBody"></div>
+            <div class="actions" style="justify-content:flex-end;margin-top:18px;"><button class="btn btn-ghost" onclick="ui.closeModal()">Hủy</button><button class="btn btn-primary" id="modalSubmit">Xác nhận</button></div>
+        </div>
+    </div>
+    <div class="toast-box" id="toastBox"></div>
+
+    <script>
+        const state = { docs: [], currentDoc: null, currentSummary: null, users: [], departments: [], positions: [], workDocs: [], workItems: [], chart: null };
+        if (window.mermaid) {
+            mermaid.initialize({ startOnLoad: false, theme: 'default' });
+        }
+        const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        const fmtDate = (v) => v ? String(v).slice(0, 10) : '-';
+        const badge = (v) => {
+            const s = String(v || 'pending').toLowerCase();
+            const cls = ['completed','approved','active','processed','success'].includes(s) ? 'b-ok' : ['failed','inactive','needs_revision'].includes(s) ? 'b-bad' : ['processing','in_progress','pending'].includes(s) ? 'b-warn' : 'b-info';
+            return `<span class="badge ${cls}">${esc(v || '-')}</span>`;
+        };
+        const empty = (selector, cols, text='Không có dữ liệu') => document.querySelector(selector).innerHTML = `<tr><td colspan="${cols}" class="empty">${text}</td></tr>`;
+
+        const ui = {
+            toast(text, type='info') {
+                const el = document.createElement('div');
+                el.className = 'toast';
+                el.style.borderLeftColor = type === 'danger' ? 'var(--danger)' : type === 'success' ? 'var(--success)' : 'var(--primary)';
+                el.textContent = text;
+                document.getElementById('toastBox').appendChild(el);
+                setTimeout(() => el.remove(), 3600);
+            },
+            openModal(title, body, onSubmit) {
+                document.getElementById('modalTitle').textContent = title;
+                document.getElementById('modalBody').innerHTML = body;
+                document.getElementById('modalSubmit').onclick = onSubmit;
+                document.getElementById('modalOverlay').style.display = 'flex';
+            },
+            closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+        };
+
+        const app = {
+            token: localStorage.getItem('token'),
+            async init() {
+                if (!this.token) return location.href = '/login';
+                document.querySelectorAll('.nav-item').forEach(btn => btn.onclick = () => this.show(btn.dataset.view));
+                await this.profile();
+                await Promise.all([meta.load(), docs.load(), tasks.load(), users.load()]);
+                dashboard.render();
+            },
+            headers(json=true) {
+                const h = { Authorization: 'Bearer ' + this.token };
+                if (json) h['Content-Type'] = 'application/json';
+                return h;
+            },
+            async api(url, options={}) {
+                options.headers = { ...this.headers(options.body instanceof FormData ? false : true), ...(options.headers || {}) };
+                if (options.body instanceof FormData) delete options.headers['Content-Type'];
+                const res = await fetch(url, options);
+                if (res.status === 401) this.logout();
+                if (!res.ok) {
+                    let detail = res.statusText;
+                    try { detail = (await res.json()).detail || detail; } catch(e) {}
+                    throw new Error(Array.isArray(detail) ? detail.map(d => d.msg).join(', ') : detail);
+                }
+                return res;
+            },
+            async profile() {
+                const me = await (await this.api('/auth/me')).json();
+                if (me.role === 'admin') location.href = '/admin/dashboard';
+                if (me.permission_group_code === 'DEPARTMENT_LEADER') location.href = '/department-leader/dashboard';
+                if (me.permission_group_code === 'STAFF') location.href = '/staff/dashboard';
+                if (me.permission_group_code !== 'AGENCY_LEADER') {
+                    location.href = '/login';
+                    return;
+                }
+                document.getElementById('profileName').textContent = me.username;
+                document.getElementById('profileMeta').textContent = me.department_name || me.permission_group_name || me.role;
+                document.getElementById('avatar').textContent = (me.username || 'A').charAt(0).toUpperCase();
+            },
+            show(view) {
+                document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+                document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
+                const titles = { dashboard:'Bảng điều hành', documents:'Phân tích văn bản', tasks:'Trung tâm giao việc', monitoring:'Giám sát tiến độ', assistant:'Trợ lý AI', users:'Quản lý nhân sự' };
+                document.getElementById('viewTitle').textContent = titles[view] || 'Lãnh đạo cơ quan';
+                if (view === 'dashboard') dashboard.render();
+                if (view === 'monitoring') monitoring.render();
+            },
+            logout() { localStorage.removeItem('token'); location.href = '/login'; }
+        };
+
+        const meta = {
+            async load() {
+                const [deps, pos] = await Promise.all([
+                    app.api('/admin/departments?page_size=100').then(r => r.json()).catch(() => ({items:[]})),
+                    app.api('/admin/positions?page_size=100').then(r => r.json()).catch(() => ({items:[]}))
+                ]);
+                state.departments = deps.items || [];
+                state.positions = pos.items || [];
+                document.getElementById('deptFilter').innerHTML = '<option value="">Tất cả phòng ban</option>' + state.departments.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join('');
+            },
+            depOptions(selected='') { return '<option value="">Chọn phòng ban</option>' + state.departments.map(d => `<option value="${d.id}" ${String(selected)===String(d.id)?'selected':''}>${esc(d.name)}</option>`).join(''); },
+            posOptions(selected='', onlyBusiness=false) {
+                const positions = onlyBusiness ? state.positions.filter(p => ['STAFF','DEPARTMENT_LEADER'].includes(p.code)) : state.positions;
+                return '<option value="">Chọn chức vụ</option>' + positions.map(p => `<option value="${p.id}" ${String(selected)===String(p.id)?'selected':''}>${esc(p.name)} (${esc(p.code)})</option>`).join('');
+            }
+        };
+
+        const dashboard = {
+            render() {
+                const completed = state.workItems.filter(i => i.status === 'completed').length;
+                const pending = state.workItems.filter(i => i.status !== 'completed').length;
+                const newDocs = state.docs.filter(d => d.review_status !== 'approved').length;
+                const leaders = state.users.filter(u => (u.permission_group_name || '').toLowerCase().includes('trưởng') || (u.position_name || '').toLowerCase().includes('trưởng')).length;
+                document.getElementById('kpiGrid').innerHTML = [
+                    ['Văn bản mới', newDocs, 'fa-file-circle-plus'],
+                    ['AI summary', state.docs.reduce((n,d) => n + (d.summary_count || 0), 0), 'fa-brain'],
+                    ['Việc đang xử lý', pending, 'fa-bars-progress'],
+                    ['Nhân sự quản lý', leaders, 'fa-user-tie']
+                ].map(([label, val, icon]) => `<div class="card metric"><div class="metric-icon"><i class="fas ${icon}"></i></div><div><div class="metric-value">${val}</div><div class="muted">${label}</div></div></div>`).join('');
+                document.querySelector('#decisionDocs tbody').innerHTML = state.docs.slice(0, 8).map(d => `<tr><td>${esc(d.document_title || d.original_filename)}</td><td>${badge(d.processing_status)}</td><td>${d.summary_count || 0}</td><td><button class="btn btn-ghost" onclick="docs.open(${d.id});app.show('documents')"><i class="fas fa-eye"></i></button></td></tr>`).join('') || `<tr><td colspan="4" class="empty">Chưa có văn bản</td></tr>`;
+                this.chart();
+            },
+            chart() {
+                const counts = state.workItems.reduce((m, i) => (m[i.status || 'pending'] = (m[i.status || 'pending'] || 0) + 1, m), {});
+                const ctx = document.getElementById('statusChart');
+                if (state.chart) state.chart.destroy();
+                state.chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: ['#2563eb','#f59e0b','#10b981','#ef4444','#64748b'] }] }, options: { plugins: { legend: { position: 'bottom' } } } });
+            }
+        };
+
+        const docs = {
+            async load() {
+                const q = encodeURIComponent(document.getElementById('docSearch')?.value || '');
+                const data = await (await app.api('/api/documents?page_size=100&search=' + q)).json();
+                state.docs = data.items || [];
+                const rows = state.docs.map(d => `<tr><td>${esc(d.document_title || d.original_filename)}</td><td>${esc(d.document_type || '-')}</td><td>${badge(d.processing_status)}</td><td><button class="btn btn-ghost" onclick="docs.open(${d.id})"><i class="fas fa-eye"></i></button></td></tr>`).join('');
+                document.querySelector('#docsTable tbody').innerHTML = rows || `<tr><td colspan="4" class="empty">Chưa có văn bản</td></tr>`;
+                assistant.refreshDocumentPicker();
+            },
+            async upload(file) {
+                if (!file) return;
+                const fd = new FormData();
+                fd.append('file', file);
+                fd.append('auto_summary', 'true');
+                const wrap = document.getElementById('uploadProgressWrap');
+                const bar = document.getElementById('uploadProgressBar');
+                const label = document.getElementById('uploadProgressLabel');
+                let tick = 0;
+                const animate = () => {
+                    tick = Math.min(90, tick + (tick < 25 ? 6 : tick < 60 ? 4 : 2));
+                    bar.style.width = tick + '%';
+                };
+                const timer = setInterval(animate, 500);
+                wrap.style.display = 'block';
+                bar.style.width = '6%';
+                label.textContent = 'Đang tải lên...';
+                ui.toast('Đang upload và tạo tóm tắt AI...');
+                try {
+                    const data = await (await app.api('/api/upload', { method:'POST', body: fd })).json();
+                    bar.style.width = '100%';
+                    label.textContent = 'Hoàn tất';
+                    ui.toast('Đã xử lý văn bản', 'success');
+                    await this.load();
+                    await this.open(data.document.id);
+                    setTimeout(() => { wrap.style.display = 'none'; }, 700);
+                } catch (e) {
+                    label.textContent = 'Lỗi xử lý';
+                    ui.toast(e.message, 'danger');
+                    throw e;
+                } finally {
+                    clearInterval(timer);
+                }
+            },
+            async open(id) {
+                const d = await (await app.api('/api/documents/' + id)).json();
+                state.currentDoc = d;
+                state.currentSummary = (d.summaries || []).slice(-1)[0] || null;
+                document.getElementById('readerTitle').textContent = d.document_title || d.original_filename || 'Văn bản #' + id;
+                document.getElementById('readerMeta').textContent = `${d.document_type || 'Chưa phân loại'} · ${d.page_count || 0} trang · ${d.review_status}`;
+                document.getElementById('readerText').textContent = d.clean_text || 'Chưa có nội dung OCR.';
+                document.getElementById('summaryEditor').value = state.currentSummary?.summary_text || '';
+                document.getElementById('summaryMeta').textContent = state.currentSummary ? `Version ${state.currentSummary.version_no} · groundedness ${Math.round((state.currentSummary.groundedness_score || 0) * 100)}% · ${state.currentSummary.is_reviewed ? 'đã duyệt' : 'chờ duyệt'}` : 'Chưa có summary';
+            },
+            async saveSummary() {
+                if (!state.currentSummary) return ui.toast('Chưa có summary để lưu', 'danger');
+                const text = document.getElementById('summaryEditor').value.trim();
+                await app.api('/api/summaries/' + state.currentSummary.id, { method:'PATCH', body: JSON.stringify({ summary_text: text, note: 'Lãnh đạo cơ quan chỉnh sửa tóm tắt' }) });
+                ui.toast('Đã lưu bản chỉnh sửa AI output', 'success');
+                await this.open(state.currentDoc.id);
+            },
+            async approveSummary(approved) {
+                if (!state.currentSummary) return ui.toast('Chưa có summary để duyệt', 'danger');
+                await app.api('/api/summaries/' + state.currentSummary.id + '/review', { method:'POST', body: JSON.stringify({ approved, note: approved ? 'Approved by agency leader' : 'Needs revision' }) });
+                ui.toast(approved ? 'Đã duyệt tóm tắt' : 'Đã yêu cầu chỉnh sửa', 'success');
+                await this.open(state.currentDoc.id);
+            },
+            exportSummary(format) {
+                if (!state.currentSummary) return ui.toast('Chưa có summary để xuất', 'danger');
+                app.api('/api/summaries/' + state.currentSummary.id + '/export?format=' + format)
+                    .then(async res => {
+                        const blob = await res.blob();
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = `summary_${state.currentSummary.id}.${format}`;
+                        a.click();
+                        URL.revokeObjectURL(a.href);
+                    })
+                    .catch(e => ui.toast(e.message, 'danger'));
+            }
+        };
+
+        const tasks = {
+            async load() {
+                const [docsData, itemsData] = await Promise.all([
+                    app.api('/admin/work-documents?page_size=100').then(r => r.json()).catch(() => ({items:[]})),
+                    app.api('/admin/work-items?page_size=100').then(r => r.json()).catch(() => ({items:[]}))
+                ]);
+                state.workDocs = docsData.items || [];
+                state.workItems = itemsData.items || [];
+                document.querySelector('#workDocsTable tbody').innerHTML = state.workDocs.map(d => `<tr><td><code>${esc(d.document_code)}</code></td><td>${esc(d.title)}</td><td>${esc(d.assigned_department_name || '-')}</td><td>${d.work_item_count || 0}</td><td>${badge(d.status)}</td></tr>`).join('') || `<tr><td colspan="5" class="empty">Chưa có hồ sơ giao việc</td></tr>`;
+                document.querySelector('#workItemsTable tbody').innerHTML = state.workItems.map(i => `<tr><td>${esc(i.title)}</td><td><code>${esc(i.work_document_code || '-')}</code></td><td>${esc(i.assignee_username || i.department_name || '-')}</td><td>${badge(i.status)}</td><td>${fmtDate(i.due_date)}</td></tr>`).join('') || `<tr><td colspan="5" class="empty">Chưa có nhiệm vụ con</td></tr>`;
+            },
+            openFromDocument() {
+                if (!state.currentDoc) return ui.toast('Chọn văn bản trước khi tạo task', 'danger');
+                this.openWorkDocumentModal(state.currentDoc);
+            },
+            openWorkDocumentModal(doc=null) {
+                const code = doc ? `VB-${doc.id}-${Date.now().toString().slice(-4)}` : '';
+                const title = doc ? (doc.document_title || doc.original_filename || '') : '';
+                const summary = doc ? (document.getElementById('summaryEditor').value || '') : '';
+                ui.openModal('Tạo văn bản giao việc', `<div class="form-grid">
+                    <div class="form-group"><label>Mã văn bản</label><input class="input" id="wd_code" value="${esc(code)}"></div>
+                    <div class="form-group"><label>Hạn xử lý</label><input class="input" id="wd_due" type="date"></div>
+                    <div class="form-group" style="grid-column:1/-1"><label>Tiêu đề</label><input class="input" id="wd_title" value="${esc(title)}" style="width:100%"></div>
+                    <div class="form-group"><label>Phòng chủ trì</label><select class="select" id="wd_dep">${meta.depOptions()}</select></div>
+                    <div class="form-group"><label>Phòng nhận việc</label><select class="select" id="wd_assigned_dep">${meta.depOptions()}</select></div>
+                    <div class="form-group" style="grid-column:1/-1"><label>Tóm tắt / chỉ đạo</label><textarea id="wd_summary" rows="5">${esc(summary)}</textarea></div>
+                </div>`, async () => {
+                    const payload = { document_code: wd_code.value, title: wd_title.value, content_summary: wd_summary.value || null, department_id: wd_dep.value ? Number(wd_dep.value) : null, assigned_department_id: wd_assigned_dep.value ? Number(wd_assigned_dep.value) : null, due_date: wd_due.value || null, status: 'assigned' };
+                    await app.api('/admin/work-documents', { method:'POST', body: JSON.stringify(payload) });
+                    ui.closeModal(); ui.toast('Đã tạo văn bản giao việc', 'success'); await tasks.load(); app.show('tasks');
+                });
+            },
+            openWorkItemModal() {
+                const docOptions = state.workDocs.map(d => `<option value="${d.id}">${esc(d.document_code)} - ${esc(d.title)}</option>`).join('');
+                const userOptions = state.users.map(u => `<option value="${u.id}">${esc(u.username)} · ${esc(u.department_name || '-')}</option>`).join('');
+                ui.openModal('Giao task', `<div class="form-grid">
+                    <div class="form-group"><label>Văn bản giao việc</label><select class="select" id="wi_doc">${docOptions}</select></div>
+                    <div class="form-group"><label>Hạn xử lý</label><input class="input" id="wi_due" type="date"></div>
+                    <div class="form-group" style="grid-column:1/-1"><label>Tiêu đề task</label><input class="input" id="wi_title" style="width:100%"></div>
+                    <div class="form-group"><label>Giao cho nhân sự</label><select class="select" id="wi_user"><option value="">Theo phòng ban</option>${userOptions}</select></div>
+                    <div class="form-group"><label>Phòng ban</label><select class="select" id="wi_dep">${meta.depOptions()}</select></div>
+                    <div class="form-group"><label>Chức vụ</label><select class="select" id="wi_pos">${meta.posOptions('', true)}</select></div>
+                    <div class="form-group"><label>Ưu tiên</label><select class="select" id="wi_priority"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+                    <div class="form-group"><label>Trạng thái</label><select class="select" id="wi_status"><option value="pending">Chờ xử lý</option><option value="in_progress">Đang xử lý</option></select></div>
+                    <div class="form-group" style="grid-column:1/-1"><label>Mô tả</label><textarea id="wi_desc" rows="4"></textarea></div>
+                </div>`, async () => {
+                    const payload = { work_document_id: Number(wi_doc.value), title: wi_title.value, description: wi_desc.value || null, assignee_user_id: wi_user.value ? Number(wi_user.value) : null, department_id: wi_dep.value ? Number(wi_dep.value) : null, position_id: wi_pos.value ? Number(wi_pos.value) : null, priority: wi_priority.value, status: wi_status.value, due_date: wi_due.value || null };
+                    await app.api('/admin/work-items', { method:'POST', body: JSON.stringify(payload) });
+                    ui.closeModal(); ui.toast('Đã giao task', 'success'); await tasks.load();
+                });
+            }
+        };
+
+        const monitoring = {
+            render() {
+                const done = state.workItems.filter(i => i.status === 'completed').length;
+                const late = state.workItems.filter(i => i.due_date && i.status !== 'completed' && new Date(i.due_date) < new Date()).length;
+                document.getElementById('monitorCards').innerHTML = [
+                    ['Tổng nhiệm vụ', state.workItems.length, 'fa-list-check'],
+                    ['Đã hoàn thành', done, 'fa-circle-check'],
+                    ['Backlog quá hạn', late, 'fa-triangle-exclamation']
+                ].map(([label, val, icon]) => `<div class="card metric"><div class="metric-icon"><i class="fas ${icon}"></i></div><div><div class="metric-value">${val}</div><div class="muted">${label}</div></div></div>`).join('');
+                const byDept = {};
+                state.workItems.forEach(i => {
+                    const key = i.department_name || 'Chưa gán phòng';
+                    byDept[key] ||= { total:0, doing:0, done:0, backlog:0 };
+                    byDept[key].total++;
+                    if (i.status === 'completed') byDept[key].done++;
+                    else byDept[key].doing++;
+                    if (i.due_date && i.status !== 'completed' && new Date(i.due_date) < new Date()) byDept[key].backlog++;
+                });
+                document.querySelector('#deptProgressTable tbody').innerHTML = Object.entries(byDept).map(([dep, m]) => `<tr><td>${esc(dep)}</td><td>${m.total}</td><td>${m.doing}</td><td>${m.done}</td><td>${m.backlog}</td></tr>`).join('') || `<tr><td colspan="5" class="empty">Chưa có dữ liệu tiến độ</td></tr>`;
+            },
+            exportReport() {
+                const rows = [['Phòng ban','Tổng việc','Đang xử lý','Hoàn thành','Tồn đọng']];
+                document.querySelectorAll('#deptProgressTable tbody tr').forEach(tr => rows.push([...tr.children].map(td => td.innerText)));
+                const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'agency_progress_report.csv';
+                a.click();
+            }
+        };
+
+        const assistant = {
+            refreshDocumentPicker() {
+                const select = document.getElementById('assistantDocSelect');
+                if (!select) return;
+                const currentId = state.currentDoc?.id ? String(state.currentDoc.id) : '';
+                const options = ['<option value="">Toàn bộ kho tri thức</option>']
+                    .concat(state.docs.map(d => `<option value="${d.id}" ${currentId === String(d.id) ? 'selected' : ''}>${esc(d.document_title || d.original_filename || ('Văn bản #' + d.id))}</option>`));
+                select.innerHTML = options.join('');
+                this.updateDocumentLabel(currentId);
+            },
+            onDocumentChange(documentId) {
+                if (!documentId) {
+                    state.currentDoc = null;
+                    this.updateDocumentLabel('');
+                    return;
+                }
+                const found = state.docs.find(d => String(d.id) === String(documentId));
+                if (found) {
+                    state.currentDoc = found;
+                    this.updateDocumentLabel(String(found.id));
+                }
+            },
+            updateDocumentLabel(documentId) {
+                const label = document.getElementById('assistantDocLabel');
+                if (!label) return;
+                if (!documentId) {
+                    label.textContent = 'Chưa chọn văn bản cụ thể.';
+                    return;
+                }
+                const found = state.docs.find(d => String(d.id) === String(documentId));
+                label.textContent = found
+                    ? `Đang hỏi trên: ${found.document_title || found.original_filename || ('Văn bản #' + found.id)}`
+                    : 'Văn bản đã chọn không còn trong danh sách.';
+            },
+            async generateMindmap() {
+                if (!state.currentDoc?.id) {
+                    ui.toast('Chọn văn bản trước khi tạo sơ đồ tư duy', 'danger');
+                    return;
+                }
+                const area = document.getElementById('assistantMindmapArea');
+                const render = document.getElementById('assistantMindmapRender');
+                if (!area || !render) return;
+                area.style.display = 'block';
+                render.innerHTML = '<div class="muted">Đang tạo sơ đồ tư duy...</div>';
+                try {
+                    const res = await app.api('/api/mindmap', {
+                        method: 'POST',
+                        body: JSON.stringify({ document_id: state.currentDoc.id, use_llm: true, max_nodes: 12 })
+                    });
+                    const data = await res.json();
+                    const answer = (data.mermaid || '').replace(/```mermaid/gi, '').replace(/```/gi, '').trim();
+                    render.innerHTML = `<pre class="mermaid">${answer}</pre>`;
+                    if (window.mermaid) {
+                        mermaid.init(undefined, render.querySelectorAll('.mermaid'));
+                    }
+                } catch (e) {
+                    render.innerHTML = `<div class="muted">Lỗi: ${esc(e.message)}</div>`;
+                }
+            },
+            quick(text) { document.getElementById('chatInput').value = text; this.ask(); },
+            async ask() {
+                const input = document.getElementById('chatInput');
+                const query = input.value.trim();
+                if (!query) return;
+                this.add(query, 'user'); input.value = '';
+                const loading = this.add('Đang truy xuất ngữ cảnh...', 'ai');
+                const body = { query, top_k: 5 };
+                if (state.currentDoc?.id) body.document_ids = [state.currentDoc.id];
+                try {
+                    const data = await (await app.api('/api/summarize', { method:'POST', body: JSON.stringify(body) })).json();
+                    loading.textContent = data.answer || 'Không có câu trả lời.';
+                    document.getElementById('sourcePanel').innerHTML = (data.source_chunks || []).map(c => `<div class="card" style="padding:12px;margin-bottom:8px;"><strong>${esc(c.metadata?.citation_anchor || 'Nguồn')}</strong><div class="muted">${esc(c.content || '').slice(0, 260)}</div></div>`).join('') || '<div class="muted">Không có trích dẫn trả về.</div>';
+                } catch(e) { loading.textContent = 'Lỗi: ' + e.message; }
+            },
+            add(text, cls) {
+                const el = document.createElement('div');
+                el.className = 'message ' + cls;
+                el.textContent = text;
+                document.getElementById('chatMessages').appendChild(el);
+                el.scrollIntoView({ block: 'end' });
+                return el;
+            }
+        };
+
+        const users = {
+            async load() {
+                const q = encodeURIComponent(document.getElementById('userSearch')?.value || '');
+                const dep = document.getElementById('deptFilter')?.value || '';
+                const data = await (await app.api('/admin/users?page_size=100&search=' + q)).json();
+                state.users = (data.items || []).filter(u => !dep || String(u.department_id) === dep);
+                document.querySelector('#usersTable tbody').innerHTML = state.users.map(u => `<tr><td><strong>${esc(u.username)}</strong></td><td>${esc(u.email || '-')}</td><td>${esc(u.department_name || '-')}</td><td>${esc(u.position_name || '-')}</td><td>${esc(u.permission_group_name || '-')}</td><td>${badge(u.is_active ? 'active' : 'inactive')}</td><td><div class="actions"><button class="btn btn-ghost" onclick="users.openEdit(${u.id})"><i class="fas fa-pen"></i></button><button class="btn btn-ghost" onclick="users.openReset(${u.id})"><i class="fas fa-key"></i></button><button class="btn btn-ghost" onclick="users.toggle(${u.id})"><i class="fas fa-power-off"></i></button></div></td></tr>`).join('') || `<tr><td colspan="7" class="empty">Không có nhân sự</td></tr>`;
+            },
+            password() { return 'Temp@' + Math.random().toString(36).slice(2, 8) + '1'; },
+            form(u=null, includePassword=false) {
+                return `<div class="form-grid">
+                    <div class="form-group"><label>Họ tên / Tên đăng nhập</label><input class="input" id="u_name" value="${esc(u?.username || '')}"></div>
+                    <div class="form-group"><label>Email</label><input class="input" id="u_email" value="${esc(u?.email || '')}"></div>
+                    ${includePassword ? `<div class="form-group"><label>Mật khẩu tự sinh</label><input class="input" id="u_password" value="${this.password()}"></div>` : ''}
+                    <div class="form-group"><label>Phòng ban</label><select class="select" id="u_dep">${meta.depOptions(u?.department_id || '')}</select></div>
+                    <div class="form-group"><label>Chức vụ</label><select class="select" id="u_pos">${meta.posOptions(u?.position_id || '', true)}</select></div>
+                    <div class="form-group"><label>Trạng thái</label><select class="select" id="u_active"><option value="true" ${u?.is_active !== false ? 'selected' : ''}>Hoạt động</option><option value="false" ${u?.is_active === false ? 'selected' : ''}>Khóa</option></select></div>
+                </div>`;
+            },
+            openCreate() {
+                ui.openModal('Tạo tài khoản mới', this.form(null, true), async () => {
+                    const payload = { username: u_name.value, email: u_email.value || null, password: u_password.value, department_id: u_dep.value ? Number(u_dep.value) : null, position_id: u_pos.value ? Number(u_pos.value) : null, is_active: u_active.value === 'true' };
+                    await app.api('/admin/users', { method:'POST', body: JSON.stringify(payload) });
+                    ui.closeModal(); ui.toast('Đã tạo tài khoản và auto map permission_group', 'success'); await users.load();
+                });
+            },
+            openEdit(id) {
+                const u = state.users.find(x => x.id === id);
+                ui.openModal('Cập nhật nhân sự', this.form(u, false), async () => {
+                    const payload = { username: u_name.value, email: u_email.value || null, department_id: u_dep.value ? Number(u_dep.value) : null, position_id: u_pos.value ? Number(u_pos.value) : null, is_active: u_active.value === 'true' };
+                    await app.api('/admin/users/' + id, { method:'PUT', body: JSON.stringify(payload) });
+                    ui.closeModal(); ui.toast('Đã cập nhật nhân sự', 'success'); await users.load();
+                });
+            },
+            openReset(id) {
+                ui.openModal('Reset mật khẩu', `<div class="form-group"><label>Mật khẩu mới</label><input class="input" id="new_pass" value="${this.password()}"></div>`, async () => {
+                    await app.api('/admin/users/' + id + '/reset-password', { method:'POST', body: JSON.stringify({ new_password: new_pass.value }) });
+                    ui.closeModal(); ui.toast('Đã reset mật khẩu', 'success');
+                });
+            },
+            async toggle(id) { await app.api('/admin/users/' + id + '/toggle-active', { method:'POST' }); ui.toast('Đã đổi trạng thái tài khoản', 'success'); await this.load(); }
+        };
+
+        app.init().catch(e => ui.toast(e.message, 'danger'));
+    </script>
+</body>
+
+</html>

@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import HTTPException
 from sqlalchemy import Select, func, select, or_
 from sqlalchemy.orm import Session, selectinload
-from db.models import WorkAssignmentDocument, WorkItem, NoticeDocument
+from db.models import WorkAssignmentDocument, WorkItem, NoticeDocument, User
 from admin.services.common import (
     _get_work_document_or_404,
     _get_work_item_or_404,
@@ -20,6 +20,7 @@ def list_work_documents(
     page_size: int,
     search: str | None,
     status_value: str | None,
+    current_user: User | None = None,
     issuing_unit_id: int | None = None,
     department_id: int | None = None,
     assigned_department_id: int | None = None,
@@ -51,15 +52,40 @@ def list_work_documents(
     if assigned_department_id is not None:
         statement = statement.where(WorkAssignmentDocument.assigned_department_id == assigned_department_id)
         count_statement = count_statement.where(WorkAssignmentDocument.assigned_department_id == assigned_department_id)
+
+    if current_user:
+        group_code = _get_group_code(current_user)
+        if group_code == "DEPARTMENT_LEADER":
+            if current_user.department_id is None:
+                raise HTTPException(status_code=403, detail="Department scope is required")
+            statement = statement.where(
+                or_(
+                    WorkAssignmentDocument.department_id == current_user.department_id,
+                    WorkAssignmentDocument.assigned_department_id == current_user.department_id,
+                )
+            )
+            count_statement = count_statement.where(
+                or_(
+                    WorkAssignmentDocument.department_id == current_user.department_id,
+                    WorkAssignmentDocument.assigned_department_id == current_user.department_id,
+                )
+            )
     total = db.scalar(count_statement) or 0
     items = list(db.scalars(
         statement.order_by(WorkAssignmentDocument.id.desc()).offset((page - 1) * page_size).limit(page_size)
     ).all())
     return items, total
 
-def create_work_document(db: Session, payload: dict[str, Any]) -> WorkAssignmentDocument:
+def create_work_document(
+    db: Session,
+    payload: dict[str, Any],
+    current_user: User | None = None,
+) -> WorkAssignmentDocument:
     if db.scalar(select(WorkAssignmentDocument).where(WorkAssignmentDocument.document_code == payload["document_code"])):
         raise HTTPException(status_code=409, detail="Work document code already exists")
+    if current_user:
+        _assert_can_manage_work_documents(db, current_user, payload)
+        payload.setdefault("assigned_by_user_id", current_user.id)
     _validate_work_document_relations(db, payload)
     item = WorkAssignmentDocument(**payload)
     db.add(item)
@@ -67,11 +93,18 @@ def create_work_document(db: Session, payload: dict[str, Any]) -> WorkAssignment
     db.refresh(item)
     return item
 
-def update_work_document(db: Session, document_id: int, payload: dict[str, Any]) -> WorkAssignmentDocument:
+def update_work_document(
+    db: Session,
+    document_id: int,
+    payload: dict[str, Any],
+    current_user: User | None = None,
+) -> WorkAssignmentDocument:
     item = _get_work_document_or_404(db, document_id)
     if "document_code" in payload and payload["document_code"] != item.document_code:
         if db.scalar(select(WorkAssignmentDocument).where(WorkAssignmentDocument.document_code == payload["document_code"])):
             raise HTTPException(status_code=409, detail="Work document code already exists")
+    if current_user:
+        _assert_can_manage_work_documents(db, current_user, payload, document_id=document_id)
     _validate_work_document_relations(db, payload)
     for field, value in payload.items():
         setattr(item, field, value)
@@ -81,7 +114,13 @@ def update_work_document(db: Session, document_id: int, payload: dict[str, Any])
     db.refresh(item)
     return item
 
-def delete_work_document(db: Session, document_id: int) -> None:
+def delete_work_document(
+    db: Session,
+    document_id: int,
+    current_user: User | None = None,
+) -> None:
+    if current_user:
+        _assert_can_manage_work_documents(db, current_user, document_id=document_id)
     item = _get_work_document_or_404(db, document_id)
     db.delete(item)
     db.commit()
@@ -95,6 +134,7 @@ def list_work_items(
     work_document_id: int | None,
     assignee_user_id: int | None,
     department_id: int | None,
+    current_user: User | None = None,
 ) -> tuple[list[WorkItem], int]:
     statement: Select[tuple[WorkItem]] = select(WorkItem).options(
         selectinload(WorkItem.work_document),
@@ -122,13 +162,30 @@ def list_work_items(
     if department_id is not None:
         statement = statement.where(WorkItem.department_id == department_id)
         count_statement = count_statement.where(WorkItem.department_id == department_id)
+
+    if current_user:
+        group_code = _get_group_code(current_user)
+        if group_code == "DEPARTMENT_LEADER":
+            if current_user.department_id is None:
+                raise HTTPException(status_code=403, detail="Department scope is required")
+            statement = statement.where(WorkItem.department_id == current_user.department_id)
+            count_statement = count_statement.where(WorkItem.department_id == current_user.department_id)
+        elif group_code == "STAFF":
+            statement = statement.where(WorkItem.assignee_user_id == current_user.id)
+            count_statement = count_statement.where(WorkItem.assignee_user_id == current_user.id)
     total = db.scalar(count_statement) or 0
     items = list(db.scalars(
         statement.order_by(WorkItem.id.desc()).offset((page - 1) * page_size).limit(page_size)
     ).all())
     return items, total
 
-def create_work_item(db: Session, payload: dict[str, Any]) -> WorkItem:
+def create_work_item(
+    db: Session,
+    payload: dict[str, Any],
+    current_user: User | None = None,
+) -> WorkItem:
+    if current_user:
+        _assert_can_manage_work_items(current_user, payload)
     _validate_work_item_relations(db, payload)
     item = WorkItem(**payload)
     db.add(item)
@@ -136,8 +193,15 @@ def create_work_item(db: Session, payload: dict[str, Any]) -> WorkItem:
     db.refresh(item)
     return item
 
-def update_work_item(db: Session, item_id: int, payload: dict[str, Any]) -> WorkItem:
+def update_work_item(
+    db: Session,
+    item_id: int,
+    payload: dict[str, Any],
+    current_user: User | None = None,
+) -> WorkItem:
     item = _get_work_item_or_404(db, item_id)
+    if current_user:
+        _assert_can_manage_work_items(current_user, payload, item=item)
     _validate_work_item_relations(db, payload)
     for field, value in payload.items():
         setattr(item, field, value)
@@ -147,8 +211,14 @@ def update_work_item(db: Session, item_id: int, payload: dict[str, Any]) -> Work
     db.refresh(item)
     return item
 
-def delete_work_item(db: Session, item_id: int) -> None:
+def delete_work_item(
+    db: Session,
+    item_id: int,
+    current_user: User | None = None,
+) -> None:
     item = _get_work_item_or_404(db, item_id)
+    if current_user:
+        _assert_can_manage_work_items(current_user, {}, item=item)
     db.delete(item)
     db.commit()
 
@@ -189,7 +259,12 @@ def list_notice_documents(
     ).all())
     return items, total
 
-def create_notice_document(db: Session, actor_user_id: int, payload: dict[str, Any]) -> NoticeDocument:
+def create_notice_document(
+    db: Session,
+    actor_user_id: int,
+    payload: dict[str, Any],
+    current_user: User | None = None,
+) -> NoticeDocument:
     if db.scalar(select(NoticeDocument).where(NoticeDocument.notice_code == payload["notice_code"])):
         raise HTTPException(status_code=409, detail="Notice code already exists")
     payload["posted_by_user_id"] = actor_user_id
@@ -214,7 +289,11 @@ def update_notice_document(db: Session, notice_id: int, payload: dict[str, Any])
     db.refresh(item)
     return item
 
-def delete_notice_document(db: Session, notice_id: int) -> None:
+def delete_notice_document(
+    db: Session,
+    notice_id: int,
+    current_user: User | None = None,
+) -> None:
     item = _get_notice_document_or_404(db, notice_id)
     db.delete(item)
     db.commit()
@@ -246,3 +325,57 @@ def _validate_notice_relations(db: Session, payload: dict[str, Any]) -> None:
         _get_department_or_404(db, payload["department_id"])
     if payload.get("posted_by_user_id") is not None:
         _get_user_or_404(db, payload["posted_by_user_id"])
+
+
+def _get_group_code(user: User) -> str | None:
+    if user.permission_group:
+        return user.permission_group.code
+    return None
+
+
+def _assert_can_manage_work_documents(
+    db: Session,
+    current_user: User,
+    payload: dict[str, Any] | None = None,
+    document_id: int | None = None,
+) -> None:
+    payload = payload or {}
+    group_code = _get_group_code(current_user)
+    if group_code == "AGENCY_LEADER":
+        return
+    if group_code != "DEPARTMENT_LEADER":
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if current_user.department_id is None:
+        raise HTTPException(status_code=403, detail="Department scope is required")
+
+    department_id = payload.get("department_id")
+    assigned_department_id = payload.get("assigned_department_id")
+    if department_id and department_id != current_user.department_id:
+        raise HTTPException(status_code=403, detail="Department scope violation")
+    if assigned_department_id and assigned_department_id != current_user.department_id:
+        raise HTTPException(status_code=403, detail="Department scope violation")
+
+    if document_id is not None:
+        document = _get_work_document_or_404(db, document_id)
+        if document.department_id not in {None, current_user.department_id} and document.assigned_department_id not in {None, current_user.department_id}:
+            raise HTTPException(status_code=403, detail="Department scope violation")
+
+
+def _assert_can_manage_work_items(
+    current_user: User,
+    payload: dict[str, Any],
+    item: WorkItem | None = None,
+) -> None:
+    group_code = _get_group_code(current_user)
+    if group_code == "AGENCY_LEADER":
+        return
+    if group_code != "DEPARTMENT_LEADER":
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    if current_user.department_id is None:
+        raise HTTPException(status_code=403, detail="Department scope is required")
+
+    department_id = payload.get("department_id") or (item.department_id if item else None)
+    if department_id and department_id != current_user.department_id:
+        raise HTTPException(status_code=403, detail="Department scope violation")

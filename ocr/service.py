@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import unicodedata
 import xml.etree.ElementTree as ET
 import zipfile
@@ -33,6 +34,33 @@ from pyvi import ViTokenizer
 from config import settings
 
 logger = logging.getLogger(__name__)
+if getattr(settings, "TESSERACT_CMD", ""):
+    pytesseract.pytesseract.tesseract_cmd = settings.TESSERACT_CMD
+if getattr(settings, "TESSDATA_PREFIX", ""):
+    os.environ.setdefault("TESSDATA_PREFIX", settings.TESSDATA_PREFIX)
+
+
+def _resolve_poppler_path() -> str | None:
+    configured = getattr(settings, "POPPLER_PATH", "")
+    if configured:
+        configured_path = Path(configured)
+        if configured_path.is_dir():
+            return str(configured_path)
+        if configured_path.is_file():
+            return str(configured_path.parent)
+
+    fallback_candidates = [
+        Path(r"E:/poppler-26.02.0/Library/bin"),
+        Path(r"E:/poppler-26.02.0/bin"),
+    ]
+    for candidate in fallback_candidates:
+        if candidate.is_dir():
+            return str(candidate)
+
+    executable = shutil.which("pdftoppm") or shutil.which("pdftoppm.exe")
+    if executable:
+        return str(Path(executable).parent)
+    return None
 
 
 # ─── Fallback Models ──────────────────────────────────────────────────────────
@@ -75,6 +103,9 @@ class _FallbackBM25:
             overlap = len(query_tokens.intersection(doc_tokens))
             scores.append(overlap / max(len(query_tokens), 1))
         return np.array(scores, dtype="float32")
+
+
+OCR_DIR = Path(__file__).resolve().parent
 
 
 class _VietnameseOCRCorrector:
@@ -130,7 +161,9 @@ class _VietnameseOCRCorrector:
         ("ñ", "đ"),
     ]
 
-    def __init__(self, rules_path: str = "ocr/correction_rules.json"):
+    def __init__(self, rules_path: str | Path | None = None):
+        if rules_path is None:
+            rules_path = OCR_DIR / "correction_rules.json"
         self.rules = {}
         try:
             if os.path.exists(rules_path):
@@ -189,7 +222,19 @@ class _VietnameseOCRCorrector:
 
     @staticmethod
     def _viet_score(text: str) -> int:
-        return len(re.findall(r"[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệóòỏõọốồổỗộớờởỡợíìỉĩịúùủũụứừửữựýỳỷỹỵ]", text.lower()))
+        if not text:
+            return 0
+        lowered = text.lower()
+        vietnamese_chars = len(re.findall(r"[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệóòỏõọốồổỗộớờởỡợíìỉĩịúùủũụứừửữựýỳỷỹỵ]", lowered))
+        common_words = len(re.findall(
+            r"\b(cộng|hòa|xã|hội|chủ|nghĩa|việt|nam|độc|lập|tự|do|hạnh|phúc|"
+            r"ủy|ban|nhân|dân|quyết|định|công|văn|thông|báo|nghị|định|điều|khoản|"
+            r"ngày|tháng|năm|về|việc|căn|cứ|thực|hiện)\b",
+            lowered,
+        ))
+        alnum = len(re.findall(r"[\wăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệóòỏõọốồổỗộớờởỡợíìỉĩịúùủũụứừửữựýỳỷỹỵ]", lowered, re.UNICODE))
+        garbage = len(re.findall(r"[|_<>{}\\~`^]", text))
+        return vietnamese_chars * 4 + common_words * 12 + min(alnum, 300) - garbage * 8
 
 # ─── Image Preprocessing (nâng cao) ──────────────────────────────────────────
 
@@ -324,6 +369,12 @@ class _ImagePreprocessor:
 class OCRService:
     # ── Tesseract config ──────────────────────────────────────────────────────
     TESSERACT_CONFIG = "--oem 3 --psm 6 -c preserve_interword_spaces=1"
+    TESSERACT_CONFIGS = (
+        "--oem 3 --psm 6 -c preserve_interword_spaces=1",
+        "--oem 3 --psm 4 -c preserve_interword_spaces=1",
+        "--oem 3 --psm 3 -c preserve_interword_spaces=1",
+        "--oem 3 --psm 11",
+    )
 
     # ── Regex patterns ────────────────────────────────────────────────────────
     ARTICLE_PATTERN = re.compile(
@@ -339,7 +390,7 @@ class OCRService:
         re.IGNORECASE | re.MULTILINE,
     )
     CLAUSE_PATTERN = re.compile(
-        r"^\s*(Khoản|Khoan)\s+\d+[.:)]?",
+        r"^\s*(?:(Khoản|Khoan)\s+\d+[.:)]?|\d+[.)]\s+)",
         re.IGNORECASE | re.MULTILINE,
     )
     DOCUMENT_CODE_PATTERN = re.compile(
@@ -390,8 +441,8 @@ class OCRService:
 
     
     def __init__(self, index_path: str = "ocr_vectors.index", metadata_path: str = "ocr_metadata.json"):
-        self.config = '--oem 3 --psm 3'
-        self.lang = 'vie'
+        self.config = self.TESSERACT_CONFIG
+        self.lang = getattr(settings, "OCR_LANG", "vie+eng") or "vie+eng"
         self._corrector = _VietnameseOCRCorrector()
         
         # Vector Storage configuration
@@ -510,7 +561,7 @@ class OCRService:
 
         if is_scan:
             logger.info("pdf_scan_detected, using OCR fallback")
-            images = convert_from_bytes(pdf_bytes, dpi=200)  # dpi=200 tốt hơn default
+            images = convert_from_bytes(pdf_bytes, dpi=300, poppler_path=_resolve_poppler_path())
             return [
                 {
                     "page_number": i + 1,
@@ -543,27 +594,7 @@ class OCRService:
         Tốt hơn phiên bản cũ vì: multi-preset + correction pipeline.
         """
         image = Image.open(io.BytesIO(image_bytes))
-        presets = _ImagePreprocessor.preprocess_multi(image)
-
-        best_text = ""
-        best_score = -1
-
-        for processed, preset_name in presets:
-            try:
-                raw_text = pytesseract.image_to_string(
-                    processed, lang=self.lang, config=self.TESSERACT_CONFIG
-                ).strip()
-                # Sửa lỗi OCR ngay sau khi nhận kết quả thô
-                corrected = self._corrector.correct(raw_text)
-                score = _VietnameseOCRCorrector._viet_score(corrected)
-                logger.debug("OCR preset=%s score=%d chars=%d", preset_name, score, len(corrected))
-                if score > best_score:
-                    best_score = score
-                    best_text = corrected
-            except Exception as exc:
-                logger.warning("ocr_preset_failed preset=%s: %s", preset_name, exc)
-
-        return best_text
+        return self._ocr_image_with_fallbacks(image, log_prefix="image")
 
     # ── PDF Extraction ────────────────────────────────────────────────────────
 
@@ -583,7 +614,7 @@ class OCRService:
 
         if is_scan:
             logger.info("pdf_scan_detected, using OCR fallback")
-            images = convert_from_bytes(pdf_bytes, dpi=200)  # dpi=200 tốt hơn default
+            images = convert_from_bytes(pdf_bytes, dpi=300, poppler_path=_resolve_poppler_path())
             return [
                 {
                     "page_number": i + 1,
@@ -609,22 +640,62 @@ class OCRService:
 
     def _ocr_pil_image(self, image: Image.Image) -> str:
         """OCR một PIL Image với correction pipeline."""
-        presets = _ImagePreprocessor.preprocess_multi(image)
+        return self._ocr_image_with_fallbacks(image, log_prefix="pdf")
+
+    def _ocr_image_with_fallbacks(self, image: Image.Image, log_prefix: str = "ocr") -> str:
+        """
+        OCR theo kiểu staged: thử nhanh preset chuẩn trước, chỉ mở rộng sang các biến thể khác nếu kết quả kém.
+        Giảm đáng kể số lần gọi Tesseract so với brute-force toàn bộ tổ hợp.
+        """
+        variants = [
+            ("standard", _ImagePreprocessor.preprocess(image, aggressive=False), [self.TESSERACT_CONFIGS[0]]),
+            ("standard+alt", _ImagePreprocessor.preprocess(image, aggressive=False), list(self.TESSERACT_CONFIGS[1:2])),
+            ("aggressive", _ImagePreprocessor.preprocess(image, aggressive=True), [self.TESSERACT_CONFIGS[0]]),
+            ("binarize", _ImagePreprocessor.adaptive_binarize(ImageOps.grayscale(image)), [self.TESSERACT_CONFIGS[0]]),
+        ]
+
         best_text = ""
         best_score = -1
-        for processed, _ in presets:
-            try:
-                raw = pytesseract.image_to_string(
-                    processed, lang=self.lang, config=self.TESSERACT_CONFIG
-                ).strip()
-                corrected = self._corrector.correct(raw)
-                score = _VietnameseOCRCorrector._viet_score(corrected)
-                if score > best_score:
-                    best_score = score
-                    best_text = corrected
-            except Exception:
-                pass
+        for preset_name, processed, configs in variants:
+            for config in configs:
+                try:
+                    raw = self._image_to_string(processed, config=config).strip()
+                    corrected = self._corrector.correct(raw)
+                    score = _VietnameseOCRCorrector._viet_score(corrected)
+                    logger.debug(
+                        "%s_ocr preset=%s config=%s score=%d chars=%d",
+                        log_prefix,
+                        preset_name,
+                        config,
+                        score,
+                        len(corrected),
+                    )
+                    if score > best_score:
+                        best_score = score
+                        best_text = corrected
+                    if score >= 28 and len(corrected) >= 20:
+                        return corrected
+                except Exception as exc:
+                    logger.debug("%s_ocr_variant_failed preset=%s config=%s: %s", log_prefix, preset_name, config, exc)
+
         return best_text
+
+    def _image_to_string(self, image: Image.Image, config: str) -> str:
+        language_candidates = [self.lang]
+        for fallback in ("vie", "eng"):
+            if fallback not in language_candidates:
+                language_candidates.append(fallback)
+
+        last_error: Exception | None = None
+        for lang in language_candidates:
+            try:
+                return pytesseract.image_to_string(image, lang=lang, config=config)
+            except pytesseract.TesseractError as exc:
+                last_error = exc
+                logger.debug("tesseract_lang_failed lang=%s config=%s: %s", lang, config, exc)
+        if last_error:
+            raise last_error
+        return ""
 
     def extract_from_pdf(self, pdf_bytes: bytes) -> str:
         pages = self.extract_pages_from_pdf(pdf_bytes)
@@ -869,7 +940,46 @@ class OCRService:
         return f"Context: {chunks}\nQuery: {query}"
 
     def validate_answer_vs_context(self, answer: str, chunks: List[Dict[str, Any]]) -> bool:
+        # Reject empty or extremely short answers
+        if not answer or len(answer.strip()) < 12:
+            return False
+
+        # Prefer answers that look Vietnamese using the internal viet score
+        viet_score = _VietnameseOCRCorrector._viet_score(answer)
+        if viet_score < 20:
+            return False
+
+        # Check some lexical overlap with context chunks to ensure groundedness
+        try:
+            answer_tokens = set(re.findall(r"\w+", answer.lower(), flags=re.UNICODE))
+            chunk_text = " ".join(str(c.get("content", "")) for c in chunks).lower()
+            overlap = sum(1 for t in answer_tokens if t in chunk_text)
+            # require at least a small number of overlapping tokens or a relative overlap
+            if overlap < 2 and (len(answer_tokens) == 0 or overlap / max(len(answer_tokens), 1) < 0.05):
+                return False
+        except Exception:
+            return False
+
         return True
+
+    def _fallback_rag_answer_from_chunks(self, query: str, chunks: List[Dict[str, Any]]) -> str:
+        if not chunks:
+            return "Không tìm thấy nội dung phù hợp trong tài liệu đã chọn."
+
+        best_chunk = max(
+            chunks,
+            key=lambda chunk: len(str(chunk.get("content", "")).strip()),
+        )
+        content = str(best_chunk.get("content", "")).strip()
+        if not content:
+            return "Không tìm thấy nội dung phù hợp trong tài liệu đã chọn."
+
+        sentences = [s.strip() for s in re.split(r"(?<=[.!?\n])\s+", content) if s.strip()]
+        snippet = sentences[0] if sentences else content
+        snippet = re.sub(r"\s+", " ", snippet).strip()
+        if len(snippet) > 220:
+            snippet = snippet[:217].rstrip() + "..."
+        return snippet
 
     async def get_rag_answer(
         self,
@@ -896,17 +1006,25 @@ class OCRService:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     self.llm_url,
-                    json={"model": self.llm_model, "prompt": prompt, "stream": False},
-                    timeout=30.0,
+                    json={
+                        "model": self.llm_model,
+                        "prompt": prompt,
+                        "stream": False,
+                        "options": {
+                            "num_ctx": settings.OLLAMA_NUM_CTX,
+                        },
+                    },
+                    timeout=settings.OLLAMA_TIMEOUT_SECONDS,
                 )
                 response.raise_for_status()
                 llm_output = response.json().get("response", "").strip()
         except Exception as exc:
-            llm_output = f"Loi khi ket noi voi mo hinh AI: {exc}"
+            logger.warning("rag_llm_unavailable: %s", exc)
+            llm_output = self._fallback_rag_answer_from_chunks(clean_query, validation["filtered_chunks"])
 
         is_valid = self.validate_answer_vs_context(llm_output, validation["filtered_chunks"])
         if not is_valid:
-            llm_output = "Xin loi, toi khong the tim thay cau tra loi chinh xac trong tai lieu nay mac du co du lieu lien quan."
+            llm_output = self._fallback_rag_answer_from_chunks(clean_query, validation["filtered_chunks"])
 
         return {
             "answer": llm_output,
@@ -954,6 +1072,12 @@ class OCRService:
                     merged_lines.append(current_line)
                     current_line = ""
                 continue
+
+            if self._is_structural_line(line):
+                if current_line:
+                    merged_lines.append(current_line)
+                current_line = line
+                continue
             
             if current_line:
                 # If current_line doesn't end with sentence-ending punctuation, merge with current line
@@ -974,7 +1098,7 @@ class OCRService:
         text = re.sub(r'[ \t]+', ' ', text)
         text = re.sub(r'\n+', '\n', text)
         
-        return text.strip()
+        return self._chunk_text_impl(text.strip(), page_number=page_number, page_label=page_label)
         """
         Split normalized text into chunks based on legal structure (Điều, Khoản).
         """
@@ -1182,21 +1306,21 @@ class OCRService:
         if not text or len(text.strip()) < 10:
             return text
 
-        prompt = f"""BẠN LÀ CHUYÊN GIA BIÊN TẬP VĂN BẢN HÀNH CHÍNH VIỆT NAM.
-Nhiệm vụ: Sửa lỗi chính tả, khôi phục dấu tiếng Việt và chuẩn hóa định dạng văn bản từ kết quả OCR.
+        prompt = f"""BẠN LÀ CHUYÊN GIA HIỆU ĐÍNH KẾT QUẢ OCR TIẾNG VIỆT.
+Nhiệm vụ: Sửa các lỗi OCR tiếng Việt nhưng không thay đổi nội dung.
 
 YÊU CẦU:
-1. KHÔI PHỤC DẤU: Đặc biệt các tiêu đề viết hoa (CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM, ĐỘC LẬP - TỰ DO - HẠNH PHÚC, QUYẾT ĐỊNH, LUẬT, NGHỊ ĐỊNH...).
-2. SỬA LỖI CHÍNH TẢ: Sửa các từ sai ký tự do OCR nhận diện nhầm (ví dụ: '0' thành 'O', '1' thành 'l', 'vỉ' thành 'vì', 'tập thé' thành 'tập thể').
-3. GIỮ NGUYÊN NỘI DUNG: Không tóm tắt, không thêm thắt thông tin bên ngoài.
-4. CHUẨN HÓA CẤU TRÚC: Đảm bảo các phần Điều, Khoản, Điểm được trình bày rõ ràng.
+1. Chỉ sửa lỗi nhận diện OCR, lỗi chính tả, lỗi dấu tiếng Việt và khoảng trắng bất thường.
+2. Giữ nguyên ý nghĩa, số liệu, tên riêng, mã văn bản, ngày tháng và thứ tự dòng/mục nhiều nhất có thể.
+3. Không tóm tắt, không diễn giải, không thêm thông tin, không bỏ thông tin.
+4. Chỉ trả về văn bản đã sửa, không giải thích.
 
 VĂN BẢN OCR CẦN XỬ LÝ:
 ---
 {text}
 ---
 
-VĂN BẢN SAU KHI ĐÃ SỬA LỖI VÀ CHUẨN HÓA:"""
+VĂN BẢN ĐÃ SỬA:"""
 
         try:
             async with httpx.AsyncClient() as client:
@@ -1208,10 +1332,11 @@ VĂN BẢN SAU KHI ĐÃ SỬA LỖI VÀ CHUẨN HÓA:"""
                         "stream": False,
                         "options": {
                             "temperature": 0.1,
-                            "top_p": 0.9
+                            "top_p": 0.9,
+                            "num_ctx": settings.OLLAMA_NUM_CTX,
                         }
                     },
-                    timeout=90.0
+                    timeout=settings.OLLAMA_TIMEOUT_SECONDS
                 )
                 response.raise_for_status()
                 fixed_text = response.json().get("response", "").strip()
@@ -1219,6 +1344,52 @@ VĂN BẢN SAU KHI ĐÃ SỬA LỖI VÀ CHUẨN HÓA:"""
         except Exception:
             # If LLM fails, return original text to avoid blocking
             return text
+
+    async def fix_processed_result_with_llm(self, result: dict[str, Any]) -> dict[str, Any]:
+        """
+        Hiệu đính kết quả OCR bằng LLM rồi dựng lại clean_text/chunks để RAG dùng bản đã sửa.
+        """
+        pages = result.get("pages") or []
+        if not pages:
+            clean_text = result.get("clean_text") or ""
+            fixed_text = await self.fix_ocr_errors_with_llm(clean_text)
+            fixed_text = self.normalize_text(fixed_text)
+            result["clean_text"] = fixed_text
+            result["chunks"] = self.chunk_text(fixed_text)
+            result["classification"] = self.classify_document(fixed_text)
+            result["structure"] = self.detect_document_structure(fixed_text)
+            return result
+
+        fixed_pages: list[dict[str, Any]] = []
+        for page in pages:
+            page_text = page.get("text", "")
+            fixed_text = await self.fix_ocr_errors_with_llm(page_text)
+            fixed_pages.append({
+                **page,
+                "text": self.normalize_text(fixed_text),
+            })
+
+        clean_body_text = "\n\n".join(p["text"] for p in fixed_pages if p["text"]).strip()
+        clean_text = "\n\n".join(
+            (f"--- Page {p['page_number']} ---\n{p['text']}" if len(fixed_pages) > 1 else p["text"])
+            for p in fixed_pages if p["text"]
+        ).strip()
+
+        chunks: list[dict[str, Any]] = []
+        for page in fixed_pages:
+            chunks.extend(self.chunk_text(
+                page["text"],
+                page_number=page.get("page_number"),
+                page_label=self._format_page_label(page.get("page_number")),
+            ))
+
+        result["pages"] = fixed_pages
+        result["page_index"] = self.build_page_index(fixed_pages)
+        result["clean_text"] = clean_text
+        result["chunks"] = chunks
+        result["classification"] = self.classify_document(clean_body_text)
+        result["structure"] = self.detect_document_structure(clean_body_text)
+        return result
 
     def extract_from_image(self, image_bytes: bytes) -> str:
         """

@@ -10,6 +10,7 @@
     ["\\bvà\\b", "và"]
   ],
   "syllable_fixes": [
+    ["tủnh", "tình"], ["bỏn", "bán"], ["gýp", "góp"], ["cỹn", "còn"], ["khỏc", "khác"],
     ["xõy", "xây"], ["hỵp", "hợp"], ["mỵ", "mô"], ["hủnh", "hình"], ["trủnh", "trình"],
     ["chuýn", "chuyên"], ["thỵng", "thông"], ["nhõn", "nhân"], ["phõn", "phân"],
     ["tiùn", "tiên"], ["liùn", "liên"], ["tõm", "tâm"], ["tỏc", "tác"], ["lỳ", "lý"],
@@ -26,6 +27,8 @@
     ["trỏi", "trái"], ["mợp", "mép"], ["cỏch", "cách"], ["ỵ", "ở"]
   ],
   "phrase_fixes": [
+    ["Tủnh hình", "Tình hình"], ["tủnh hình", "tình hình"], ["trư ởng", "trưởng"],
+    ["bỏn hàng", "bán hàng"], ["đóng gýp", "đóng góp"], ["cỹn lại", "còn lại"], ["khỏc", "khác"],
     ["mô hủnh", "mô hình"], ["mô hỉnh", "mô hình"], ["đóng vai trỹ", "đóng vai trò"],
     ["người dững", "người dùng"], ["giọng nýi", "giọng nói"], ["chũnh", "chính"],
     ["phũ hợp", "phù hợp"], ["thỏng", "tháng"], ["riùng", "riêng"], ["Tiùu ngữ", "Tiêu ngữ"],

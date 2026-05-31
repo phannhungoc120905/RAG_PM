@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trưởng phòng - RAG_PM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --blue:#2563eb; --green:#0f9f6e; --amber:#d97706; --red:#dc2626; --ink:#111827; --muted:#64748b; --line:#e2e8f0; --page:#f8fafc; --surface:#fff; }
+        * { box-sizing:border-box; }
+        body { margin:0; font-family:Inter,sans-serif; background:var(--page); color:var(--ink); }
+        .layout { min-height:100vh; display:grid; grid-template-columns:280px 1fr; }
+        .side { background:#0f172a; color:#e5e7eb; padding:20px 14px; display:flex; flex-direction:column; }
+        .brand { display:flex; gap:12px; align-items:center; padding:8px 10px 22px; border-bottom:1px solid rgba(255,255,255,.12); }
+        .brand i { width:38px; height:38px; border-radius:8px; background:#1d4ed8; display:grid; place-items:center; }
+        .brand strong { display:block; font-size:15px; }
+        .brand small { color:#94a3b8; }
+        .nav { padding:18px 0; display:grid; gap:6px; }
+        .nav button { border:0; background:transparent; color:#cbd5e1; text-align:left; padding:12px; border-radius:8px; font-weight:700; cursor:pointer; display:flex; gap:12px; align-items:center; }
+        .nav button.active, .nav button:hover { background:#1e293b; color:#fff; }
+        .profile { margin-top:auto; border-top:1px solid rgba(255,255,255,.12); padding-top:14px; font-size:13px; color:#cbd5e1; }
+        .main { min-width:0; }
+        .top { height:64px; background:var(--surface); border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; padding:0 26px; }
+        .content { padding:24px; }
+        .view { display:none; } .view.active { display:block; }
+        .grid { display:grid; gap:16px; } .cols-3 { grid-template-columns:repeat(3,minmax(0,1fr)); } .cols-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .card { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:18px; box-shadow:0 1px 3px rgba(15,23,42,.04); }
+        h2,h3 { margin:0; } .muted { color:var(--muted); font-size:12px; line-height:1.5; }
+        .metric { display:flex; align-items:center; gap:14px; } .metric i { width:42px; height:42px; display:grid; place-items:center; border-radius:8px; background:#dbeafe; color:var(--blue); }
+        .metric strong { font-size:26px; }
+        .toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+        .btn { border:0; border-radius:6px; padding:9px 13px; font-weight:750; cursor:pointer; display:inline-flex; gap:8px; align-items:center; }
+        .btn-primary { background:var(--blue); color:#fff; } .btn-ghost { background:#fff; border:1px solid var(--line); color:var(--ink); } .btn-danger { background:#fee2e2; color:var(--red); }
+        input,select,textarea { border:1px solid var(--line); border-radius:8px; padding:10px 12px; font:inherit; }
+        textarea { width:100%; resize:vertical; }
+        table { width:100%; border-collapse:collapse; font-size:13px; } th { text-align:left; color:var(--muted); font-size:11px; text-transform:uppercase; padding:11px; border-bottom:2px solid var(--line); } td { padding:12px 11px; border-bottom:1px solid var(--line); }
+        .badge { border-radius:4px; padding:4px 8px; font-size:11px; font-weight:800; background:#dbeafe; color:#1e40af; } .ok { background:#dcfce7;color:#166534; } .warn { background:#fef3c7;color:#92400e; } .bad { background:#fee2e2;color:#991b1b; }
+        .modal-bg { position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; align-items:center; justify-content:center; padding:18px; }
+        .modal { width:min(720px,96vw); background:#fff; border-radius:10px; padding:20px; }
+        .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+        .form-group { display:grid; gap:6px; } .form-group label { font-size:12px; font-weight:800; color:#475569; }
+        .toast { position:fixed; top:18px; right:18px; background:#fff; border-left:4px solid var(--blue); box-shadow:0 10px 24px rgba(15,23,42,.16); border-radius:8px; padding:12px 14px; font-weight:700; font-size:13px; }
+        @media(max-width:1000px){ .layout{grid-template-columns:1fr}.side{position:static}.cols-3,.cols-2{grid-template-columns:1fr} }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <aside class="side">
+        <div class="brand"><i class="fas fa-people-roof"></i><div><strong>Trưởng phòng</strong><small>Quản lý nhiệm vụ phòng ban</small></div></div>
+        <nav class="nav">
+            <button class="active" data-view="dashboard"><i class="fas fa-gauge-high"></i> Bảng điều hành phòng ban</button>
+            <button data-view="documents"><i class="fas fa-file-lines"></i> Văn bản được giao</button>
+            <button data-view="tasks"><i class="fas fa-list-check"></i> Quản lý task</button>
+            <button data-view="assistant"><i class="fas fa-robot"></i> Trợ lý RAG</button>
+        </nav>
+        <div class="profile"><div id="profileName">Đang tải...</div><button class="btn btn-danger" style="margin-top:10px;width:100%;justify-content:center" onclick="app.logout()">Đăng xuất</button></div>
+    </aside>
+    <main class="main">
+        <header class="top"><h2 id="title">Bảng điều hành phòng ban</h2><span class="muted" id="profileDept">Phạm vi phòng ban</span></header>
+        <div class="content">
+            <section id="view-dashboard" class="view active">
+                <div class="grid cols-3" id="metrics"></div>
+                <div class="grid cols-2" style="margin-top:16px">
+                    <div class="card"><div class="toolbar"><div><h3>Nhiệm vụ cần xử lý</h3><div class="muted">KT-06 trong phạm vi phòng ban.</div></div></div><table id="pendingTable"><thead><tr><th>Nhiệm vụ</th><th>Người nhận</th><th>Hạn</th><th>Trạng thái</th></tr></thead><tbody></tbody></table></div>
+                    <div class="card"><div class="toolbar"><div><h3>Văn bản giao phòng</h3><div class="muted">KT-05 từ lãnh đạo cơ quan.</div></div></div><table id="docTableMini"><thead><tr><th>Mã</th><th>Tiêu đề</th><th>Trạng thái</th></tr></thead><tbody></tbody></table></div>
+                </div>
+            </section>
+            <section id="view-documents" class="view">
+                <div class="card"><div class="toolbar"><div><h3>Văn bản được giao</h3><div class="muted">Nhận chỉ đạo, chia nhiệm vụ xuống chuyên viên.</div></div><button class="btn btn-primary" onclick="tasks.openModal()"><i class="fas fa-user-plus"></i>Chia nhiệm vụ</button></div><table id="docTable"><thead><tr><th>Mã</th><th>Tiêu đề</th><th>Tóm tắt/chỉ đạo</th><th>Hạn</th><th>Trạng thái</th></tr></thead><tbody></tbody></table></div>
+            </section>
+            <section id="view-tasks" class="view">
+                <div class="card"><div class="toolbar"><div><h3>Quản lý nhiệm vụ phòng ban</h3><div class="muted">Giao, cập nhật và xác nhận kết quả của chuyên viên.</div></div><button class="btn btn-primary" onclick="tasks.openModal()"><i class="fas fa-plus"></i>Nhiệm vụ mới</button></div><table id="taskTable"><thead><tr><th>Nhiệm vụ</th><th>Người nhận</th><th>Ưu tiên</th><th>Trạng thái</th><th>Hạn</th><th></th></tr></thead><tbody></tbody></table></div>
+            </section>
+            <section id="view-assistant" class="view">
+                <div class="card"><div class="toolbar"><div><h3>Trợ lý RAG</h3><div class="muted">Hỏi nội dung văn bản trong phạm vi được giao.</div></div></div><div id="chatLog" class="muted" style="min-height:260px;border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:12px;white-space:pre-wrap"></div><div style="display:flex;gap:8px"><input id="chatInput" style="flex:1" placeholder="Nhập câu hỏi..." onkeydown="if(event.key==='Enter') assistant.ask()"><button class="btn btn-primary" onclick="assistant.ask()">Gửi</button></div></div>
+            </section>
+        </div>
+    </main>
+</div>
+<div class="modal-bg" id="modalBg"><div class="modal"><div class="toolbar"><h3>Giao task cho staff</h3><button class="btn btn-ghost" onclick="ui.close()">Đóng</button></div><div id="modalBody"></div><div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn btn-primary" id="modalSubmit">Xác nhận</button></div></div></div>
+<script>
+const state={me:null,docs:[],tasks:[],users:[]};
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=v=>v?String(v).slice(0,10):'-';
+const badge=v=>{const s=String(v||'pending');const c=s==='completed'?'ok':s==='failed'?'bad':s==='pending'?'warn':'';return `<span class="badge ${c}">${esc(s)}</span>`};
+const app={token:localStorage.getItem('token'),headers(){return {'Authorization':'Bearer '+this.token,'Content-Type':'application/json'}},async api(u,o={}){o.headers={...this.headers(),...(o.headers||{})};const r=await fetch(u,o);if(r.status===401)this.logout();if(!r.ok){let d=r.statusText;try{d=(await r.json()).detail||d}catch(e){}throw Error(d)}return r},async init(){if(!this.token)return location.href='/login';await this.profile();await this.load();this.render();document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>this.show(b.dataset.view,b));},async profile(){state.me=await(await this.api('/auth/me')).json();if(state.me.permission_group_code!=='DEPARTMENT_LEADER'&&state.me.role!=='admin')return location.href='/staff/dashboard';profileName.textContent=state.me.username;profileDept.textContent=state.me.department_name||'Trưởng phòng';},async load(){const [d,t,u]=await Promise.all([this.api('/admin/work-documents?page_size=100').then(r=>r.json()),this.api('/admin/work-items?page_size=100').then(r=>r.json()),this.api('/admin/users?page_size=100').then(r=>r.json()).catch(()=>({items:[]}))]);state.docs=d.items||[];state.tasks=t.items||[];state.users=(u.items||[]).filter(x=>!state.me.department_id||x.department_id===state.me.department_id);},show(v,b){document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='view-'+v));document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');title.textContent=b.textContent.trim();this.render();},render(){const done=state.tasks.filter(x=>x.status==='completed').length;const doing=state.tasks.length-done;metrics.innerHTML=[['Văn bản được giao',state.docs.length,'fa-file-lines'],['Nhiệm vụ đang xử lý',doing,'fa-bars-progress'],['Hoàn thành',done,'fa-circle-check']].map(x=>`<div class="card metric"><i class="fas ${x[2]}"></i><div><strong>${x[1]}</strong><div class="muted">${x[0]}</div></div></div>`).join('');docTableMini.querySelector('tbody').innerHTML=state.docs.slice(0,6).map(d=>`<tr><td>${esc(d.document_code)}</td><td>${esc(d.title)}</td><td>${badge(d.status)}</td></tr>`).join('')||'<tr><td colspan="3">Chưa có dữ liệu</td></tr>';pendingTable.querySelector('tbody').innerHTML=state.tasks.filter(x=>x.status!=='completed').slice(0,8).map(tasks.row).join('')||'<tr><td colspan="4">Không có nhiệm vụ chờ xử lý</td></tr>';docTable.querySelector('tbody').innerHTML=state.docs.map(d=>`<tr><td>${esc(d.document_code)}</td><td>${esc(d.title)}</td><td>${esc(d.content_summary||'-')}</td><td>${fmt(d.due_date)}</td><td>${badge(d.status)}</td></tr>`).join('')||'<tr><td colspan="5">Chưa có văn bản</td></tr>';taskTable.querySelector('tbody').innerHTML=state.tasks.map(i=>tasks.row(i,true)).join('')||'<tr><td colspan="6">Chưa có nhiệm vụ</td></tr>';},logout(){localStorage.removeItem('token');location.href='/login'}};
+const ui={toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),3000)},close(){modalBg.style.display='none'}};
+const tasks={row(i,act=false){return `<tr><td>${esc(i.title)}</td><td>${esc(i.assignee_username||i.department_name||'-')}</td><td>${badge(i.priority)}</td><td>${badge(i.status)}</td><td>${fmt(i.due_date)}</td>${act?`<td><button class="btn btn-ghost" onclick="tasks.complete(${i.id})">Xác nhận xong</button></td>`:''}</tr>`},openModal(){const docs=state.docs.map(d=>`<option value="${d.id}">${esc(d.document_code)} - ${esc(d.title)}</option>`).join('');const users=state.users.map(u=>`<option value="${u.id}">${esc(u.username)}</option>`).join('');modalBody.innerHTML=`<div class="form-grid"><div class="form-group"><label>Văn bản</label><select id="doc">${docs}</select></div><div class="form-group"><label>Chuyên viên</label><select id="user"><option value="">Theo phòng ban</option>${users}</select></div><div class="form-group" style="grid-column:1/-1"><label>Nhiệm vụ</label><input id="taskTitle" style="width:100%"></div><div class="form-group"><label>Hạn</label><input id="due" type="date"></div><div class="form-group"><label>Ưu tiên</label><select id="pri"><option value="normal">Bình thường</option><option value="high">Cao</option><option value="urgent">Khẩn</option></select></div><div class="form-group" style="grid-column:1/-1"><label>Mô tả</label><textarea id="desc" rows="4"></textarea></div></div>`;modalSubmit.onclick=tasks.create;modalBg.style.display='flex'},async create(){await app.api('/admin/work-items',{method:'POST',body:JSON.stringify({work_document_id:Number(doc.value),title:taskTitle.value,description:desc.value||null,assignee_user_id:user.value?Number(user.value):null,department_id:state.me.department_id,priority:pri.value,status:'pending',due_date:due.value||null})});ui.close();ui.toast('Đã giao nhiệm vụ');await app.load();app.render();},async complete(id){await app.api('/admin/work-items/'+id,{method:'PUT',body:JSON.stringify({status:'completed'})});ui.toast('Đã xác nhận hoàn thành');await app.load();app.render();}};
+const assistant={async ask(){const q=chatInput.value.trim();if(!q)return;chatLog.textContent+=`\nBạn: ${q}\n`;chatInput.value='';try{const d=await(await app.api('/api/summarize',{method:'POST',body:JSON.stringify({query:q,top_k:5})})).json();chatLog.textContent+=`AI: ${d.answer||'Không có câu trả lời.'}\n`;}catch(e){chatLog.textContent+=`Lỗi: ${e.message}\n`;}}};
+app.init().catch(e=>ui.toast(e.message));
+</script>
+</body>
+</html>
