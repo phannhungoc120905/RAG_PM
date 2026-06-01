@@ -457,8 +457,8 @@ class OCRService:
         self._embedding_model = None
 
         # LLM config (Ollama-compatible endpoint)
-        self.llm_url: str = getattr(settings, "LLM_URL", "http://localhost:11434/api/generate")
-        self.llm_model: str = getattr(settings, "LLM_MODEL", "llama3")
+        self.llm_url: str = getattr(settings, "LLM_URL", settings.OLLAMA_GENERATE_URL)
+        self.llm_model: str = getattr(settings, "LLM_MODEL", settings.MODEL_NAME)
 
     # ── Properties (lazy initialization) ─────────────────────────────────────
 
@@ -947,6 +947,12 @@ class OCRService:
     def validate_groundedness(
         self, query: str, chunks: List[Dict[str, Any]], threshold: float = 0.2
     ) -> Dict[str, Any]:
+        if not chunks:
+            return {
+                "should_answer": False,
+                "filtered_chunks": [],
+                "fallback_message": "Khong tim thay thong tin phu hop trong tai lieu.",
+            }
         return {"should_answer": True, "filtered_chunks": chunks}
 
     def _is_boilerplate(self, text: str) -> bool:
@@ -980,6 +986,23 @@ class OCRService:
         return False
 
     def build_grounded_prompt(self, query: str, chunks: List[Dict[str, Any]]) -> str:
+        context_text = "\n\n--- CONTEXT CHUNKS ---\n\n" + "\n\n---\n\n".join(
+            f"[Nguon {idx + 1}]\n{(c.get('content', '')[:1400]).strip()}"
+            for idx, c in enumerate(chunks)
+        )
+        instruction = (
+            "BAN LA TRO LY HOI DAP TAI LIEU HANH CHINH.\n"
+            "Nhiem vu: tra loi dung CAU HOI cua nguoi dung dua tren cac doan nguon.\n\n"
+            "QUY TAC BAT BUOC:\n"
+            "- Neu cau hoi la tom tat/khai quat: tom tat y chinh, khong chep lai nguyen van.\n"
+            "- Neu cau hoi hoi mot thong tin cu the: tra loi truc tiep thong tin do, khong tra ve ban tom tat chung.\n"
+            "- Chi dung thong tin co trong CONTEXT CHUNKS; neu khong co, noi ro khong tim thay thong tin trong tai lieu.\n"
+            "- Khong copy lien tiep qua 25 tu tu nguon; hay dien dat lai ngan gon.\n"
+            "- Tra loi bang tieng Viet, 3-6 cau hoac 3-5 gach dau dong neu can.\n"
+            "- Neu co so van ban, ngay thang, don vi, dieu/khoan lien quan thi giu lai chinh xac.\n"
+        )
+        return f"{instruction}\n\n{context_text}\n\nCAU HOI: {query}\n\nTRA LOI:"
+
         # Build a structured, instruction-first prompt to encourage summarization (NOT rewriting)
         context_text = "\n\n--- CONTEXT CHUNKS ---\n\n" + "\n\n---\n\n".join(
             (c.get("content", "")[:1600]).strip() for c in chunks
@@ -1024,6 +1047,40 @@ class OCRService:
         return True
 
     def _fallback_rag_answer_from_chunks(self, query: str, chunks: List[Dict[str, Any]]) -> str:
+        if not chunks:
+            return "Khong tim thay noi dung phu hop trong tai lieu da chon."
+
+        query_terms = {
+            token
+            for token in re.findall(r"\w+", query.lower(), flags=re.UNICODE)
+            if len(token) >= 3
+        }
+        scored_sentences: list[tuple[int, str]] = []
+        for c in chunks[:8]:
+            content = str(c.get("content", "")).strip()
+            if not content:
+                continue
+            content = re.sub(r"\s+", " ", content.replace("\n", " "))
+            for sent in re.split(r"(?<=[.!?])\s+", content):
+                sent = sent.strip()
+                if len(sent) < 20:
+                    continue
+                sent_terms = set(re.findall(r"\w+", sent.lower(), flags=re.UNICODE))
+                overlap = len(query_terms.intersection(sent_terms))
+                number_bonus = min(len(re.findall(r"\d+", sent)), 3)
+                scored_sentences.append((overlap * 5 + number_bonus, sent))
+
+        if scored_sentences:
+            scored_sentences.sort(key=lambda item: item[0], reverse=True)
+            selected = [sent for score, sent in scored_sentences[:4] if score > 0]
+            if not selected:
+                selected = [sent for _, sent in scored_sentences[:3]]
+            combined = " ".join(selected)
+            words = combined.split()
+            if len(words) > 140:
+                combined = " ".join(words[:140]).rstrip(" ,;:") + "."
+            return combined.strip()
+
         """Fallback: khi LLM không available, tạo tóm tắt từ chunks bằng heuristics."""
         if not chunks:
             return "Không tìm thấy nội dung phù hợp trong tài liệu đã chọn."
@@ -1100,14 +1157,13 @@ class OCRService:
                 "grounded": False,
             }
 
-        # Select a few most relevant/longest chunks and run AI-based spelling/correction on them
+        # Keep search ranking. Sorting by length makes unrelated long chunks dominate chat answers.
         candidate_chunks = list(validation.get("filtered_chunks", []))
         # Filter out boilerplate headers/footers
         filtered = [c for c in candidate_chunks if not self._is_boilerplate(c.get("content", ""))]
         if not filtered:
             filtered = candidate_chunks
-        # choose up to 3 largest chunks
-        selected_chunks = sorted(filtered, key=lambda c: len(str(c.get("content", "")).strip()), reverse=True)[:3]
+        selected_chunks = filtered[: min(max(top_k, 3), 5)]
         # Attempt to correct each chunk using LLM (non-blocking failure-safe)
         for ch in selected_chunks:
             try:

@@ -36,25 +36,23 @@ class Settings(BaseSettings):
     DB_PASSWORD: str = ""
 
     # AI model
-    MODEL_NAME: str = "llama3.2:latest"
+    MODEL_NAME: str = "llama3.2"
     MODEL_PATH: str = "/models/llama3.2"
     EMBEDDING_MODEL_NAME: str = "local-hash-384"
     OCR_USE_SENTENCE_TRANSFORMERS: bool = False
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_TIMEOUT_SECONDS: int = 180
-    OLLAMA_NUM_CTX: int = 2048
+    OLLAMA_NUM_CTX: int = 4096
     FAISS_INDEX_PATH: str = "./faiss_index"
     VECTOR_DIM: int = 4096
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 100
-    OCR_LANG: str = "vie+eng"
-    OCR_FIX_WITH_LLM: bool = True
-    OCR_FIX_WITH_LLM_MAX_FILE_MB: int = 10
-    TESSERACT_CMD: str = "E:/Tesseract-OCR/tesseract.exe"
-    TESSDATA_PREFIX: str = "E:/Tesseract-OCR/tessdata"
+    OCR_LANG: str = "vie"
+    TESSERACT_CMD: str = ""
+    TESSDATA_PREFIX: str = ""
     POPPLER_PATH: str = ""
-    LLM_MODEL: str = "llama3.2:latest"
-    LLM_URL: str = "http://localhost:11434/api/generate"
+    OCR_FIX_WITH_LLM: bool = False
+    OCR_FIX_WITH_LLM_MAX_FILE_MB: float = 10.0
 
     # Upload
     UPLOAD_DIR: str = "./uploads"

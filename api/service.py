@@ -473,6 +473,8 @@ async def create_summary_for_document(
     summary_text = _postprocess_summary(summary_text)
     if _looks_like_refusal(summary_text):
         summary_text = _fallback_summary_from_source(document.clean_text or "")
+    elif _looks_like_source_copy(summary_text, document.clean_text or ""):
+        summary_text = _fallback_summary_from_source(document.clean_text or "")
 
     version_no = (db.scalar(select(func.max(SummaryHistory.version_no)).where(SummaryHistory.document_id == document.id)) or 0) + 1
     summary = SummaryHistory(
@@ -520,7 +522,130 @@ async def answer_question(
     document_ids: list[int] | None = None,
 ) -> dict[str, Any]:
     allowed_document_ids = _resolve_allowed_document_ids(db, current_user, document_ids)
+    db_answer = await _answer_question_from_db_chunks(
+        db,
+        query=query,
+        top_k=top_k,
+        document_ids=allowed_document_ids,
+    )
+    if db_answer is not None:
+        return db_answer
     return await ocr_service.get_rag_answer(query, top_k=top_k, document_ids=allowed_document_ids)
+
+
+async def _answer_question_from_db_chunks(
+    db: Session,
+    *,
+    query: str,
+    top_k: int,
+    document_ids: list[int] | None,
+) -> dict[str, Any] | None:
+    query = (query or "").strip()
+    if not query:
+        return None
+
+    statement = (
+        select(ChunkMetadata)
+        .join(Document, ChunkMetadata.document_id == Document.id)
+        .where(Document.deleted_at.is_(None))
+        .order_by(ChunkMetadata.document_id.desc(), ChunkMetadata.chunk_index.asc())
+        .limit(600)
+    )
+    if document_ids is not None:
+        if not document_ids:
+            return {
+                "answer": "Khong tim thay thong tin phu hop trong tai lieu.",
+                "sources": [],
+                "source_chunks": [],
+                "grounded": False,
+            }
+        statement = statement.where(ChunkMetadata.document_id.in_(document_ids))
+
+    rows = list(db.scalars(statement).all())
+    if not rows:
+        return None
+
+    query_terms = _important_terms(query)
+    wants_summary = _is_summary_query(query)
+    scored: list[tuple[int, int, ChunkMetadata]] = []
+    for row in rows:
+        content = row.bm25_text or row.content_preview or ""
+        if not content.strip():
+            continue
+        lowered = content.lower()
+        content_terms = set(re.findall(r"\w+", lowered, flags=re.UNICODE))
+        overlap = len(query_terms.intersection(content_terms))
+        number_bonus = min(len(re.findall(r"\d+", content)), 4)
+        section_bonus = 2 if row.section_title or row.section_code else 0
+        summary_bonus = min(len(content.split()) // 80, 4) if wants_summary else 0
+        score = overlap * 6 + number_bonus + section_bonus + summary_bonus
+        if wants_summary or score > 0:
+            scored.append((score, row.chunk_index or 0, row))
+
+    if not scored:
+        return {
+            "answer": "Khong tim thay thong tin phu hop trong tai lieu.",
+            "sources": [],
+            "source_chunks": [],
+            "grounded": False,
+        }
+
+    scored.sort(key=lambda item: (item[0], -item[1]), reverse=True)
+    selected_rows = [row for _, _, row in scored[: min(max(top_k, 3), 6)]]
+    chunks = [_chunk_row_to_rag_chunk(row) for row in selected_rows]
+    prompt = ocr_service.build_grounded_prompt(query, chunks)
+
+    try:
+        answer = await _generate_llm_text(prompt)
+        if not answer or _looks_like_source_copy(answer, " ".join(chunk["content"] for chunk in chunks)):
+            answer = ocr_service._fallback_rag_answer_from_chunks(query, chunks)
+        grounded = ocr_service.validate_answer_vs_context(answer, chunks)
+    except Exception:
+        answer = ocr_service._fallback_rag_answer_from_chunks(query, chunks)
+        grounded = False
+
+    return {
+        "answer": answer,
+        "sources": [chunk["content"] for chunk in chunks],
+        "source_chunks": chunks,
+        "grounded": grounded,
+    }
+
+
+def _chunk_row_to_rag_chunk(row: ChunkMetadata) -> dict[str, Any]:
+    metadata = _json_loads(row.metadata_json, default={})
+    metadata.setdefault("document_id", row.document_id)
+    metadata.setdefault("chunk_index", row.chunk_index)
+    metadata.setdefault("page_number", row.page_number)
+    metadata.setdefault("start_line", row.start_line)
+    metadata.setdefault("end_line", row.end_line)
+    metadata.setdefault("citation_anchor", _build_citation_anchor(metadata))
+    return {
+        "content": row.bm25_text or row.content_preview or "",
+        "metadata": metadata,
+        "final_score": None,
+    }
+
+
+def _important_terms(text: str) -> set[str]:
+    stopwords = {
+        "cho", "toi", "biet", "hay", "neu", "thi", "la", "cua", "cac", "nhung",
+        "trong", "ngoai", "the", "nao", "gi", "ve", "voi", "mot", "duoc", "khong",
+        "co", "noi", "dung", "tai", "lieu", "tom", "tat",
+    }
+    return {
+        token
+        for token in re.findall(r"\w+", text.lower(), flags=re.UNICODE)
+        if len(token) >= 3 and token not in stopwords
+    }
+
+
+def _is_summary_query(query: str) -> bool:
+    lowered = query.lower()
+    return any(
+        signal in lowered
+        for signal in ("tom tat", "tóm tắt", "noi dung chinh", "nội dung chính", "khai quat", "khái quát")
+    )
 
 
 def search_chunks(
@@ -905,6 +1030,9 @@ async def _generate_llm_text(prompt: str) -> str:
                 "stream": False,
                 "options": {
                     "num_ctx": settings.OLLAMA_NUM_CTX,
+                    "num_predict": 260,
+                    "temperature": 0.2,
+                    "repeat_penalty": 1.15,
                 },
             },
             timeout=httpx.Timeout(settings.OLLAMA_TIMEOUT_SECONDS, connect=10.0),
@@ -917,43 +1045,19 @@ def _build_summary_prompt(document: Document) -> str:
     source_text = _prepare_summary_source_text(document.clean_text or "")
 
     return (
-        "NHIEM VU: CHI TOM TAT NOI DUNG TAI LIEU, KHONG DUOC TRA LOI KIU HOI DAP.\n\n"
-
-        "QUY TAC BAT BUOC:\n"
-        "- Chi duoc phep su dung thong tin co trong tai lieu.\n"
-        "- Cam bo sung, suy dien hoac dua ra loi khuyen.\n"
-        "- Cam xin loi, cam noi rang khong du thong tin, cam nhac den cau tra loi truoc do.\n"
-        "- Cam viet loi mo dau va loi ket.\n"
-        "- Cam xung ho toi, ban, chung toi.\n"
-        "- Cam dong vai tac gia, chuyen gia hoac nguoi lap bao cao.\n"
-        "- Cam tao cac muc De xuat, Nhan xet, Kien nghi.\n"
-        "- Hay rut gon tai lieu thanh toi da 150 tu.\n"
-        "- Chi giu lai cac thong tin quan trong nhat.\n"
-        "- Neu mot thong tin khong anh huong den viec hieu tong quan tai lieu thi loai bo.\n"
-        "- Khong mo ta chi tiet.\n"
-        "- Khong dien giai.\n"
-        "- Khong viet lai tung muc.\n"
-        "- Khong liet ke.\n"
-        "- Khong tao tieu de moi.\n"
-        "- Khong danh gia thanh cong, that bai neu tai lieu khong ket luan nhu vay.\n"
-        "- Khong mo dau bang viec ke lai boi canh (vi du: Trong nam..., Du an..., Muc tieu...).\n"
-        "- Neu tai lieu co so lieu thi phai giu lai so lieu quan trong.\n"
-        "- Neu thong tin khong co trong tai lieu thi bo qua.\n\n"
-
+        "NHIEM VU: TOM TAT NOI DUNG CHINH CUA TAI LIEU HANH CHINH.\n"
+        "Khong chep lai nguyen van. Khong viet lai tung muc. Khong copy nua dau tai lieu.\n"
+        "Hay doc toan bo tai lieu, rut ra y chinh, chu the, muc dich, noi dung quy dinh/yeu cau, thoi han/so lieu quan trong neu co.\n\n"
+        "QUY TAC:\n"
+        "- Chi dung thong tin co trong tai lieu.\n"
+        "- Bo qua tieu ngu, header/footer, noi lap lai, mau bieu thuc hanh chinh khong quan trong.\n"
+        "- Neu tai lieu dai, uu tien ket luan, quyet dinh, nhiem vu, doi tuong ap dung va moc thoi gian.\n"
+        "- Van ban dau ra phai ngan hon tai lieu nguon rat nhieu.\n"
+        "- Tuyet doi khong trich/copy lien tiep qua 25 tu tu tai lieu nguon.\n\n"
         "DINH DANG DAU RA:\n"
-        "- Mot doan van duy nhat.\n"
-        "- 5-7 cau.\n"
-        "- 120-180 tu.\n"
-        "- Phai ket thuc tron ven, khong ngat ngang giua y.\n"
-        "- Khong markdown.\n"
-        "- Khong tieu de.\n"
-        "- Khong bullet.\n\n"
-
-        "NEU NOI DUNG NGUON NGAN, VAN PHAI VIET MOT DOAN TOM TAT NGAN TU CAC THONG TIN HIEN CO, KHONG DUOC TU CHOI.\n\n"
-
-        f"TAI LIEU:\n{source_text}\n\n"
-
-        "TOM TAT NGAN GON (120-150 TU), VIET THANH MOT DOAN DUY NHAT:"
+        "Viet 1 doan van duy nhat, 80-130 tu, 4-6 cau, khong markdown, khong bullet, khong tieu de.\n\n"
+        f"TAI LIEU NGUON:\n{source_text}\n\n"
+        "TOM TAT NOI DUNG CHINH:"
     )
 
 
@@ -1125,17 +1229,61 @@ def _looks_like_refusal(text: str) -> bool:
     )
 
 
+def _looks_like_source_copy(summary: str, source: str) -> bool:
+    summary_clean = re.sub(r"\s+", " ", (summary or "").lower()).strip()
+    source_clean = re.sub(r"\s+", " ", (source or "").lower()).strip()
+    if not summary_clean or not source_clean:
+        return False
+    if len(summary_clean) > 900:
+        return True
+    if len(summary_clean) > 300 and summary_clean in source_clean:
+        return True
+
+    words = re.findall(r"\w+", summary_clean, flags=re.UNICODE)
+    if len(words) < 35:
+        return False
+    spans = [" ".join(words[i : i + 18]) for i in range(0, max(len(words) - 17, 0), 6)]
+    copied_spans = sum(1 for span in spans if span and span in source_clean)
+    return bool(spans) and copied_spans / len(spans) >= 0.45
+
+
 def _fallback_summary_from_source(text: str, max_chars: int = 900) -> str:
-    cleaned = re.sub(r"\s+", " ", (text or "")).strip()
+    cleaned = _prepare_summary_source_text(text)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
     if not cleaned:
-        return "Không có đủ nội dung để tóm tắt."
-    if len(cleaned) <= max_chars:
-        return cleaned
-    cut = cleaned[:max_chars]
-    sentence_end = max(cut.rfind("."), cut.rfind("!"), cut.rfind("?"))
-    if sentence_end > 300:
-        cut = cut[: sentence_end + 1]
-    return cut.strip()
+        return "Khong co du noi dung de tom tat."
+
+    sentences = [
+        sentence.strip()
+        for sentence in re.split(r"(?<=[.!?])\s+|\n+", cleaned)
+        if len(sentence.strip()) >= 30
+    ]
+    if not sentences:
+        return cleaned[:max_chars].strip()
+
+    keywords = (
+        "quyet dinh", "thong bao", "bao cao", "ke hoach", "muc tieu", "yeu cau",
+        "nhiem vu", "noi dung", "ket qua", "doi tuong", "pham vi", "thoi han",
+        "ngay", "thang", "nam", "uy ban", "so", "bo", "phong", "ban hanh",
+        "trien khai", "thuc hien", "quy dinh", "can cu",
+    )
+
+    def score(sentence: str, index: int) -> int:
+        lowered = sentence.lower()
+        keyword_score = sum(3 for keyword in keywords if keyword in lowered)
+        number_score = min(len(re.findall(r"\d+", sentence)), 4)
+        length_penalty = 4 if len(sentence.split()) > 55 else 0
+        position_score = 2 if index < 8 else 0
+        return keyword_score + number_score + position_score - length_penalty
+
+    ranked = sorted(enumerate(sentences), key=lambda item: score(item[1], item[0]), reverse=True)
+    chosen_indices = sorted(index for index, _ in ranked[:4])
+    summary = " ".join(sentences[index] for index in chosen_indices)
+    summary = re.sub(r"\s+", " ", summary).strip()
+    words = summary.split()
+    if len(words) > 130:
+        summary = " ".join(words[:130]).rstrip(" ,;:") + "."
+    return summary[:max_chars].strip()
 
 
 def _rebuild_vector_storage(db: Session) -> None:
