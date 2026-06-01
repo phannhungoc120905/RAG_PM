@@ -53,7 +53,7 @@ class SummarizeRequest(BaseModel):
 class MindmapRequest(BaseModel):
     document_id: int = Field(ge=1)
     use_llm: bool = True
-    max_nodes: int = Field(default=12, ge=3, le=30)
+    max_nodes: int = Field(default=9, ge=3, le=15)
 
 
 class ReviewRequest(BaseModel):

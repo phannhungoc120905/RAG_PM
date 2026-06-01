@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 100
     OCR_LANG: str = "vie+eng"
     OCR_FIX_WITH_LLM: bool = True
+    OCR_FIX_WITH_LLM_MAX_FILE_MB: int = 10
     TESSERACT_CMD: str = "E:/Tesseract-OCR/tesseract.exe"
     TESSDATA_PREFIX: str = "E:/Tesseract-OCR/tessdata"
     POPPLER_PATH: str = ""

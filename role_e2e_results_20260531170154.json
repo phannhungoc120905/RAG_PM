@@ -1,0 +1,673 @@
+{
+  "run_at": "2026-05-31T17:01:56",
+  "base_url": "http://127.0.0.1:8001",
+  "seed_context": {
+    "department_id": 4,
+    "department_code": "IT",
+    "leader_position_id": 2,
+    "staff_position_id": 3
+  },
+  "created_users": {
+    "leader": {
+      "username": "dept_leader_e2e_20260531170154",
+      "email": "dept_leader_e2e_20260531170154@example.local",
+      "password": "Test@123456",
+      "department_id": 4,
+      "position_id": 2,
+      "is_active": true
+    },
+    "staff": {
+      "username": "staff_e2e_20260531170154",
+      "email": "staff_e2e_20260531170154@example.local",
+      "password": "Test@123456",
+      "department_id": 4,
+      "position_id": 3,
+      "is_active": true
+    }
+  },
+  "summary": {
+    "total": 37,
+    "passed": 37,
+    "failed": 0
+  },
+  "results": [
+    {
+      "role": "AGENCY_LEADER",
+      "name": "login",
+      "method": "POST",
+      "path": "/auth/login",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "access_token": "<redacted>",
+        "token_type": "bearer",
+        "user": {
+          "id": 3,
+          "username": "tphuongtran05",
+          "role": "user"
+        }
+      }
+    },
+    {
+      "role": "AGENCY_LEADER",
+      "name": "create department leader",
+      "method": "POST",
+      "path": "/admin/users",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "id": 6,
+        "username": "dept_leader_e2e_20260531170154",
+        "email": "dept_leader_e2e_20260531170154@example.local",
+        "role": "user",
+        "permission_group_id": 3,
+        "permission_group_name": "Trưởng phòng",
+        "department_id": 4,
+        "department_name": "Công nghệ thông tin",
+        "position_id": 2,
+        "position_name": "Trưởng phòng",
+        "auth_source": "local",
+        "is_active": true,
+        "created_at": "2026-05-31T17:01:54",
+        "last_login": null
+      }
+    },
+    {
+      "role": "AGENCY_LEADER",
+      "name": "create staff",
+      "method": "POST",
+      "path": "/admin/users",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "id": 7,
+        "username": "staff_e2e_20260531170154",
+        "email": "staff_e2e_20260531170154@example.local",
+        "role": "user",
+        "permission_group_id": 4,
+        "permission_group_name": "Chuyên viên/Cán bộ",
+        "department_id": 4,
+        "department_name": "Công nghệ thông tin",
+        "position_id": 3,
+        "position_name": "Chuyên viên/Cán bộ",
+        "auth_source": "local",
+        "is_active": true,
+        "created_at": "2026-05-31T17:01:55",
+        "last_login": null
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "login",
+      "method": "POST",
+      "path": "/auth/login",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "access_token": "<redacted>",
+        "token_type": "bearer",
+        "user": {
+          "id": 6,
+          "username": "dept_leader_e2e_20260531170154",
+          "role": "user"
+        }
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "login",
+      "method": "POST",
+      "path": "/auth/login",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "access_token": "<redacted>",
+        "token_type": "bearer",
+        "user": {
+          "id": 7,
+          "username": "staff_e2e_20260531170154",
+          "role": "user"
+        }
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "list work documents",
+      "method": "GET",
+      "path": "/admin/work-documents",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "items": [],
+        "total": 0,
+        "page": 1,
+        "page_size": 20
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "create work document",
+      "method": "POST",
+      "path": "/admin/work-documents",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "id": 5,
+        "document_code": "E2E-DOC-20260531170154",
+        "title": "E2E work document",
+        "content_summary": "Created by role e2e test",
+        "issuing_unit_id": null,
+        "issuing_unit_name": null,
+        "department_id": 4,
+        "department_name": "Công nghệ thông tin",
+        "assigned_by_user_id": 6,
+        "assigned_by_username": "dept_leader_e2e_20260531170154",
+        "assigned_department_id": 4,
+        "assigned_department_name": "Công nghệ thông tin",
+        "due_date": "2026-06-30",
+        "status": "assigned",
+        "work_item_count": 0,
+        "created_at": "2026-05-31T17:01:55",
+        "updated_at": null
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "update work document",
+      "method": "PUT",
+      "path": "/admin/work-documents/5",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "id": 5,
+        "document_code": "E2E-DOC-20260531170154",
+        "title": "E2E work document",
+        "content_summary": "Created by role e2e test",
+        "issuing_unit_id": null,
+        "issuing_unit_name": null,
+        "department_id": 4,
+        "department_name": "Công nghệ thông tin",
+        "assigned_by_user_id": 6,
+        "assigned_by_username": "dept_leader_e2e_20260531170154",
+        "assigned_department_id": 4,
+        "assigned_department_name": "Công nghệ thông tin",
+        "due_date": "2026-06-30",
+        "status": "in_progress",
+        "work_item_count": 0,
+        "created_at": "2026-05-31T17:01:55",
+        "updated_at": "2026-05-31T10:01:56"
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "list work items",
+      "method": "GET",
+      "path": "/admin/work-items",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "items": [],
+        "total": 0,
+        "page": 1,
+        "page_size": 20
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "create work item",
+      "method": "POST",
+      "path": "/admin/work-items",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "id": 4,
+        "work_document_id": 5,
+        "work_document_code": "E2E-DOC-20260531170154",
+        "title": "E2E assigned staff task",
+        "description": "Task visible to staff",
+        "assignee_user_id": 7,
+        "assignee_username": "staff_e2e_20260531170154",
+        "department_id": 4,
+        "department_name": "Công nghệ thông tin",
+        "position_id": 3,
+        "position_name": "Chuyên viên/Cán bộ",
+        "priority": "normal",
+        "status": "pending",
+        "due_date": "2026-06-25",
+        "created_at": "2026-05-31T17:01:56",
+        "updated_at": null
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "create temp work item",
+      "method": "POST",
+      "path": "/admin/work-items",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "id": 5,
+        "work_document_id": 5,
+        "work_document_code": "E2E-DOC-20260531170154",
+        "title": "E2E temporary task for delete",
+        "description": "Task visible to staff",
+        "assignee_user_id": 7,
+        "assignee_username": "staff_e2e_20260531170154",
+        "department_id": 4,
+        "department_name": "Công nghệ thông tin",
+        "position_id": 3,
+        "position_name": "Chuyên viên/Cán bộ",
+        "priority": "normal",
+        "status": "pending",
+        "due_date": "2026-06-25",
+        "created_at": "2026-05-31T17:01:56",
+        "updated_at": null
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "delete work item",
+      "method": "DELETE",
+      "path": "/admin/work-items/5",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "message": "Work item deleted"
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "me",
+      "method": "GET",
+      "path": "/auth/me",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "id": 6,
+        "username": "dept_leader_e2e_20260531170154",
+        "email": "dept_leader_e2e_20260531170154@example.local",
+        "role": "user",
+        "is_active": true,
+        "created_at": "2026-05-31T17:01:54",
+        "last_login": "2026-05-31T10:01:55",
+        "auth_source": "local",
+        "department_id": 4,
+        "position_id": 2
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "cannot manage users",
+      "method": "GET",
+      "path": "/admin/users",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Only agency leader can manage business users"
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "history allowed",
+      "method": "GET",
+      "path": "/api/history",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "items": [],
+        "total": 0,
+        "page": 1,
+        "page_size": 20
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "summarize no-op allowed",
+      "method": "POST",
+      "path": "/api/summarize",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "mode": "noop",
+        "message": "Provide either document_id or query"
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "documents denied",
+      "method": "GET",
+      "path": "/api/documents",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Permission denied"
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "notice denied",
+      "method": "GET",
+      "path": "/admin/notice-documents",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Permission denied"
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "ocr denied",
+      "method": "GET",
+      "path": "/ocr/supported-formats",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Permission denied"
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "me",
+      "method": "GET",
+      "path": "/auth/me",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "id": 7,
+        "username": "staff_e2e_20260531170154",
+        "email": "staff_e2e_20260531170154@example.local",
+        "role": "user",
+        "is_active": true,
+        "created_at": "2026-05-31T17:01:55",
+        "last_login": "2026-05-31T10:01:56",
+        "auth_source": "local",
+        "department_id": 4,
+        "position_id": 3
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "cannot manage users",
+      "method": "GET",
+      "path": "/admin/users",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Only agency leader can manage business users"
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "work documents denied",
+      "method": "GET",
+      "path": "/admin/work-documents",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Permission denied"
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "list assigned work items",
+      "method": "GET",
+      "path": "/admin/work-items",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "items": [
+          {
+            "id": 4,
+            "work_document_id": 5,
+            "work_document_code": "E2E-DOC-20260531170154",
+            "title": "E2E assigned staff task",
+            "description": "Task visible to staff",
+            "assignee_user_id": 7,
+            "assignee_username": "staff_e2e_20260531170154",
+            "department_id": 4,
+            "department_name": "Công nghệ thông tin",
+            "position_id": 3,
+            "position_name": "Chuyên viên/Cán bộ",
+            "priority": "normal",
+            "status": "pending",
+            "due_date": "2026-06-25",
+            "created_at": "2026-05-31T17:01:56",
+            "updated_at": null
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "page_size": 20
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "create work item denied",
+      "method": "POST",
+      "path": "/admin/work-items",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Permission denied"
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "api supported formats",
+      "method": "GET",
+      "path": "/api/supported-formats",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "formats": [
+          "pdf",
+          "docx",
+          "txt",
+          "jpg",
+          "jpeg",
+          "png",
+          "bmp",
+          "tif",
+          "tiff"
+        ]
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "summarize no-op allowed",
+      "method": "POST",
+      "path": "/api/summarize",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "mode": "noop",
+        "message": "Provide either document_id or query"
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "documents denied",
+      "method": "GET",
+      "path": "/api/documents",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Permission denied"
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "search denied",
+      "method": "POST",
+      "path": "/api/search",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Permission denied"
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "history denied",
+      "method": "GET",
+      "path": "/api/history",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Permission denied"
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "ocr supported formats",
+      "method": "GET",
+      "path": "/ocr/supported-formats",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "formats": [
+          "pdf",
+          "docx",
+          "txt",
+          "jpg",
+          "jpeg",
+          "png",
+          "bmp",
+          "tif",
+          "tiff"
+        ]
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "ocr analyze text",
+      "method": "POST",
+      "path": "/ocr/analyze-text",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "text": "Cong van so 01 ve ke hoach thang 6.",
+        "classification": {
+          "document_type": "cong_van",
+          "confidence": 1.0,
+          "matched_signals": [
+            "cong van"
+          ]
+        },
+        "structure": {
+          "document_code": null,
+          "summary": null,
+          "chapter_count": 0,
+          "section_count": 0,
+          "article_count": 0,
+          "clause_count": 0
+        },
+        "chunks_count": 35,
+        "chunks": "Cong van so 01 ve ke hoach thang 6."
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "ocr search denied",
+      "method": "POST",
+      "path": "/ocr/search",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Permission denied"
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "notice denied",
+      "method": "GET",
+      "path": "/admin/notice-documents",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Permission denied"
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "update work item denied by service scope",
+      "method": "PUT",
+      "path": "/admin/work-items/4",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Permission denied"
+      }
+    },
+    {
+      "role": "STAFF",
+      "name": "delete work item denied by service scope",
+      "method": "DELETE",
+      "path": "/admin/work-items/4",
+      "expected": 403,
+      "status": 403,
+      "ok": true,
+      "body": {
+        "detail": "Permission denied"
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "cleanup assigned work item",
+      "method": "DELETE",
+      "path": "/admin/work-items/4",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "message": "Work item deleted"
+      }
+    },
+    {
+      "role": "DEPARTMENT_LEADER",
+      "name": "delete work document",
+      "method": "DELETE",
+      "path": "/admin/work-documents/5",
+      "expected": 200,
+      "status": 200,
+      "ok": true,
+      "body": {
+        "message": "Work document deleted"
+      }
+    }
+  ]
+}

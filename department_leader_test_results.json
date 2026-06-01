@@ -1,0 +1,38 @@
+﻿[
+    {
+        "url":  "http://localhost:8001/admin/work-documents",
+        "method":  "GET",
+        "status":  200,
+        "result":  "ok"
+    },
+    {
+        "url":  "http://localhost:8001/admin/work-documents",
+        "method":  "POST",
+        "status":  200,
+        "result":  "ok"
+    },
+    {
+        "url":  "http://localhost:8001/admin/work-items",
+        "method":  "GET",
+        "status":  200,
+        "result":  "ok"
+    },
+    {
+        "url":  "http://localhost:8001/admin/work-items",
+        "method":  "POST",
+        "status":  200,
+        "result":  "ok"
+    },
+    {
+        "url":  "http://localhost:8001/admin/notice-documents",
+        "method":  "GET",
+        "status":  403,
+        "result":  "{\"detail\":\"Permission denied\"}"
+    },
+    {
+        "url":  "http://localhost:8001/admin/notice-documents",
+        "method":  "POST",
+        "status":  403,
+        "result":  "{\"detail\":\"Permission denied\"}"
+    }
+]

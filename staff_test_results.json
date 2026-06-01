@@ -1,0 +1,38 @@
+﻿[
+    {
+        "url":  "http://localhost:8001/admin/work-items",
+        "method":  "GET",
+        "status":  200,
+        "result":  "ok"
+    },
+    {
+        "url":  "http://localhost:8001/admin/work-items",
+        "method":  "POST",
+        "status":  403,
+        "result":  "{\"detail\":\"Permission denied\"}"
+    },
+    {
+        "url":  "http://localhost:8001/api/documents",
+        "method":  "GET",
+        "status":  403,
+        "result":  "{\"detail\":\"Permission denied\"}"
+    },
+    {
+        "url":  "http://localhost:8001/api/search",
+        "method":  "POST",
+        "status":  403,
+        "result":  "{\"detail\":\"Permission denied\"}"
+    },
+    {
+        "url":  "http://localhost:8001/api/history",
+        "method":  "GET",
+        "status":  403,
+        "result":  "{\"detail\":\"Permission denied\"}"
+    },
+    {
+        "url":  "http://localhost:8001/ocr/supported-formats",
+        "method":  "GET",
+        "status":  200,
+        "result":  "ok"
+    }
+]

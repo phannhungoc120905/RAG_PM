@@ -35,9 +35,42 @@ def _clean_mindmap_node(text: str) -> str:
 
 
 def _build_mermaid_mindmap(root_label: str, nodes: list[str]) -> str:
+    """
+    Tạo Mermaid mindmap với multi-level hierarchy (thay vì flat list).
+    Chia nodes thành 3 nhóm chính để sơ đồ không quá xấp xủa.
+    """
     lines = ["mindmap", f"  root(({root_label}))"]
-    for node in nodes:
-        lines.append(f"    {node}")
+    
+    # Chia nodes thành 3 category (thường dùng cho tài liệu hành chính):
+    # - Thông tin chung / Mục đích
+    # - Nội dung chính / Điều khoản
+    # - Thực hiện / Lưu ý
+    
+    if len(nodes) <= 5:
+        # Nếu nodes ít, display flat
+        for node in nodes:
+            lines.append(f"    {node}")
+    else:
+        # Chia thành 3 group có hierarchy
+        group_size = (len(nodes) + 2) // 3
+        
+        # Group 1: Thông tin cơ bản
+        lines.append("    Thông tin")
+        for node in nodes[:group_size]:
+            lines.append(f"      {node}")
+        
+        # Group 2: Nội dung chính
+        if len(nodes) > group_size:
+            lines.append("    Nội dung")
+            for node in nodes[group_size:2*group_size]:
+                lines.append(f"      {node}")
+        
+        # Group 3: Thực hiện / Lưu ý
+        if len(nodes) > 2*group_size:
+            lines.append("    Thực hiện")
+            for node in nodes[2*group_size:]:
+                lines.append(f"      {node}")
+    
     return "\n".join(lines)
 
 
@@ -81,9 +114,25 @@ async def generate_mindmap_for_document(
 
     if use_llm:
         query = (
-            "Phan tich tai lieu nay va tao So do tu duy (Mindmap). "
-            "YEU CAU: Chi tra ve MA MERMAID.JS hop le (bat dau bang 'mindmap'). "
-            "Khong them giai thich."
+            "=== HƯỚNG DẪN TẠO SƠ ĐỒ TƯ DUY (MINDMAP) ===\n\n"
+            "Nhiệm vụ: Phân tích tài liệu và tạo sơ đồ tư duy MERMAID.JS với CẤU TRÚC PHÂN CẤP rõ ràng.\n\n"
+            "ĐỊNH DẠNG YÊU CẦU (bắt đầu bằng 'mindmap'):\n"
+            "mindmap\n"
+            "  root((Tiêu đề tài liệu))\n"
+            "    Nhóm 1: Thông tin cơ bản\n"
+            "      Chi tiết 1\n"
+            "      Chi tiết 2\n"
+            "    Nhóm 2: Nội dung chính\n"
+            "      Điểm 1\n"
+            "      Điểm 2\n"
+            "    Nhóm 3: Thực hiện / Kết luận\n"
+            "      Bước 1\n"
+            "      Bước 2\n\n"
+            "YÊUQCẦU:\n"
+            "1. Tạo tối đa 3 nhóm (level 1), mỗi nhóm tối đa 4 items (level 2)\n"
+            "2. Không thêm level 3 trở lên\n"
+            "3. Văn bản mỗi node ngắn gọn (max 50 ký tự)\n"
+            "4. Chỉ trả về mã MERMAID, không giải thích thêm"
         )
         result = await ocr_service.get_rag_answer(
             query,
@@ -234,7 +283,11 @@ async def upload_document(
             extra={"document_id": document.id, "filename": original_filename, "seconds": round(ocr_elapsed, 3)},
         )
         file_size_mb = len(file_bytes) / (1024 * 1024) if file_bytes else 0
-        should_fix_with_llm = settings.OCR_FIX_WITH_LLM and file_size_mb <= settings.OCR_FIX_WITH_LLM_MAX_FILE_MB
+        image_exts = {"jpg", "jpeg", "png", "bmp", "tif", "tiff"}
+        is_image = (extension in image_exts)
+        should_fix_with_llm = (
+            settings.OCR_FIX_WITH_LLM and not is_image and file_size_mb <= settings.OCR_FIX_WITH_LLM_MAX_FILE_MB
+        )
         if should_fix_with_llm:
             fix_started_at = time.perf_counter()
             result = await ocr_service.fix_processed_result_with_llm(result)

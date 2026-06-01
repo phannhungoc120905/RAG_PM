@@ -14,7 +14,15 @@
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            mermaid.initialize({ startOnLoad: false, theme: 'default' });
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'default',
+                mindmap: {
+                    padding: 20,
+                    maxNodeWidth: 200,
+                },
+                securityLevel: 'loose'
+            });
         });
     </script>
     <style>
@@ -994,7 +1002,7 @@
                             <i class="fas fa-file-pdf"></i>
                         </div>
                         <h2 style="margin-bottom:12px;">Trung tâm Phân tích Tài liệu</h2>
-                        <p style="color:var(--text-muted);margin-bottom:32px;">Tải lên văn bản PDF để bắt đầu tóm tắt,
+                        <p style="color:var(--text-muted);margin-bottom:32px;">Tải lên PDF hoặc ảnh scan để bắt đầu tóm tắt,
                             trích xuất thực thể và trò chuyện thông minh với trợ lý AI.</p>
                         <div style="border:2px dashed var(--border);border-radius:16px;padding:48px;background:#f8fafc;cursor:pointer;transition:0.3s;"
                             id="dropzone" onmouseover="this.style.borderColor='var(--primary)'"
@@ -1002,10 +1010,10 @@
                             onclick="document.getElementById('summarizerFile').click()">
                             <i class="fas fa-cloud-upload-alt"
                                 style="font-size:48px;color:var(--primary);margin-bottom:16px;display:block;"></i>
-                            <p style="font-weight:600;font-size:16px;">Kéo thả PDF vào đây</p>
+                            <p style="font-weight:600;font-size:16px;">Kéo thả PDF hoặc ảnh scan vào đây</p>
                             <p style="font-size:13px;color:var(--text-muted);margin-top:8px;">Dung lượng tối đa: 25MB
                             </p>
-                            <input type="file" id="summarizerFile" style="display:none;" accept=".pdf,.docx,.txt">
+                            <input type="file" id="summarizerFile" style="display:none;" accept=".pdf,.docx,.txt,.jpg,.jpeg,.png,.bmp,.tif,.tiff">
                         </div>
                         <div style="margin-top:32px;display:flex;justify-content:center;gap:16px;">
                             <button class="btn btn-p" style="height:48px;padding:0 32px;"
@@ -1979,18 +1987,19 @@
                 try {
                     const res = await app.api('/api/mindmap', {
                         method: 'POST',
-                        body: JSON.stringify({ document_id: this.currentDocId, use_llm: true, max_nodes: 12 })
+                        body: JSON.stringify({ document_id: this.currentDocId, use_llm: true, max_nodes: 9 })
                     });
                     const data = await res.json();
                     let answer = (data.mermaid || '').replace(/```mermaid/gi, '').replace(/```/gi, '').trim();
 
                     if (!answer.startsWith('mindmap')) {
-                        answer = "mindmap\n  root((Tài liệu))\n    Không thể trích xuất cấu trúc\n      Vui lòng thử lại";
+                        answer = "mindmap\n  root((Tài liệu))\n    Thông tin\n      Không thể trích xuất cấu trúc\n    Lưu ý\n      Vui lòng thử lại";
                     }
 
                     area.innerHTML = '<button class="btn btn-s" onclick="summarizerMod.generateMindmap()" style="margin:0 auto;display:flex;"><i class="fas fa-sync"></i> Tạo lại</button>';
                     renderArea.style.display = 'flex';
-                    renderArea.innerHTML = `<pre class="mermaid">${answer}</pre>`;
+                    renderArea.innerHTML = `<pre class="mermaid" style="background:#f8f9fa;border-radius:8px;padding:16px;">${answer}</pre>`;
+                    mermaid.contentLoaded();
                     mermaid.init(undefined, document.querySelectorAll('.mermaid'));
                 } catch (e) {
                     area.innerHTML = `

@@ -155,7 +155,7 @@
                     <div class="grid cols-3" style="margin-top:18px;">
                         <div class="card">
                             <div class="card-head"><div><h3>Xử lý đầu vào và AI</h3><div class="muted">TX-01, TX-02, TX-03, TX-04, TX-05, TX-06, AI-05, AI-07, AI-08.</div></div><i class="fas fa-brain" style="color:var(--primary)"></i></div>
-                            <div class="muted">Upload PDF/DOCX/TXT, OCR văn bản scan, chuẩn hóa/làm sạch văn bản hành chính, nhận diện Điều/Khoản/căn cứ, phân loại, RAG, tóm tắt tự động và kiểm tra groundedness.</div>
+                            <div class="muted">Upload PDF/DOCX/TXT/ảnh scan, OCR văn bản scan, chuẩn hóa/làm sạch văn bản hành chính, nhận diện Điều/Khoản/căn cứ, phân loại, RAG, tóm tắt tự động và kiểm tra groundedness.</div>
                         </div>
                         <div class="card">
                             <div class="card-head"><div><h3>Lớp ra quyết định</h3><div class="muted">TT-01, TT-02, TT-03, TT-05, TT-07.</div></div><i class="fas fa-scale-balanced" style="color:var(--warning)"></i></div>
@@ -306,7 +306,15 @@
     <script>
         const state = { docs: [], currentDoc: null, currentSummary: null, users: [], departments: [], positions: [], workDocs: [], workItems: [], chart: null };
         if (window.mermaid) {
-            mermaid.initialize({ startOnLoad: false, theme: 'default' });
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'default',
+                mindmap: {
+                    padding: 20,
+                    maxNodeWidth: 200,
+                },
+                securityLevel: 'loose'
+            });
         }
         const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         const fmtDate = (v) => v ? String(v).slice(0, 10) : '-';
@@ -477,6 +485,7 @@
                 document.getElementById('readerText').textContent = d.clean_text || 'Chưa có nội dung OCR.';
                 document.getElementById('summaryEditor').value = state.currentSummary?.summary_text || '';
                 document.getElementById('summaryMeta').textContent = state.currentSummary ? `Version ${state.currentSummary.version_no} · groundedness ${Math.round((state.currentSummary.groundedness_score || 0) * 100)}% · ${state.currentSummary.is_reviewed ? 'đã duyệt' : 'chờ duyệt'}` : 'Chưa có summary';
+                assistant.refreshDocumentPicker();
             },
             async saveSummary() {
                 if (!state.currentSummary) return ui.toast('Chưa có summary để lưu', 'danger');
@@ -637,12 +646,13 @@
                 try {
                     const res = await app.api('/api/mindmap', {
                         method: 'POST',
-                        body: JSON.stringify({ document_id: state.currentDoc.id, use_llm: true, max_nodes: 12 })
+                        body: JSON.stringify({ document_id: state.currentDoc.id, use_llm: true, max_nodes: 9 })
                     });
                     const data = await res.json();
                     const answer = (data.mermaid || '').replace(/```mermaid/gi, '').replace(/```/gi, '').trim();
-                    render.innerHTML = `<pre class="mermaid">${answer}</pre>`;
+                    render.innerHTML = `<pre class="mermaid" style="background:#f8f9fa;border-radius:8px;padding:16px;">${answer}</pre>`;
                     if (window.mermaid) {
+                        mermaid.contentLoaded();
                         mermaid.init(undefined, render.querySelectorAll('.mermaid'));
                     }
                 } catch (e) {

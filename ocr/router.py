@@ -61,7 +61,10 @@ async def extract_text(
         content = await file.read()
         text = ocr_service.process_file(content, file.filename)
         
-        if fix_with_ai:
+        # Skip LLM-based fixes for single-image uploads
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        image_exts = {"jpg", "jpeg", "png", "bmp", "tif", "tiff"}
+        if fix_with_ai and ext not in image_exts:
             text = await ocr_service.fix_ocr_errors_with_llm(text)
             
         return {"filename": file.filename, "text": text}
@@ -81,7 +84,10 @@ async def analyze_document(
     try:
         content = await file.read()
         result = ocr_service.process_document(content, file.filename)
-        if fix_with_ai and getattr(ocr_service, "fix_processed_result_with_llm", None):
+        # Only run LLM-based correction for non-image files
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        image_exts = {"jpg", "jpeg", "png", "bmp", "tif", "tiff"}
+        if fix_with_ai and ext not in image_exts and getattr(ocr_service, "fix_processed_result_with_llm", None):
             result = await ocr_service.fix_processed_result_with_llm(result)
         return {
             "status": "success",
@@ -132,8 +138,10 @@ async def upload_and_process(
         result = ocr_service.process_document(content, file.filename)
         raw_text = ocr_service.process_file(content, file.filename)
         
-        # 2. Fix with AI if requested
-        if fix_with_ai:
+        # 2. Fix with AI if requested (skip for image files)
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        image_exts = {"jpg", "jpeg", "png", "bmp", "tif", "tiff"}
+        if fix_with_ai and ext not in image_exts:
             raw_text = await ocr_service.fix_ocr_errors_with_llm(raw_text)
             
         # 3. Normalize

@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 import numpy as np
+import cv2
 import pytesseract
 from pdf2image import convert_from_bytes
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
@@ -637,7 +638,6 @@ class OCRService:
         except Exception as e:
             logger.error("pypdf_extraction_failed: %s", e)
             return []
-
     def _ocr_pil_image(self, image: Image.Image) -> str:
         """OCR một PIL Image với correction pipeline."""
         return self._ocr_image_with_fallbacks(image, log_prefix="pdf")
@@ -652,6 +652,7 @@ class OCRService:
             ("standard+alt", _ImagePreprocessor.preprocess(image, aggressive=False), list(self.TESSERACT_CONFIGS[1:2])),
             ("aggressive", _ImagePreprocessor.preprocess(image, aggressive=True), [self.TESSERACT_CONFIGS[0]]),
             ("binarize", _ImagePreprocessor.adaptive_binarize(ImageOps.grayscale(image)), [self.TESSERACT_CONFIGS[0]]),
+            ("otsu_cv", Image.fromarray(cv2.threshold(np.array(image.convert('L')), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]), [self.TESSERACT_CONFIGS[0]]),
         ]
 
         best_text = ""
@@ -803,6 +804,18 @@ class OCRService:
 
         return text.strip()
 
+    def preprocess_text(self, text: str) -> str:
+        """Lightweight preprocessing before chunking: NFC normalization and whitespace collapse."""
+        if not text:
+            return ""
+        try:
+            text = unicodedata.normalize("NFC", text)
+        except Exception:
+            pass
+        text = re.sub(r"\s+", " ", text)
+        text = text.replace("  ", " ")
+        return text.strip()
+
     def _restore_paragraph_flow(self, text: str) -> str:
         # Giả lập khôi phục flow đoạn văn
         return text
@@ -936,17 +949,64 @@ class OCRService:
     ) -> Dict[str, Any]:
         return {"should_answer": True, "filtered_chunks": chunks}
 
+    def _is_boilerplate(self, text: str) -> bool:
+        """Detect common header/footer boilerplate (national headers, agency lines, short repetitive legal headers).
+        Uses ascii-folded text and keyword heuristics; robust to OCR noise.
+        """
+        if not text:
+            return True
+        folded = self._ascii_fold(text).lower()
+        # keywords that commonly appear in headers/footers
+        header_keywords = [
+            "uy ban", "nhan dan", "cong hoa", "doc lap", "hanh phuc", "so thuong", "thuong mai",
+            "giay chung nhan", "thanh pho", "so thuong mai", "nguoi ky",
+        ]
+        # check if any keyword appears early in the text
+        prefix = folded[:400]
+        for kw in header_keywords:
+            if kw in prefix:
+                return True
+
+        # lines that are mostly uppercase and short are likely headers
+        lines = text.splitlines()
+        if lines:
+            first = lines[0].strip()
+            if 0 < len(first) <= 120:
+                upper_ratio = sum(1 for ch in first if ch.isupper()) / max(len(first), 1)
+                non_alpha = sum(1 for ch in first if not ch.isalnum() and not ch.isspace())
+                if upper_ratio > 0.45 or non_alpha > len(first) * 0.15:
+                    return True
+
+        return False
+
     def build_grounded_prompt(self, query: str, chunks: List[Dict[str, Any]]) -> str:
-        return f"Context: {chunks}\nQuery: {query}"
+        # Build a structured, instruction-first prompt to encourage summarization (NOT rewriting)
+        context_text = "\n\n--- CONTEXT CHUNKS ---\n\n" + "\n\n---\n\n".join(
+            (c.get("content", "")[:1600]).strip() for c in chunks
+        )
+        instruction = (
+            "=== HƯỚNG DẪN TÓM TẮT VĂN BẢN HÀNH CHÍNH TIẾNG VIỆT ===\n"
+            "QUAN TRỌNG: Nhiệm vụ của bạn là TÓM TẮT LẠI nội dung, KHÔNG phải viết lại từng từ.\n"
+            "TÓM TẮT nghĩa là: rút gọn, đơn giản hóa, lấy ý chính từ văn bản dài.\n\n"
+            "Trả về đúng 4 phần sau (mỗi phần rõ ràng, ngắn gọn, không quá dài):\n"
+            "1️⃣ TÓNG DÀI (1-2 câu, max 30 từ): Ý chính duy nhất của toàn bộ nội dung\n"
+            "2️⃣ ĐIỂM CHÍNH (gạch đầu dòng, 3-8 mục): Những thông tin quan trọng tóm gọn\n"
+            "3️⃣ CHI TIẾT CẦN BIẾT (nếu có): Mã số, ngày tháng, tổ chức, điều khoản chính\n"
+            "4️⃣ HÀNH ĐỘNG/KẾT LUẬN: Điều cần làm hoặc kết luận ngắn gọn\n\n"
+            "HÃY VIẾT NGẮN GỌN, KHÔNG LẶP LẠI NGUYÊN VĂN!"
+        )
+        return f"{instruction}\n\n{context_text}\n\nYÊU CẦU: {query}\n\nCÂU TRẢ LỜI TÓM TẮT:"
 
     def validate_answer_vs_context(self, answer: str, chunks: List[Dict[str, Any]]) -> bool:
         # Reject empty or extremely short answers
         if not answer or len(answer.strip()) < 12:
+            logger.debug("validate_answer_vs_context: rejected for length (%d)", len(answer or ""))
             return False
 
         # Prefer answers that look Vietnamese using the internal viet score
         viet_score = _VietnameseOCRCorrector._viet_score(answer)
         if viet_score < 20:
+            logger.debug("validate_answer_vs_context: rejected for viet_score (%d)", viet_score)
             return False
 
         # Check some lexical overlap with context chunks to ensure groundedness
@@ -956,6 +1016,7 @@ class OCRService:
             overlap = sum(1 for t in answer_tokens if t in chunk_text)
             # require at least a small number of overlapping tokens or a relative overlap
             if overlap < 2 and (len(answer_tokens) == 0 or overlap / max(len(answer_tokens), 1) < 0.05):
+                logger.debug("validate_answer_vs_context: rejected for overlap (overlap=%d tokens=%d)", overlap, len(answer_tokens))
                 return False
         except Exception:
             return False
@@ -963,33 +1024,72 @@ class OCRService:
         return True
 
     def _fallback_rag_answer_from_chunks(self, query: str, chunks: List[Dict[str, Any]]) -> str:
+        """Fallback: khi LLM không available, tạo tóm tắt từ chunks bằng heuristics."""
         if not chunks:
             return "Không tìm thấy nội dung phù hợp trong tài liệu đã chọn."
 
-        best_chunk = max(
-            chunks,
-            key=lambda chunk: len(str(chunk.get("content", "")).strip()),
-        )
-        content = str(best_chunk.get("content", "")).strip()
-        if not content:
+        # Use up to top 3 largest chunks to build a more informative fallback summary
+        sorted_chunks = sorted(chunks, key=lambda c: len(str(c.get("content", "")).strip()), reverse=True)
+        selected = sorted_chunks[:3]
+        
+        # Extract key sentences (first sentence, sentences with keywords, etc.)
+        summary_parts = []
+        for c in selected:
+            content = str(c.get("content", "")).strip()
+            if not content:
+                continue
+            
+            # Normalize whitespace
+            content = re.sub(r'\s+', ' ', content.replace('\n', ' '))
+            
+            # Extract first sentence (usually most informative)
+            sentences = re.split(r'(?<=[.!?])\s+', content)
+            if sentences:
+                first_sent = sentences[0].strip()
+                if len(first_sent) > 15:  # Only if meaningful
+                    summary_parts.append(first_sent)
+            
+            # Also extract 1-2 more sentences with important keywords
+            important_keywords = ['mục', 'khoản', 'điều', 'theo', 'từ ngày', 'đến', 'số', 'ủy ban', 'phòng']
+            for sent in sentences[1:3]:  # Check next 2 sentences
+                sent = sent.strip()
+                if any(kw in sent.lower() for kw in important_keywords) and len(sent) > 15:
+                    summary_parts.append(sent)
+                    break
+        
+        combined = " ".join(summary_parts).strip()
+        
+        if not combined:
+            # Fallback to original approach if no sentences extracted
+            parts: list[str] = []
+            for c in selected:
+                content = str(c.get("content", "")).strip()
+                if not content:
+                    continue
+                snippet = re.sub(r"\s+", " ", content.replace('\n', ' ')).strip()
+                parts.append(snippet[:300].rstrip())
+            combined = " ".join(parts).strip()
+        
+        if not combined:
             return "Không tìm thấy nội dung phù hợp trong tài liệu đã chọn."
-
-        sentences = [s.strip() for s in re.split(r"(?<=[.!?\n])\s+", content) if s.strip()]
-        snippet = sentences[0] if sentences else content
-        snippet = re.sub(r"\s+", " ", snippet).strip()
-        if len(snippet) > 220:
-            snippet = snippet[:217].rstrip() + "..."
-        return snippet
+        
+        # Trim to reasonable length (tóm tắt should be much shorter than original)
+        if len(combined) > 800:
+            combined = combined[:797].rstrip() + "..."
+        
+        return combined
 
     async def get_rag_answer(
         self,
         query: str,
-        top_k: int = 3,
+        top_k: int = 6,
         document_ids: list[int] | None = None,
     ) -> Dict[str, Any]:
         # Normalize và correct query trước khi search
         clean_query = self.normalize_text(query)
-        context_chunks = self.hybrid_search(clean_query, top_k=top_k, document_ids=document_ids)
+        # Retrieve more candidates, then select a few to correct with AI
+        search_top_k = max(top_k, 12)
+        context_chunks = self.hybrid_search(clean_query, top_k=search_top_k, document_ids=document_ids)
         validation = self.validate_groundedness(clean_query, context_chunks)
 
         if not validation["should_answer"]:
@@ -1000,7 +1100,23 @@ class OCRService:
                 "grounded": False,
             }
 
-        prompt = self.build_grounded_prompt(clean_query, validation["filtered_chunks"])
+        # Select a few most relevant/longest chunks and run AI-based spelling/correction on them
+        candidate_chunks = list(validation.get("filtered_chunks", []))
+        # Filter out boilerplate headers/footers
+        filtered = [c for c in candidate_chunks if not self._is_boilerplate(c.get("content", ""))]
+        if not filtered:
+            filtered = candidate_chunks
+        # choose up to 3 largest chunks
+        selected_chunks = sorted(filtered, key=lambda c: len(str(c.get("content", "")).strip()), reverse=True)[:3]
+        # Attempt to correct each chunk using LLM (non-blocking failure-safe)
+        for ch in selected_chunks:
+            try:
+                fixed = await self.fix_ocr_errors_with_llm(ch.get("content", ""))
+                ch["content"] = self.normalize_text(fixed)
+            except Exception:
+                ch["content"] = self.normalize_text(ch.get("content", ""))
+
+        prompt = self.build_grounded_prompt(clean_query, selected_chunks)
         try:
             import httpx
             async with httpx.AsyncClient() as client:
@@ -1012,12 +1128,21 @@ class OCRService:
                         "stream": False,
                         "options": {
                             "num_ctx": settings.OLLAMA_NUM_CTX,
+                            "num_predict": 500,  # Limit output to ~300-400 words (force summarization)
+                            "temperature": 0.3,  # Lower temperature = more concise, focused output
                         },
                     },
                     timeout=settings.OLLAMA_TIMEOUT_SECONDS,
                 )
                 response.raise_for_status()
                 llm_output = response.json().get("response", "").strip()
+                try:
+                    llm_len = len(llm_output)
+                    llm_viet_score = _VietnameseOCRCorrector._viet_score(llm_output)
+                except Exception:
+                    llm_len = 0
+                    llm_viet_score = 0
+                logger.info("rag_llm_called url=%s model=%s resp_len=%d viet_score=%d", self.llm_url, self.llm_model, llm_len, llm_viet_score)
         except Exception as exc:
             logger.warning("rag_llm_unavailable: %s", exc)
             llm_output = self._fallback_rag_answer_from_chunks(clean_query, validation["filtered_chunks"])
@@ -1279,8 +1404,9 @@ class OCRService:
 
         chunks: list[dict[str, Any]] = []
         for page in cleaned_pages:
+            page_text = self.preprocess_text(page.get("text", ""))
             chunks.extend(self.chunk_text(
-                page["text"],
+                page_text,
                 page_number=page["page_number"],
                 page_label=self._format_page_label(page["page_number"]),
             ))
@@ -1364,9 +1490,12 @@ VĂN BẢN ĐÃ SỬA:"""
         for page in pages:
             page_text = page.get("text", "")
             fixed_text = await self.fix_ocr_errors_with_llm(page_text)
+            # normalize and lightly preprocess before storing
+            normalized = self.normalize_text(fixed_text)
+            normalized = self.preprocess_text(normalized)
             fixed_pages.append({
                 **page,
-                "text": self.normalize_text(fixed_text),
+                "text": normalized,
             })
 
         clean_body_text = "\n\n".join(p["text"] for p in fixed_pages if p["text"]).strip()

@@ -1,0 +1,18 @@
+{
+  "leader": {
+    "username": "dept_leader_e2e_20260531170221",
+    "email": "dept_leader_e2e_20260531170221@example.local",
+    "password": "Test@123456",
+    "department_id": 4,
+    "position_id": 2,
+    "is_active": true
+  },
+  "staff": {
+    "username": "staff_e2e_20260531170221",
+    "email": "staff_e2e_20260531170221@example.local",
+    "password": "Test@123456",
+    "department_id": 4,
+    "position_id": 3,
+    "is_active": true
+  }
+}
